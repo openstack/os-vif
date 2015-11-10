@@ -50,9 +50,9 @@ class TestOSVIF(base.TestCase):
             os_vif.initialize()
             instance = mock.MagicMock()
             info = objects.instance_info.InstanceInfo()
-            vif = objects.vif.VIF(id='uniq',
-                                  plugin='foobar',
-                                  instance_info=info)
+            vif = objects.vif.VIFBridge(id='uniq',
+                                        plugin='foobar',
+                                        instance_info=info)
             os_vif.plug(vif, instance)
             plugin.plug.assert_called_once_with(vif, instance)
 
@@ -62,8 +62,8 @@ class TestOSVIF(base.TestCase):
                         return_value={'foobar': plugin}):
             os_vif.initialize()
             info = objects.instance_info.InstanceInfo()
-            vif = objects.vif.VIF(id='uniq',
-                                  plugin='foobar',
-                                  instance_info=info)
+            vif = objects.vif.VIFBridge(id='uniq',
+                                        plugin='foobar',
+                                        instance_info=info)
             os_vif.unplug(vif)
             plugin.unplug.assert_called_once_with(vif)

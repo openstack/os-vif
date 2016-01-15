@@ -58,7 +58,6 @@ class PluginBase(object):
 
         :returns: A `os_vif.plugin.PluginInfo` instance
         """
-        raise NotImplementedError("describe")
 
     @abc.abstractmethod
     def plug(self, instance, vif):
@@ -71,7 +70,6 @@ class PluginBase(object):
                 this method should let `processutils.ProcessExecutionError`
                 bubble up.
         """
-        raise NotImplementedError('plug')
 
     @abc.abstractmethod
     def unplug(self, vif):
@@ -83,4 +81,3 @@ class PluginBase(object):
                 this method should let `processutils.ProcessExecutionError`
                 bubble up.
         """
-        raise NotImplementedError('unplug')

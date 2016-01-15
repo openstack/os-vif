@@ -43,6 +43,7 @@ VIF_DETAILS_VHOSTUSER_MODE = 'vhostuser_mode'
 _NIC_NAME_LEN = 14
 
 
+@base.VersionedObjectRegistry.register
 class VIF(base.VersionedObject):
     """Represents a virtual network interface."""
     # Version 1.0: Initial version

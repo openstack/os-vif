@@ -16,6 +16,7 @@ from oslo_versionedobjects import base
 from oslo_versionedobjects import fields
 
 
+@base.VersionedObjectRegistry.register
 class Subnet(base.VersionedObject):
     """Represents a subnet."""
     # Version 1.0: Initial version
@@ -48,7 +49,8 @@ class Subnet(base.VersionedObject):
         return netaddr.IPNetwork(self.cidr)
 
 
-class SubnetList(base.ObjectListBase):
+@base.VersionedObjectRegistry.register
+class SubnetList(base.VersionedObject, base.ObjectListBase):
     # Version 1.0: Initial version
     VERSION = '1.0'
 

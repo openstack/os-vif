@@ -62,3 +62,7 @@ class VIFVHostUserMode(fields.Enum):
 
 class VIFVHostUserModeField(fields.BaseEnumField):
     AUTO_TYPE = VIFVHostUserMode()
+
+
+class ListOfIPAddressField(fields.AutoTypedField):
+    AUTO_TYPE = fields.List(fields.IPAddress())

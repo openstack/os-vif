@@ -12,7 +12,9 @@
 
 
 def register_all():
+    __import__('os_vif.objects.fixed_ip')
     __import__('os_vif.objects.instance_info')
     __import__('os_vif.objects.network')
+    __import__('os_vif.objects.route')
     __import__('os_vif.objects.subnet')
     __import__('os_vif.objects.vif')

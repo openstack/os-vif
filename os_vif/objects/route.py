@@ -13,30 +13,25 @@
 from oslo_versionedobjects import base
 from oslo_versionedobjects import fields
 
-from os_vif.objects import fields as osv_fields
-
 
 @base.VersionedObjectRegistry.register
-class Subnet(base.VersionedObject):
-    """Represents a subnet."""
+class Route(base.VersionedObject):
+    """Represents a route."""
     # Version 1.0: Initial version
     VERSION = '1.0'
 
     fields = {
         'cidr': fields.IPNetworkField(),
-        'dns': osv_fields.ListOfIPAddressField(),
         'gateway': fields.IPAddressField(),
-        'ips': fields.ObjectField("FixedIPList"),
-        'routes': fields.ObjectField("RouteList"),
-        'dhcp_server': fields.IPAddressField(),
+        'interface': fields.StringField(),
     }
 
 
 @base.VersionedObjectRegistry.register
-class SubnetList(base.VersionedObject, base.ObjectListBase):
+class RouteList(base.VersionedObject, base.ObjectListBase):
     # Version 1.0: Initial version
     VERSION = '1.0'
 
     fields = {
-        'objects': fields.ListOfObjectsField('Subnet'),
+        'objects': fields.ListOfObjectsField('Route'),
     }

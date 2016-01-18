@@ -13,6 +13,8 @@
 from oslo_versionedobjects import base
 from oslo_versionedobjects import fields
 
+from os_vif import objects
+
 
 @base.VersionedObjectRegistry.register
 class Network(base.VersionedObject):
@@ -24,7 +26,7 @@ class Network(base.VersionedObject):
         'id': fields.UUIDField(),
         'bridge': fields.StringField(),
         'label': fields.StringField(),
-        'subnets': fields.ObjectField('SubnetList', nullable=True),
+        'subnets': fields.ObjectField('SubnetList'),
         'multi_host': fields.BooleanField(),
         'should_provide_bridge': fields.BooleanField(),
         'should_provide_vlan': fields.BooleanField(),
@@ -39,7 +41,7 @@ class Network(base.VersionedObject):
     }
 
     def __init__(self, **kwargs):
-        kwargs.setdefault('subnets', [])
+        kwargs.setdefault('subnets', objects.subnet.SubnetList(objects=[]))
         kwargs.setdefault('multi_host', False)
         kwargs.setdefault('should_provide_bridge', False)
         kwargs.setdefault('should_provide_vlan', False)

@@ -26,9 +26,6 @@ class VIFBase(base.VersionedObject, base.ComparableVersionedObject):
         # Unique identifier of the VIF port
         'id': fields.UUIDField(),
 
-        # Metadata about the instance using the VIF
-        'instance_info': fields.ObjectField('InstanceInfo'),
-
         # The guest MAC address
         'address': fields.MACAddressField(nullable=True),
 

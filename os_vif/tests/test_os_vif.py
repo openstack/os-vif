@@ -48,13 +48,11 @@ class TestOSVIF(base.TestCase):
         with mock.patch('stevedore.extension.ExtensionManager',
                         return_value={'foobar': plugin}):
             os_vif.initialize()
-            instance = mock.MagicMock()
             info = objects.instance_info.InstanceInfo()
             vif = objects.vif.VIFBridge(id='uniq',
-                                        plugin='foobar',
-                                        instance_info=info)
-            os_vif.plug(vif, instance)
-            plugin.plug.assert_called_once_with(vif, instance)
+                                        plugin='foobar')
+            os_vif.plug(vif, info)
+            plugin.plug.assert_called_once_with(vif, info)
 
     def test_unplug(self):
         plugin = mock.MagicMock()
@@ -63,7 +61,6 @@ class TestOSVIF(base.TestCase):
             os_vif.initialize()
             info = objects.instance_info.InstanceInfo()
             vif = objects.vif.VIFBridge(id='uniq',
-                                        plugin='foobar',
-                                        instance_info=info)
-            os_vif.unplug(vif)
-            plugin.unplug.assert_called_once_with(vif)
+                                        plugin='foobar')
+            os_vif.unplug(vif, info)
+            plugin.unplug.assert_called_once_with(vif, info)

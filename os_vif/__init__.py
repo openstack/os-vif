@@ -67,12 +67,12 @@ def initialize(reset=False, **config):
         os_vif.objects.register_all()
 
 
-def plug(vif, instance):
+def plug(vif, instance_info):
     """
     Given a model of a VIF, perform operations to plug the VIF properly.
 
     :param vif: `os_vif.objects.VIF` object.
-    :param instance: `nova.objects.Instance` object.
+    :param instance_info: `os_vif.objects.InstanceInfo` object.
     :raises `exception.LibraryNotInitialized` if the user of the library
             did not call os_vif.initialize(**config) before trying to
             plug a VIF.
@@ -92,7 +92,7 @@ def plug(vif, instance):
 
     try:
         LOG.debug("Plugging vif %s", vif)
-        plugin.plug(vif, instance)
+        plugin.plug(vif, instance_info)
         LOG.info(_LI("Successfully plugged vif %s"), vif)
     except Exception as err:
         LOG.error(_LE("Failed to plug vif %(vif)s. Got error: %(err)s"),
@@ -100,11 +100,12 @@ def plug(vif, instance):
         raise os_vif.exception.PlugException(vif=vif, err=err)
 
 
-def unplug(vif):
+def unplug(vif, instance_info):
     """
     Given a model of a VIF, perform operations to unplug the VIF properly.
 
     :param vif: `os_vif.objects.VIF` object.
+    :param instance_info: `os_vif.objects.InstanceInfo` object.
     :raises `exception.LibraryNotInitialized` if the user of the library
             did not call os_vif.initialize(**config) before trying to
             plug a VIF.
@@ -124,7 +125,7 @@ def unplug(vif):
 
     try:
         LOG.debug("Unplugging vif %s", vif)
-        plugin.unplug(vif)
+        plugin.unplug(vif, instance_info)
         LOG.info(_LI("Successfully unplugged vif %s"), vif)
     except Exception as err:
         LOG.error(_LE("Failed to unplug vif %(vif)s. Got error: %(err)s"),

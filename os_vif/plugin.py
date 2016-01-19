@@ -71,23 +71,24 @@ class PluginBase(object):
         """
 
     @abc.abstractmethod
-    def plug(self, instance, vif):
+    def plug(self, vif, instance_info):
         """
         Given a model of a VIF, perform operations to plug the VIF properly.
 
-        :param instance: `nova.objects.Instance` object.
         :param vif: `os_vif.objects.VIF` object.
+        :param instance_info: `os_vif.objects.InstanceInfo` object.
         :raises `processutils.ProcessExecutionError`. Plugins implementing
                 this method should let `processutils.ProcessExecutionError`
                 bubble up.
         """
 
     @abc.abstractmethod
-    def unplug(self, vif):
+    def unplug(self, vif, instance_info):
         """
         Given a model of a VIF, perform operations to unplug the VIF properly.
 
         :param vif: `os_vif.objects.VIF` object.
+        :param instance_info: `os_vif.objects.InstanceInfo` object.
         :raises `processutils.ProcessExecutionError`. Plugins implementing
                 this method should let `processutils.ProcessExecutionError`
                 bubble up.

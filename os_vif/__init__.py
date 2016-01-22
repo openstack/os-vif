@@ -10,7 +10,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from oslo_concurrency import processutils
 from oslo_log import log as logging
 from stevedore import extension
 
@@ -95,7 +94,7 @@ def plug(vif, instance):
         LOG.debug("Plugging vif %s", vif)
         plugin.plug(vif, instance)
         LOG.info(_LI("Successfully plugged vif %s"), vif)
-    except processutils.ProcessExecutionError as err:
+    except Exception as err:
         LOG.error(_LE("Failed to plug vif %(vif)s. Got error: %(err)s"),
                   vif=vif, err=err)
         raise os_vif.exception.PlugException(vif=vif, err=err)
@@ -127,7 +126,7 @@ def unplug(vif):
         LOG.debug("Unplugging vif %s", vif)
         plugin.unplug(vif)
         LOG.info(_LI("Successfully unplugged vif %s"), vif)
-    except processutils.ProcessExecutionError as err:
+    except Exception as err:
         LOG.error(_LE("Failed to unplug vif %(vif)s. Got error: %(err)s"),
                   vif=vif, err=err)
         raise os_vif.exception.UnplugException(vif=vif, err=err)

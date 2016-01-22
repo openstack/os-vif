@@ -14,6 +14,7 @@ from oslo_versionedobjects import base
 from oslo_versionedobjects import fields
 
 
+@base.VersionedObjectRegistry.register
 class Network(base.VersionedObject):
     """Represents a network."""
     # Version 1.0: Initial version

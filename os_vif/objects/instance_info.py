@@ -14,6 +14,7 @@ from oslo_versionedobjects import base
 from oslo_versionedobjects import fields
 
 
+@base.VersionedObjectRegistry.register
 class InstanceInfo(base.VersionedObject):
     """Represents important information about a Nova instance."""
     # Version 1.0: Initial version

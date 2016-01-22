@@ -41,7 +41,10 @@ argument of type `os_vif.objects.VIF`::
 
     instance_uuid = 'd7a730ca-3c28-49c3-8f26-4662b909fe8a'
     instance = nova_objects.Instance.get_by_uuid(instance_uuid)
-    instance_info = vif_objects.InstanceInfo.from_nova_instance(instance)
+    instance_info = vif_objects.InstanceInfo(
+        uuid=instance.uuid,
+        name=instance.name,
+        project_id=instance.project_id)
 
     subnet = vif_objects.Subnet(cidr='192.168.1.0/24')
     subnets = vif_objects.SubnetList([subnet])

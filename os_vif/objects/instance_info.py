@@ -29,9 +29,3 @@ class InstanceInfo(base.VersionedObject):
         # The project/tenant ID that owns the instance
         'project_id': fields.StringField(),
     }
-
-    @classmethod
-    def from_nova_instance(cls, instance):
-        return cls(uuid=instance.uuid,
-                   name=instance.name,
-                   project_id=instance.project_id)

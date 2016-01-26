@@ -15,7 +15,20 @@ import mock
 import os_vif
 from os_vif import exception
 from os_vif import objects
+from os_vif import plugin
 from os_vif.tests import base
+
+
+class DemoPlugin(plugin.PluginBase):
+
+    def describe(self):
+        pass
+
+    def plug(self, vif, instance_info):
+        pass
+
+    def unplug(self, vif, instance_info):
+        pass
 
 
 class TestOSVIF(base.TestCase):
@@ -43,24 +56,26 @@ class TestOSVIF(base.TestCase):
             exception.LibraryNotInitialized,
             os_vif.plug, None, None)
 
-    def test_plug(self):
-        plugin = mock.MagicMock()
+    @mock.patch.object(DemoPlugin, "plug")
+    def test_plug(self, mock_plug):
+        plg = DemoPlugin()
         with mock.patch('stevedore.extension.ExtensionManager',
-                        return_value={'foobar': plugin}):
+                        return_value={'foobar': plg}):
             os_vif.initialize()
             info = objects.instance_info.InstanceInfo()
             vif = objects.vif.VIFBridge(id='uniq',
                                         plugin='foobar')
             os_vif.plug(vif, info)
-            plugin.plug.assert_called_once_with(vif, info)
+            mock_plug.assert_called_once_with(vif, info)
 
-    def test_unplug(self):
-        plugin = mock.MagicMock()
+    @mock.patch.object(DemoPlugin, "unplug")
+    def test_unplug(self, mock_unplug):
+        plg = DemoPlugin()
         with mock.patch('stevedore.extension.ExtensionManager',
-                        return_value={'foobar': plugin}):
+                        return_value={'foobar': plg}):
             os_vif.initialize()
             info = objects.instance_info.InstanceInfo()
             vif = objects.vif.VIFBridge(id='uniq',
                                         plugin='foobar')
             os_vif.unplug(vif, info)
-            plugin.unplug.assert_called_once_with(vif, info)
+            mock_unplug.assert_called_once_with(vif, info)

@@ -61,7 +61,7 @@ class PluginBase(object):
         """
         self.config = config
 
-    @abs.abstractmethod
+    @abc.abstractmethod
     def describe(self):
         """
         Return an object that describes the plugin's supported vif types and

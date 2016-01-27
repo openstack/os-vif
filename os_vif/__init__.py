@@ -86,7 +86,7 @@ def plug(vif, instance_info):
 
     plugin_name = vif.plugin
     try:
-        plugin = _EXT_MANAGER[plugin_name]
+        plugin = _EXT_MANAGER[plugin_name].obj
     except KeyError:
         raise os_vif.exception.NoMatchingPlugin(plugin_name=plugin_name)
 
@@ -119,7 +119,7 @@ def unplug(vif, instance_info):
 
     plugin_name = vif.plugin
     try:
-        plugin = _EXT_MANAGER[plugin_name]
+        plugin = _EXT_MANAGER[plugin_name].obj
     except KeyError:
         raise os_vif.exception.NoMatchingPlugin(plugin_name=plugin_name)
 

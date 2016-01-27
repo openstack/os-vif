@@ -11,6 +11,7 @@
 # under the License.
 
 import mock
+from stevedore import extension
 
 import os_vif
 from os_vif import exception
@@ -58,7 +59,10 @@ class TestOSVIF(base.TestCase):
 
     @mock.patch.object(DemoPlugin, "plug")
     def test_plug(self, mock_plug):
-        plg = DemoPlugin()
+        plg = extension.Extension(name="demo",
+                                  entry_point="os-vif",
+                                  plugin="DemoPlugin",
+                                  obj=DemoPlugin())
         with mock.patch('stevedore.extension.ExtensionManager',
                         return_value={'foobar': plg}):
             os_vif.initialize()
@@ -70,7 +74,10 @@ class TestOSVIF(base.TestCase):
 
     @mock.patch.object(DemoPlugin, "unplug")
     def test_unplug(self, mock_unplug):
-        plg = DemoPlugin()
+        plg = extension.Extension(name="demo",
+                                  entry_point="os-vif",
+                                  plugin="DemoPlugin",
+                                  obj=DemoPlugin())
         with mock.patch('stevedore.extension.ExtensionManager',
                         return_value={'foobar': plg}):
             os_vif.initialize()

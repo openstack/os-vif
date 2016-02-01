@@ -11,8 +11,11 @@
 #    under the License.
 
 import abc
-
+from oslo_config import cfg
 import six
+
+
+CONF = cfg.CONF
 
 
 class PluginVIFInfo(object):
@@ -54,10 +57,15 @@ class PluginInfo(object):
 class PluginBase(object):
     """Base class for all VIF plugins."""
 
-    def __init__(self, **config):
+    # Override to provide a tuple of oslo_config.Opt instances for
+    # the plugin config parameters
+    CONFIG_OPTS = ()
+
+    def __init__(self, config):
         """
-        Sets up the plugin using supplied kwargs representing configuration
-        options.
+        Initialize the plugin object with the provided config
+
+        :param config: `oslo_config.ConfigOpts.GroupAttr` instance:
         """
         self.config = config
 
@@ -93,3 +101,24 @@ class PluginBase(object):
                 this method should let `processutils.ProcessExecutionError`
                 bubble up.
         """
+
+    @classmethod
+    def load(cls, plugin_name):
+        """
+        Load a plugin, registering its configuration options
+
+        :param plugin_name: the name of the plugin extension
+
+        :returns: an initialized instance of the class
+        """
+        cfg_group_name = "os_vif_" + plugin_name
+        cfg_opts = getattr(cls, "CONFIG_OPTS")
+        cfg_vals = None
+        if cfg_opts and len(cfg_opts) > 0:
+            cfg_group = cfg.OptGroup(
+                cfg_group_name,
+                "os-vif plugin %s options" % plugin_name)
+            CONF.register_opts(cfg_opts, group=cfg_group)
+
+            cfg_vals = getattr(CONF, cfg_group_name)
+        return cls(cfg_vals)

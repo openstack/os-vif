@@ -11,6 +11,7 @@
 # under the License.
 
 import mock
+from oslo_config import cfg
 from stevedore import extension
 
 import os_vif
@@ -22,13 +23,34 @@ from os_vif.tests import base
 
 class DemoPlugin(plugin.PluginBase):
 
+    CONFIG_OPTS = (
+        cfg.BoolOpt("make_it_work",
+                    default=False,
+                    help="Make everything work correctly by setting this"),
+        cfg.IntOpt("sleep_time",
+                   default=0,
+                   help="How long to artifically sleep")
+    )
+
     def describe(self):
         pass
 
-    def plug(self, vif, instance_info):
+    def plug(self, vif, instance_info, config):
         pass
 
-    def unplug(self, vif, instance_info):
+    def unplug(self, vif, instance_info, config):
+        pass
+
+
+class DemoPluginNoConfig(plugin.PluginBase):
+
+    def describe(self):
+        pass
+
+    def plug(self, vif, instance_info, config):
+        pass
+
+    def unplug(self, vif, instance_info, config):
         pass
 
 
@@ -46,8 +68,24 @@ class TestOSVIF(base.TestCase):
         os_vif.initialize()
         os_vif.initialize()
         mock_EM.assert_called_once_with(
-            invoke_args={}, invoke_on_load=True, namespace='os_vif')
+            invoke_on_load=False, namespace='os_vif')
         self.assertIsNotNone(os_vif._EXT_MANAGER)
+
+    def test_load_plugin(self):
+        obj = DemoPlugin.load("demo")
+        self.assertTrue(hasattr(cfg.CONF, "os_vif_demo"))
+        self.assertTrue(hasattr(cfg.CONF.os_vif_demo, "make_it_work"))
+        self.assertTrue(hasattr(cfg.CONF.os_vif_demo, "sleep_time"))
+        self.assertEqual(cfg.CONF.os_vif_demo.make_it_work, False)
+        self.assertEqual(cfg.CONF.os_vif_demo.sleep_time, 0)
+
+        self.assertEqual(obj.config, cfg.CONF.os_vif_demo)
+
+    def test_load_plugin_no_config(self):
+        obj = DemoPluginNoConfig.load("demonocfg")
+        self.assertFalse(hasattr(cfg.CONF, "os_vif_demonocfg"))
+
+        self.assertIsNone(obj.config)
 
     def test_plug_not_initialized(self):
         self.assertRaises(
@@ -63,8 +101,8 @@ class TestOSVIF(base.TestCase):
     def test_plug(self, mock_plug):
         plg = extension.Extension(name="demo",
                                   entry_point="os-vif",
-                                  plugin="DemoPlugin",
-                                  obj=DemoPlugin())
+                                  plugin=DemoPlugin,
+                                  obj=None)
         with mock.patch('stevedore.extension.ExtensionManager',
                         return_value={'foobar': plg}):
             os_vif.initialize()
@@ -78,8 +116,8 @@ class TestOSVIF(base.TestCase):
     def test_unplug(self, mock_unplug):
         plg = extension.Extension(name="demo",
                                   entry_point="os-vif",
-                                  plugin="DemoPlugin",
-                                  obj=DemoPlugin())
+                                  plugin=DemoPlugin,
+                                  obj=None)
         with mock.patch('stevedore.extension.ExtensionManager',
                         return_value={'foobar': plg}):
             os_vif.initialize()

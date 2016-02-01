@@ -14,19 +14,12 @@ Usage
 -----
 
 The interface to the `os_vif` library is very simple. To begin using the
-library, first call the `os_vif.initialize()` function, supplying a set of
-keyword arguments for configuration options::
+library, first call the `os_vif.initialize()` function. This will load
+all installed plugins and register the object model::
 
     import os_vif
 
-    os_vif.initialize(libvirt_virt_type='kvm',
-                      network_device_mtu=1500,
-                      vlan_interface='eth1',
-                      use_ipv6=False,
-                      iptables_top_regex='',
-                      iptables_bottom_regex='',
-                      iptables_drop_action='DROP',
-                      forward_bridge_interface=['all'])
+    os_vif.initialize()
 
 Once the `os_vif` library is initialized, there are only two other library
 functions: `os_vif.plug()` and `os_vif.unplug()`. Both methods accept a single

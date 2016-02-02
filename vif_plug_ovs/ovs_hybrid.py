@@ -17,6 +17,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import os.path
 from os_vif import objects
 from os_vif import plugin
 from oslo_config import cfg
@@ -93,6 +94,14 @@ class OvsHybridPlugin(plugin.PluginBase):
             processutils.execute('tee', syspath, process_input='0',
                                  check_exit_code=[0, 1],
                                  run_as_root=True)
+            disv6 = ('/proc/sys/net/ipv6/conf/%s/disable_ipv6' %
+                     vif.bridge_name)
+            if os.path.exists(disv6):
+                processutils.execute('tee',
+                                     disv6,
+                                     process_input='1',
+                                     run_as_root=True,
+                                     check_exit_code=[0, 1])
 
         if not linux_net.device_exists(v2_name):
             linux_net.create_veth_pair(v1_name, v2_name,

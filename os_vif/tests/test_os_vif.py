@@ -40,12 +40,14 @@ class TestOSVIF(base.TestCase):
 
     @mock.patch('stevedore.extension.ExtensionManager')
     def test_initialize(self, mock_EM):
-        self.assertEqual(None, os_vif._EXT_MANAGER)
+        self.assertIsNone(os_vif._EXT_MANAGER)
+        # Note: the duplicate call for initialize is to validate
+        # that the extension manager is only initialized once
         os_vif.initialize()
         os_vif.initialize()
         mock_EM.assert_called_once_with(
             invoke_args={}, invoke_on_load=True, namespace='os_vif')
-        self.assertNotEqual(None, os_vif._EXT_MANAGER)
+        self.assertIsNotNone(os_vif._EXT_MANAGER)
 
     def test_plug_not_initialized(self):
         self.assertRaises(

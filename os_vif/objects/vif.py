@@ -132,6 +132,13 @@ class VIFHostDevice(VIFBase):
     VERSION = '1.0'
 
     fields = {
+
+        # The type of the host device.
+        # Valid values are ethernet and generic.
+        # Ethernet is <interface type='hostdev'>
+        # Generic is <hostdev mode='subsystem' type='pci'>
+        'dev_type': osv_fields.VIFVIFHostDeviceDevTypeField(),
+
         # The PCI address of the host device
         'dev_address': osv_fields.PCIAddressField(),
 

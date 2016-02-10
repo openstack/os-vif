@@ -79,13 +79,13 @@ class TestVIFS(base.TestCase):
 
     def test_vif_host_dev_plain(self):
         self._test_vif(objects.vif.VIFHostDevice,
-                       dev_address="02:24:22.3",
+                       dev_address="0002:24:12.3",
                        vlan=8)
 
     def test_vif_host_dev_vepa_qbh(self):
         prof = objects.vif.VIFPortProfile8021Qbh(
             profile_id="fishfood")
         self._test_vif(objects.vif.VIFHostDevice,
-                       dev_address="02:24:22.3",
+                       dev_address="0002:24:12.3",
                        vlan=8,
                        port_profile=prof)

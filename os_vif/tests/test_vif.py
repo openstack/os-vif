@@ -10,6 +10,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from oslo_versionedobjects import base as ovo_base
+from oslo_versionedobjects import fixture
+
 import os_vif
 from os_vif import objects
 from os_vif.tests import base
@@ -91,3 +94,42 @@ class TestVIFS(base.TestCase):
                        dev_address="0002:24:12.3",
                        vlan=8,
                        port_profile=prof)
+
+object_data = {
+    'FixedIP': '1.0-d1a0ec7e7b6ce021a784c54d44cce009',
+    'FixedIPList': '1.0-15ecf022a68ddbb8c2a6739cfc9f8f5e',
+    'InstanceInfo': '1.0-84104d3435046b1a282ac8265ec2a976',
+    'Network': '1.0-8016e04215203cd86a2b9578ed75afcd',
+    'Route': '1.0-5ca049cb82c4d4ec5edb1b839c1429c7',
+    'RouteList': '1.0-15ecf022a68ddbb8c2a6739cfc9f8f5e',
+    'Subnet': '1.0-6a8c192ef7492120d1a5e0fd08e44272',
+    'SubnetList': '1.0-15ecf022a68ddbb8c2a6739cfc9f8f5e',
+    'VIFBase': '1.0-4a5a8881dc999752cb050dd443458b6a',
+    'VIFBridge': '1.0-e78d355f3505361fafbf0797ffad484a',
+    'VIFDirect': '1.0-42a22b74778e6c59d8c04e9ef508ff80',
+    'VIFGeneric': '1.0-c72e637ed620f0135ea50a9409a3f389',
+    'VIFHostDevice': '1.0-7289a0eb0a69aeb5d821a0d006e3e444',
+    'VIFOpenVSwitch': '1.0-e78d355f3505361fafbf0797ffad484a',
+    'VIFPortProfile8021Qbg': '1.0-167f305f6e982b9368cc38763815d429',
+    'VIFPortProfile8021Qbh': '1.0-4b945f07d2666ab00a48d1dc225669b1',
+    'VIFPortProfileBase': '1.0-77509ea1ea0dd750d5864b9bd87d3f9d',
+    'VIFPortProfileOpenVSwitch': '1.0-533126c2a16b1a40ddf38c33e7b1f1c5',
+    'VIFVHostUser': '1.0-374a7599acffa2a1c7290b0812ea0675',
+}
+
+
+class TestObjectVersions(base.TestCase):
+    def setUp(self):
+        super(TestObjectVersions, self).setUp()
+
+        os_vif.objects.register_all()
+
+    def test_versions(self):
+        checker = fixture.ObjectVersionChecker(
+            ovo_base.VersionedObjectRegistry.obj_classes())
+
+        expected, actual = checker.test_hashes(object_data)
+        self.assertEqual(expected, actual,
+                         'Some objects have changed; please make sure the '
+                         'versions have been bumped, and then update their '
+                         'hashes here.')

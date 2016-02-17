@@ -13,9 +13,11 @@
 from oslo_versionedobjects import base
 from oslo_versionedobjects import fields
 
+from os_vif.objects import base as osv_base
+
 
 @base.VersionedObjectRegistry.register
-class Route(base.VersionedObject):
+class Route(osv_base.VersionedObject):
     """Represents a route."""
     # Version 1.0: Initial version
     VERSION = '1.0'
@@ -28,7 +30,7 @@ class Route(base.VersionedObject):
 
 
 @base.VersionedObjectRegistry.register
-class RouteList(base.VersionedObject, base.ObjectListBase):
+class RouteList(osv_base.VersionedObject, base.ObjectListBase):
     # Version 1.0: Initial version
     VERSION = '1.0'
 

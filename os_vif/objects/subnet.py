@@ -13,11 +13,12 @@
 from oslo_versionedobjects import base
 from oslo_versionedobjects import fields
 
+from os_vif.objects import base as osv_base
 from os_vif.objects import fields as osv_fields
 
 
 @base.VersionedObjectRegistry.register
-class Subnet(base.VersionedObject):
+class Subnet(osv_base.VersionedObject):
     """Represents a subnet."""
     # Version 1.0: Initial version
     VERSION = '1.0'
@@ -33,7 +34,7 @@ class Subnet(base.VersionedObject):
 
 
 @base.VersionedObjectRegistry.register
-class SubnetList(base.VersionedObject, base.ObjectListBase):
+class SubnetList(osv_base.VersionedObject, base.ObjectListBase):
     # Version 1.0: Initial version
     VERSION = '1.0'
 

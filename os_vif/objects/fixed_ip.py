@@ -13,11 +13,12 @@
 from oslo_versionedobjects import base
 from oslo_versionedobjects import fields
 
+from os_vif.objects import base as osv_base
 from os_vif.objects import fields as osv_fields
 
 
 @base.VersionedObjectRegistry.register
-class FixedIP(base.VersionedObject):
+class FixedIP(osv_base.VersionedObject):
     """Represents a fixed IP."""
     # Version 1.0: Initial version
     VERSION = '1.0'
@@ -29,7 +30,7 @@ class FixedIP(base.VersionedObject):
 
 
 @base.VersionedObjectRegistry.register
-class FixedIPList(base.VersionedObject, base.ObjectListBase):
+class FixedIPList(osv_base.VersionedObject, base.ObjectListBase):
     # Version 1.0: Initial version
     VERSION = '1.0'
 

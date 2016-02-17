@@ -13,11 +13,12 @@
 from oslo_versionedobjects import base
 from oslo_versionedobjects import fields
 
+from os_vif.objects import base as osv_base
 from os_vif.objects import fields as osv_fields
 
 
 @base.VersionedObjectRegistry.register
-class VIFBase(base.VersionedObject, base.ComparableVersionedObject):
+class VIFBase(osv_base.VersionedObject, base.ComparableVersionedObject):
     """Represents a virtual network interface."""
     # Version 1.0: Initial version
     VERSION = '1.0'
@@ -148,7 +149,8 @@ class VIFHostDevice(VIFBase):
 
 
 @base.VersionedObjectRegistry.register
-class VIFPortProfileBase(base.VersionedObject, base.ComparableVersionedObject):
+class VIFPortProfileBase(osv_base.VersionedObject,
+                         base.ComparableVersionedObject):
     # Base class for all types of port profile
     VERSION = '1.0'
 

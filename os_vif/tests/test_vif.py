@@ -26,6 +26,7 @@ class TestVIFS(base.TestCase):
         vif = cls(**kwargs)
 
         prim = vif.obj_to_primitive()
+        self.assertEqual("os_vif", prim["versioned_object.namespace"])
         vif2 = objects.vif.VIFBase.obj_from_primitive(prim)
 
         self.assertEqual(vif, vif2)

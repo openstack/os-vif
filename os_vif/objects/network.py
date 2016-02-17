@@ -35,12 +35,6 @@ class Network(osv_base.VersionedObject):
         'vlan': fields.StringField(nullable=True),
     }
 
-    obj_relationships = {
-        'subnets': [
-            ('1.0', '1.0'),
-        ],
-    }
-
     def __init__(self, **kwargs):
         kwargs.setdefault('subnets', objects.subnet.SubnetList(objects=[]))
         kwargs.setdefault('multi_host', False)

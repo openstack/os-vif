@@ -57,11 +57,13 @@ class OvsHybridPlugin(plugin.PluginBase):
                 ("qvo%s" % iface_id)[:OvsHybridPlugin.NIC_NAME_LEN])
 
     def describe(self):
-        return plugin.PluginInfo(
-            [
-                plugin.PluginVIFInfo(
-                    objects.vif.VIFBridge,
-                    "1.0", "1.0")
+        return objects.host_info.HostPluginInfo(
+            plugin_name="ovs_hybrid",
+            vif_info=[
+                objects.host_info.HostVIFInfo(
+                    vif_object_name=objects.vif.VIFBridge.__name__,
+                    min_version="1.0",
+                    max_version="1.0")
             ])
 
     def plug(self, vif, instance_info):

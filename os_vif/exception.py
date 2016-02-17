@@ -51,6 +51,15 @@ class NoMatchingPlugin(ExceptionBase):
     msg_fmt = _("No VIF plugin was found with the name %(plugin_name)s")
 
 
+class NoMatchingVIFClass(ExceptionBase):
+    msg_fmt = _("No VIF class was found with the name %(vif_name)s")
+
+
+class NoSupportedVIFVersion(ExceptionBase):
+    msg_fmt = _("VIF class %(vif_name)s versions %(got_versions)s "
+                "do not satisfy min=%(min_version)s max=%(max_version)s")
+
+
 class PlugException(ExceptionBase):
     msg_fmt = _("Failed to plug VIF %(vif)s. Got error: %(err)s")
 

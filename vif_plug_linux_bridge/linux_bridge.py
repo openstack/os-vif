@@ -81,11 +81,13 @@ class LinuxBridgePlugin(plugin.PluginBase):
         linux_net.configure(ipm)
 
     def describe(self):
-        return plugin.PluginInfo(
-            [
-                plugin.PluginVIFInfo(
-                    objects.vif.VIFBridge,
-                    "1.0", "1.0")
+        return objects.host_info.HostPluginInfo(
+            plugin_name="linux_bridge",
+            vif_info=[
+                objects.host_info.HostVIFInfo(
+                    vif_object_name=objects.vif.VIFBridge.__name__,
+                    min_version="1.0",
+                    max_version="1.0")
             ])
 
     def plug(self, vif, instance_info):

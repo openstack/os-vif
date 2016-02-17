@@ -25,11 +25,13 @@ class OvsBridgePlugin(plugin.PluginBase):
     """An OVS VIF type that uses a standard Linux bridge for integration."""
 
     def describe(self):
-        return plugin.PluginInfo(
-            [
-                plugin.PluginVIFInfo(
-                    objects.vif.VIFOpenVSwitch,
-                    "1.0", "1.0")
+        return objects.host_info.HostPluginInfo(
+            plugin_name="ovs",
+            vif_info=[
+                objects.host_info.HostVIFInfo(
+                    vif_object_name=objects.vif.VIFOpenVSwitch.__name__,
+                    min_version="1.0",
+                    max_version="1.0")
             ])
 
     def plug(self, vif, instance_info):

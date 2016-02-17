@@ -95,6 +95,9 @@ class TestVIFS(base.TestCase):
                        port_profile=prof)
 
 object_data = {
+    'HostInfo': '1.0-4dba5ce236ea2dc559de8764995dd247',
+    'HostPluginInfo': '1.0-5204e579864981c9891ecb5d1c9329f2',
+    'HostVIFInfo': '1.0-9866583de62ae23cc868ce45f402da6d',
     'FixedIP': '1.0-d1a0ec7e7b6ce021a784c54d44cce009',
     'FixedIPList': '1.0-15ecf022a68ddbb8c2a6739cfc9f8f5e',
     'InstanceInfo': '1.0-84104d3435046b1a282ac8265ec2a976',

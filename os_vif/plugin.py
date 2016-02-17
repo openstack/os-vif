@@ -18,41 +18,6 @@ import six
 CONF = cfg.CONF
 
 
-class PluginVIFInfo(object):
-    """
-    Class describing the plugin and the versions of VIF object it understands.
-    """
-
-    def __init__(self, vif_class, min_version, max_version):
-        """
-        Constructs the PluginInfo object.
-
-        :param vif_class: subclass of os_vif.objects.vif.VIF that is supported
-        :param min_version: String representing the earliest version of
-                            @vif_class that the plugin understands.
-        :param_max_version: String representing the latest version of
-                            @vif_class that the plugin understands.
-        """
-        self.vif_class = vif_class
-        self.min_version = min_version
-        self.max_version = max_version
-
-
-class PluginInfo(object):
-    """
-    Class describing the plugin and the versions of VIF object it understands.
-    """
-
-    def __init__(self, vif_info):
-        """
-        Constructs the PluginInfo object.
-
-        :param vif_info: list of PluginVIFInfo instances supported by the
-                         plugin
-        """
-        self.vif_info = vif_info
-
-
 @six.add_metaclass(abc.ABCMeta)
 class PluginBase(object):
     """Base class for all VIF plugins."""
@@ -75,7 +40,7 @@ class PluginBase(object):
         Return an object that describes the plugin's supported vif types and
         the earliest/latest known VIF object versions.
 
-        :returns: A `os_vif.plugin.PluginInfo` instance
+        :returns: A `os_vif.host_info.HostPluginInfo` instance
         """
 
     @abc.abstractmethod

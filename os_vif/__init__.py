@@ -109,3 +109,23 @@ def unplug(vif, instance_info):
         LOG.error(_LE("Failed to unplug vif %(vif)s. Got error: %(err)s"),
                   vif=vif, err=err)
         raise os_vif.exception.UnplugException(vif=vif, err=err)
+
+
+def host_info():
+    """
+    Get information about the host platform configuration to be
+    provided to the network manager. This will include information
+    about what plugins are installed in the host
+
+    :returns: a os_vif.host_info.HostInfo class instance
+    """
+
+    if _EXT_MANAGER is None:
+        raise os_vif.exception.LibraryNotInitialized()
+
+    plugins = [
+        _EXT_MANAGER[name].obj.describe()
+        for name in _EXT_MANAGER.names()
+    ]
+
+    return os_vif.objects.host_info.HostInfo(plugin_info=plugins)

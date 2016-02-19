@@ -37,7 +37,7 @@ def initialize(reset=False):
     if reset or (_EXT_MANAGER is None):
         _EXT_MANAGER = extension.ExtensionManager(namespace='os_vif',
                                                   invoke_on_load=False)
-        for plugin_name in _EXT_MANAGER.keys():
+        for plugin_name in _EXT_MANAGER.names():
             cls = _EXT_MANAGER[plugin_name].plugin
             obj = cls.load(plugin_name)
             _EXT_MANAGER[plugin_name].obj = obj

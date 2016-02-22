@@ -99,7 +99,7 @@ object_data = {
     'FixedIP': '1.0-d1a0ec7e7b6ce021a784c54d44cce009',
     'FixedIPList': '1.0-15ecf022a68ddbb8c2a6739cfc9f8f5e',
     'InstanceInfo': '1.0-84104d3435046b1a282ac8265ec2a976',
-    'Network': '1.0-8016e04215203cd86a2b9578ed75afcd',
+    'Network': '1.0-14d4787990b079f230423fcc364abf91',
     'Route': '1.0-5ca049cb82c4d4ec5edb1b839c1429c7',
     'RouteList': '1.0-15ecf022a68ddbb8c2a6739cfc9f8f5e',
     'Subnet': '1.0-6a8c192ef7492120d1a5e0fd08e44272',

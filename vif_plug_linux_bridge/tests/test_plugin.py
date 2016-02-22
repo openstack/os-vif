@@ -112,4 +112,4 @@ class PluginTest(testtools.TestCase):
 
             self.assertEqual(len(mock_ensure_bridge.calls), 0)
             mock_ensure_vlan_bridge.assert_called_with(
-                "99", "br0", "eth0", mtu=1500)
+                99, "br0", "eth0", mtu=1500)

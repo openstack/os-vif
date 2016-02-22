@@ -32,7 +32,7 @@ class Network(osv_base.VersionedObject):
         'should_provide_bridge': fields.BooleanField(),
         'should_provide_vlan': fields.BooleanField(),
         'bridge_interface': fields.StringField(nullable=True),
-        'vlan': fields.StringField(nullable=True),
+        'vlan': fields.IntegerField(nullable=True),
     }
 
     def __init__(self, **kwargs):

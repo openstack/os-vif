@@ -55,7 +55,7 @@ class TestVIFS(base.TestCase):
     def test_vif_direct_plain(self):
         self._test_vif(objects.vif.VIFDirect,
                        vif_name="vif123",
-                       dev_name="eth0")
+                       dev_address="0002:24:12.3")
 
     def test_vif_direct_vepa_qbg(self):
         prof = objects.vif.VIFPortProfile8021Qbg(
@@ -65,16 +65,16 @@ class TestVIFS(base.TestCase):
             instance_id="72a00fee-2fbb-43e6-a592-c858d056fcfc")
         self._test_vif(objects.vif.VIFDirect,
                        vif_name="vif123",
-                       dev_name="eth0",
-                       port_profile=prof)
+                       port_profile=prof,
+                       dev_address="0002:24:12.3")
 
     def test_vif_direct_vepa_qbh(self):
         prof = objects.vif.VIFPortProfile8021Qbh(
             profile_id="fishfood")
         self._test_vif(objects.vif.VIFDirect,
                        vif_name="vif123",
-                       dev_name="eth0",
-                       port_profile=prof)
+                       port_profile=prof,
+                       dev_address="0002:24:12.3")
 
     def test_vif_vhost_user(self):
         self._test_vif(objects.vif.VIFVHostUser,
@@ -106,7 +106,7 @@ object_data = {
     'SubnetList': '1.0-15ecf022a68ddbb8c2a6739cfc9f8f5e',
     'VIFBase': '1.0-4a5a8881dc999752cb050dd443458b6a',
     'VIFBridge': '1.0-e78d355f3505361fafbf0797ffad484a',
-    'VIFDirect': '1.0-42a22b74778e6c59d8c04e9ef508ff80',
+    'VIFDirect': '1.0-d07d1f26bb58b6677c5304b652cc64f1',
     'VIFGeneric': '1.0-c72e637ed620f0135ea50a9409a3f389',
     'VIFHostDevice': '1.0-7289a0eb0a69aeb5d821a0d006e3e444',
     'VIFOpenVSwitch': '1.0-e78d355f3505361fafbf0797ffad484a',

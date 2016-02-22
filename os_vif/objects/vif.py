@@ -97,8 +97,8 @@ class VIFDirect(VIFBase):
         # Name of the device to create
         'vif_name': fields.StringField(),
 
-        # Name of the physical device to connect to (eg eth0)
-        'dev_name': fields.StringField(),
+        # The PCI address of the host device
+        'dev_address': osv_fields.PCIAddressField(),
 
         # Port connection mode
         'mode': osv_fields.VIFDirectModeField(),

@@ -85,14 +85,13 @@ class TestVIFS(base.TestCase):
         self._test_vif(
             objects.vif.VIFHostDevice,
             dev_type=objects.fields.VIFVIFHostDeviceDevType.ETHERNET,
-            dev_address="0002:24:12.3", vlan=8)
+            dev_address="0002:24:12.3")
 
     def test_vif_host_dev_vepa_qbh(self):
         prof = objects.vif.VIFPortProfile8021Qbh(
             profile_id="fishfood")
         self._test_vif(objects.vif.VIFHostDevice,
                        dev_address="0002:24:12.3",
-                       vlan=8,
                        port_profile=prof)
 
 object_data = {
@@ -106,9 +105,9 @@ object_data = {
     'SubnetList': '1.0-15ecf022a68ddbb8c2a6739cfc9f8f5e',
     'VIFBase': '1.0-4a5a8881dc999752cb050dd443458b6a',
     'VIFBridge': '1.0-e78d355f3505361fafbf0797ffad484a',
-    'VIFDirect': '1.0-d07d1f26bb58b6677c5304b652cc64f1',
+    'VIFDirect': '1.0-05c939280f4025fd1f7efb921a835c57',
     'VIFGeneric': '1.0-c72e637ed620f0135ea50a9409a3f389',
-    'VIFHostDevice': '1.0-7289a0eb0a69aeb5d821a0d006e3e444',
+    'VIFHostDevice': '1.0-b3516f5af46ecb9432650e4938ac2643',
     'VIFOpenVSwitch': '1.0-e78d355f3505361fafbf0797ffad484a',
     'VIFPortProfile8021Qbg': '1.0-167f305f6e982b9368cc38763815d429',
     'VIFPortProfile8021Qbh': '1.0-4b945f07d2666ab00a48d1dc225669b1',

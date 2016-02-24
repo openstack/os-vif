@@ -115,6 +115,7 @@ class OvsHybridPlugin(plugin.PluginBase):
                 v2_name,
                 vif.port_profile.interface_id,
                 vif.address, instance_info.uuid,
+                self.config.network_device_mtu,
                 timeout=self.config.ovs_vsctl_timeout)
 
     def unplug(self, vif, instance_info):

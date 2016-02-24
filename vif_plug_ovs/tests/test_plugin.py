@@ -95,6 +95,7 @@ class PluginTest(testtools.TestCase):
                                     'br0', 'qvovif-xxx-yyy', 'aaa-bbb-ccc',
                                     'ca:fe:de:ad:be:ef',
                                     'f0000000-0000-0000-0000-000000000001',
+                                    1500,
                                     timeout=120)]
         }
         # The disable_ipv6 call needs to be added in the middle, if required

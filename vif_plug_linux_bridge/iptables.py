@@ -26,6 +26,7 @@ import re
 
 from oslo_concurrency import lockutils
 from oslo_concurrency import processutils
+from vif_plug_linux_bridge import privsep
 
 import six
 
@@ -39,6 +40,32 @@ def get_binary_name():
     return os.path.basename(inspect.stack()[-1][1])[:16]
 
 binary_name = get_binary_name()
+
+
+@privsep.vif_plug.entrypoint
+def iptables_save():
+    return processutils.execute('iptables-save',
+                                '-c', attempts=5)
+
+
+@privsep.vif_plug.entrypoint
+def ip6tables_save():
+    return processutils.execute('ip6tables-save',
+                                '-c', attempts=5)
+
+
+@privsep.vif_plug.entrypoint
+def iptables_restore(input):
+    return processutils.execute('iptables-restore',
+                                '-c', attempts=5,
+                                process_input=input)
+
+
+@privsep.vif_plug.entrypoint
+def ip6tables_restore(input):
+    return processutils.execute('ip6tables-restore',
+                                '-c', attempts=5,
+                                process_input=input)
 
 
 class IptablesRule(object):
@@ -330,23 +357,19 @@ class IptablesManager(object):
         rules. This happens atomically, thanks to iptables-restore.
 
         """
-        s = [('iptables', self.ipv4)]
+        s = [(iptables_save, iptables_restore, self.ipv4)]
         if self.use_ipv6:
-            s += [('ip6tables', self.ipv6)]
+            s += [(ip6tables_save, ip6tables_restore, self.ipv6)]
 
-        for cmd, tables in s:
-            all_tables, _err = processutils.execute('%s-save' % (cmd,),
-                                                    '-c', attempts=5,
-                                                    run_as_root=True)
+        for save, restore, tables in s:
+            all_tables, _err = save()
             all_lines = all_tables.split('\n')
             for table_name, table in six.iteritems(tables):
                 start, end = self._find_table(all_lines, table_name)
                 all_lines[start:end] = self._modify_rules(
                         all_lines[start:end], table, table_name)
                 table.dirty = False
-            processutils.execute('%s-restore' % (cmd,), '-c',
-                                 process_input='\n'.join(all_lines),
-                                 attempts=5, run_as_root=True)
+            restore('\n'.join(all_lines))
 
     def _find_table(self, lines, table_name):
         if len(lines) < 3:

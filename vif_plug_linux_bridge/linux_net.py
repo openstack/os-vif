@@ -25,6 +25,8 @@ from oslo_concurrency import lockutils
 from oslo_concurrency import processutils
 from oslo_log import log as logging
 
+from vif_plug_linux_bridge import privsep
+
 LOG = logging.getLogger(__name__)
 _IPTABLES_MANAGER = None
 
@@ -48,36 +50,40 @@ def _ip_bridge_cmd(action, params, device):
     return cmd
 
 
+@privsep.vif_plug.entrypoint
 def ensure_vlan_bridge(vlan_num, bridge, bridge_interface,
                        net_attrs=None, mac_address=None,
                        mtu=None):
     """Create a vlan and bridge unless they already exist."""
-    interface = ensure_vlan(vlan_num, bridge_interface, mac_address, mtu=mtu)
-    ensure_bridge(bridge, interface, net_attrs)
+    interface = _ensure_vlan_privileged(vlan_num, bridge_interface,
+                                        mac_address, mtu=mtu)
+    _ensure_bridge_privileged(bridge, interface, net_attrs)
+    _ensure_bridge_filtering(bridge, None)
     return interface
 
 
 @lockutils.synchronized('nova-lock_vlan', external=True)
-def ensure_vlan(vlan_num, bridge_interface, mac_address=None, mtu=None):
-    """Create a vlan unless it already exists."""
+def _ensure_vlan_privileged(vlan_num, bridge_interface, mac_address, mtu):
+    """Create a vlan unless it already exists.
+
+    This assumes the caller is already annotated to run
+    with elevated privileges.
+    """
     interface = 'vlan%s' % vlan_num
     if not device_exists(interface):
         LOG.debug('Starting VLAN interface %s', interface)
         processutils.execute('ip', 'link', 'add', 'link',
                              bridge_interface, 'name', interface, 'type',
                              'vlan', 'id', vlan_num,
-                             check_exit_code=[0, 2, 254],
-                             run_as_root=True)
+                             check_exit_code=[0, 2, 254])
         # (danwent) the bridge will inherit this address, so we want to
         # make sure it is the value set from the NetworkManager
         if mac_address:
             processutils.execute('ip', 'link', 'set', interface,
                                  'address', mac_address,
-                                 check_exit_code=[0, 2, 254],
-                                 run_as_root=True)
+                                 check_exit_code=[0, 2, 254])
         processutils.execute('ip', 'link', 'set', interface, 'up',
-                             check_exit_code=[0, 2, 254],
-                             run_as_root=True)
+                             check_exit_code=[0, 2, 254])
     # NOTE(vish): set mtu every time to ensure that changes to mtu get
     #             propogated
     _set_device_mtu(interface, mtu)
@@ -87,6 +93,14 @@ def ensure_vlan(vlan_num, bridge_interface, mac_address=None, mtu=None):
 @lockutils.synchronized('nova-lock_bridge', external=True)
 def ensure_bridge(bridge, interface, net_attrs=None, gateway=True,
                   filtering=True):
+    _ensure_bridge_privileged(bridge, interface, net_attrs, gateway, filtering)
+    if filtering:
+        _ensure_bridge_filtering(bridge, gateway)
+
+
+@privsep.vif_plug.entrypoint
+def _ensure_bridge_privileged(bridge, interface, net_attrs, gateway,
+                              filtering=True):
     """Create a bridge unless it already exists.
 
     :param interface: the interface to create the bridge on.
@@ -104,35 +118,28 @@ def ensure_bridge(bridge, interface, net_attrs=None, gateway=True,
     """
     if not device_exists(bridge):
         LOG.debug('Starting Bridge %s', bridge)
-        processutils.execute('brctl', 'addbr', bridge,
-                             run_as_root=True)
-        processutils.execute('brctl', 'setfd', bridge, 0,
-                             run_as_root=True)
-        # processutils.execute('brctl setageing %s 10' % bridge,
-        #                      run_as_root=True)
-        processutils.execute('brctl', 'stp', bridge, 'off',
-                             run_as_root=True)
+        processutils.execute('brctl', 'addbr', bridge)
+        processutils.execute('brctl', 'setfd', bridge, 0)
+        # processutils.execute('brctl setageing %s 10' % bridge)
+        processutils.execute('brctl', 'stp', bridge, 'off')
         # (danwent) bridge device MAC address can't be set directly.
         # instead it inherits the MAC address of the first device on the
         # bridge, which will either be the vlan interface, or a
         # physical NIC.
-        processutils.execute('ip', 'link', 'set', bridge, 'up',
-                             run_as_root=True)
+        processutils.execute('ip', 'link', 'set', bridge, 'up')
 
     if interface:
         LOG.debug('Adding interface %(interface)s to bridge %(bridge)s',
                   {'interface': interface, 'bridge': bridge})
         out, err = processutils.execute('brctl', 'addif', bridge,
-                                        interface, check_exit_code=False,
-                                        run_as_root=True)
+                                        interface, check_exit_code=False)
         if (err and err != "device %s is already a member of a bridge; "
               "can't enslave it to bridge %s.\n" % (interface, bridge)):
             msg = _('Failed to add interface: %s') % err
             raise Exception(msg)
 
         out, err = processutils.execute('ip', 'link', 'set',
-                                        interface, 'up', check_exit_code=False,
-                                        run_as_root=True)
+                                        interface, 'up', check_exit_code=False)
 
         # NOTE(vish): This will break if there is already an ip on the
         #             interface, so we move any ips to the bridge
@@ -145,8 +152,7 @@ def ensure_bridge(bridge, interface, net_attrs=None, gateway=True,
             fields = line.split()
             if fields and 'via' in fields:
                 old_routes.append(fields)
-                processutils.execute('ip', 'route', 'del', *fields,
-                                     run_as_root=True)
+                processutils.execute('ip', 'route', 'del', *fields)
         out, err = processutils.execute('ip', 'addr', 'show', 'dev', interface,
                                         'scope', 'global')
         for line in out.split('\n'):
@@ -158,33 +164,33 @@ def ensure_bridge(bridge, interface, net_attrs=None, gateway=True,
                     params = fields[1:-1]
                 processutils.execute(*_ip_bridge_cmd('del', params,
                                                      fields[-1]),
-                                     check_exit_code=[0, 2, 254],
-                                     run_as_root=True)
+                                     check_exit_code=[0, 2, 254])
                 processutils.execute(*_ip_bridge_cmd('add', params,
                                                      bridge),
-                                     check_exit_code=[0, 2, 254],
-                                     run_as_root=True)
+                                     check_exit_code=[0, 2, 254])
         for fields in old_routes:
-            processutils.execute('ip', 'route', 'add', *fields,
-                                 run_as_root=True)
+            processutils.execute('ip', 'route', 'add', *fields)
 
-    if filtering:
-        # Don't forward traffic unless we were told to be a gateway
-        global _IPTABLES_MANAGER
-        ipv4_filter = _IPTABLES_MANAGER.ipv4['filter']
-        if gateway:
-            for rule in _IPTABLES_MANAGER.get_gateway_rules(bridge):
-                ipv4_filter.add_rule(*rule)
-        else:
-            ipv4_filter.add_rule('FORWARD',
-                                 ('--in-interface %s -j %s'
-                                  % (bridge,
-                                     _IPTABLES_MANAGER.iptables_drop_action)))
-            ipv4_filter.add_rule('FORWARD',
-                                 ('--out-interface %s -j %s'
-                                  % (bridge,
-                                     _IPTABLES_MANAGER.iptables_drop_action)))
-        _IPTABLES_MANAGER.apply()
+
+def _ensure_bridge_filtering(bridge, gateway):
+    # This method leaves privsep usage to iptables manager
+    # Don't forward traffic unless we were told to be a gateway
+    LOG.debug("ENsuring filtering %s to %s" % (bridge, gateway))
+    global _IPTABLES_MANAGER
+    ipv4_filter = _IPTABLES_MANAGER.ipv4['filter']
+    if gateway:
+        for rule in _IPTABLES_MANAGER.get_gateway_rules(bridge):
+            ipv4_filter.add_rule(*rule)
+    else:
+        ipv4_filter.add_rule('FORWARD',
+                             ('--in-interface %s -j %s'
+                              % (bridge,
+                                 _IPTABLES_MANAGER.iptables_drop_action)))
+    ipv4_filter.add_rule('FORWARD',
+                         ('--out-interface %s -j %s'
+                          % (bridge,
+                             _IPTABLES_MANAGER.iptables_drop_action)))
+    _IPTABLES_MANAGER.apply()
 
 
 def configure(iptables_mgr):

@@ -19,6 +19,7 @@ import testtools
 from oslo_concurrency import processutils
 
 from vif_plug_ovs import linux_net
+from vif_plug_ovs import privsep
 
 
 if six.PY2:
@@ -31,6 +32,11 @@ else:
 
 
 class LinuxNetTest(testtools.TestCase):
+
+    def setUp(self):
+        super(LinuxNetTest, self).setUp()
+
+        privsep.vif_plug.set_client_mode(False)
 
     @mock.patch.object(processutils, "execute")
     @mock.patch.object(linux_net, "device_exists", return_value=True)
@@ -50,12 +56,11 @@ class LinuxNetTest(testtools.TestCase):
         linux_net.ensure_bridge("br0")
 
         self.assertEqual(mock_execute.mock_calls, [
-            mock.call('brctl', 'addbr', 'br0', run_as_root=True),
-            mock.call('brctl', 'setfd', 'br0', 0, run_as_root=True),
-            mock.call('brctl', 'stp', 'br0', "off", run_as_root=True),
+            mock.call('brctl', 'addbr', 'br0'),
+            mock.call('brctl', 'setfd', 'br0', 0),
+            mock.call('brctl', 'stp', 'br0', "off"),
             mock.call('tee', '/sys/class/net/br0/bridge/multicast_snooping',
-                      check_exit_code=[0, 1], process_input='0',
-                      run_as_root=True),
+                      check_exit_code=[0, 1], process_input='0'),
         ])
         self.assertEqual(mock_dev_exists.mock_calls, [
             mock.call("br0")
@@ -69,15 +74,13 @@ class LinuxNetTest(testtools.TestCase):
         linux_net.ensure_bridge("br0")
 
         self.assertEqual(mock_execute.mock_calls, [
-            mock.call('brctl', 'addbr', 'br0', run_as_root=True),
-            mock.call('brctl', 'setfd', 'br0', 0, run_as_root=True),
-            mock.call('brctl', 'stp', 'br0', "off", run_as_root=True),
+            mock.call('brctl', 'addbr', 'br0'),
+            mock.call('brctl', 'setfd', 'br0', 0),
+            mock.call('brctl', 'stp', 'br0', "off"),
             mock.call('tee', '/sys/class/net/br0/bridge/multicast_snooping',
-                      check_exit_code=[0, 1], process_input='0',
-                      run_as_root=True),
+                      check_exit_code=[0, 1], process_input='0'),
             mock.call('tee', '/proc/sys/net/ipv6/conf/br0/disable_ipv6',
-                      check_exit_code=[0, 1], process_input='1',
-                      run_as_root=True),
+                      check_exit_code=[0, 1], process_input='1'),
         ])
         self.assertEqual(mock_dev_exists.mock_calls, [
             mock.call("br0")
@@ -99,9 +102,9 @@ class LinuxNetTest(testtools.TestCase):
         linux_net.delete_bridge("br0", "vnet1")
 
         self.assertEqual(mock_execute.mock_calls, [
-            mock.call('brctl', 'delif', 'br0', 'vnet1', run_as_root=True),
-            mock.call('ip', 'link', 'set', 'br0', 'down', run_as_root=True),
-            mock.call('brctl', 'delbr', 'br0', run_as_root=True),
+            mock.call('brctl', 'delif', 'br0', 'vnet1'),
+            mock.call('ip', 'link', 'set', 'br0', 'down'),
+            mock.call('brctl', 'delbr', 'br0'),
         ])
         self.assertEqual(mock_dev_exists.mock_calls, [
             mock.call("br0")
@@ -112,6 +115,6 @@ class LinuxNetTest(testtools.TestCase):
         linux_net.add_bridge_port("br0", "vnet1")
 
         self.assertEqual(mock_execute.mock_calls, [
-            mock.call('ip', 'link', 'set', 'br0', 'up', run_as_root=True),
-            mock.call('brctl', 'addif', 'br0', 'vnet1', run_as_root=True),
+            mock.call('ip', 'link', 'set', 'br0', 'up'),
+            mock.call('brctl', 'addif', 'br0', 'vnet1'),
         ])

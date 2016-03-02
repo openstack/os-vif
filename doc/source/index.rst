@@ -6,6 +6,9 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   vif_types
+   host_info
+
 Indices and tables
 ==================
 

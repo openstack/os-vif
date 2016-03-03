@@ -84,9 +84,13 @@ def _ensure_vlan_privileged(vlan_num, bridge_interface, mac_address, mtu):
                                  check_exit_code=[0, 2, 254])
         processutils.execute('ip', 'link', 'set', interface, 'up',
                              check_exit_code=[0, 2, 254])
-    # NOTE(vish): set mtu every time to ensure that changes to mtu get
-    #             propogated
-    _set_device_mtu(interface, mtu)
+    if mtu:
+        # NOTE(vish): set mtu every time to ensure that changes to mtu get
+        #             propogated
+        _set_device_mtu(interface, mtu)
+    else:
+        LOG.debug("MTU not set on %(interface_name)s interface",
+                  {'interface_name': interface})
     return interface
 
 

@@ -184,6 +184,7 @@ def ensure_bridge(bridge, interface, net_attrs=None, gateway=True,
                                  ('--out-interface %s -j %s'
                                   % (bridge,
                                      _IPTABLES_MANAGER.iptables_drop_action)))
+        _IPTABLES_MANAGER.apply()
 
 
 def configure(iptables_mgr):

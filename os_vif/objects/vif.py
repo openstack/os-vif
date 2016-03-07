@@ -103,9 +103,6 @@ class VIFDirect(VIFBase):
         # Port connection mode
         'mode': osv_fields.VIFDirectModeField(),
 
-        # The VLAN number to use
-        'vlan': fields.IntegerField(),
-
         # The VLAN device name to use
         'vlan_name': fields.StringField(),
     }
@@ -142,9 +139,6 @@ class VIFHostDevice(VIFBase):
 
         # The PCI address of the host device
         'dev_address': osv_fields.PCIAddressField(),
-
-        # The VLAN number to use
-        'vlan': fields.IntegerField(),
     }
 
 

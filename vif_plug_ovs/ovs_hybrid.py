@@ -17,12 +17,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import os.path
 from os_vif import objects
 from os_vif import plugin
 from oslo_config import cfg
-
-from oslo_concurrency import processutils
 
 from vif_plug_ovs import exception
 from vif_plug_ovs import linux_net
@@ -84,34 +81,12 @@ class OvsHybridPlugin(plugin.PluginBase):
 
         v1_name, v2_name = self.get_veth_pair_names(vif)
 
-        if not linux_net.device_exists(vif.bridge_name):
-            processutils.execute('brctl', 'addbr', vif.bridge_name,
-                                 run_as_root=True)
-            processutils.execute('brctl', 'setfd', vif.bridge_name, 0,
-                                 run_as_root=True)
-            processutils.execute('brctl', 'stp', vif.bridge_name, 'off',
-                                 run_as_root=True)
-            syspath = '/sys/class/net/%s/bridge/multicast_snooping'
-            syspath = syspath % vif.bridge_name
-            processutils.execute('tee', syspath, process_input='0',
-                                 check_exit_code=[0, 1],
-                                 run_as_root=True)
-            disv6 = ('/proc/sys/net/ipv6/conf/%s/disable_ipv6' %
-                     vif.bridge_name)
-            if os.path.exists(disv6):
-                processutils.execute('tee',
-                                     disv6,
-                                     process_input='1',
-                                     run_as_root=True,
-                                     check_exit_code=[0, 1])
+        linux_net.ensure_bridge(vif.bridge_name)
 
         if not linux_net.device_exists(v2_name):
             linux_net.create_veth_pair(v1_name, v2_name,
                                        self.config.network_device_mtu)
-            processutils.execute('ip', 'link', 'set', vif.bridge_name, 'up',
-                                 run_as_root=True)
-            processutils.execute('brctl', 'addif', vif.bridge_name, v1_name,
-                                 run_as_root=True)
+            linux_net.add_bridge_port(vif.bridge_name, v1_name)
             linux_net.create_ovs_vif_port(
                 vif.network.bridge,
                 v2_name,
@@ -135,13 +110,7 @@ class OvsHybridPlugin(plugin.PluginBase):
 
         v1_name, v2_name = self.get_veth_pair_names(vif)
 
-        if linux_net.device_exists(vif.bridge_name):
-            processutils.execute('brctl', 'delif', vif.bridge_name, v1_name,
-                                 run_as_root=True)
-            processutils.execute('ip', 'link', 'set', vif.bridge_name, 'down',
-                                 run_as_root=True)
-            processutils.execute('brctl', 'delbr', vif.bridge_name,
-                                 run_as_root=True)
+        linux_net.delete_bridge(vif.bridge_name, v1_name)
 
         linux_net.delete_ovs_vif_port(vif.network.bridge, v2_name,
                                       timeout=self.config.ovs_vsctl_timeout)

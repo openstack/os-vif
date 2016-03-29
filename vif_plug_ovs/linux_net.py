@@ -98,6 +98,46 @@ def create_veth_pair(dev1_name, dev2_name, mtu):
         _set_device_mtu(dev, mtu)
 
 
+def ensure_bridge(bridge):
+    if not device_exists(bridge):
+        processutils.execute('brctl', 'addbr', bridge,
+                             run_as_root=True)
+        processutils.execute('brctl', 'setfd', bridge, 0,
+                             run_as_root=True)
+        processutils.execute('brctl', 'stp', bridge, 'off',
+                             run_as_root=True)
+        syspath = '/sys/class/net/%s/bridge/multicast_snooping'
+        syspath = syspath % bridge
+        processutils.execute('tee', syspath, process_input='0',
+                             check_exit_code=[0, 1],
+                             run_as_root=True)
+        disv6 = ('/proc/sys/net/ipv6/conf/%s/disable_ipv6' %
+                 bridge)
+        if os.path.exists(disv6):
+            processutils.execute('tee',
+                                 disv6,
+                                 process_input='1',
+                                 run_as_root=True,
+                                 check_exit_code=[0, 1])
+
+
+def delete_bridge(bridge, dev):
+    if device_exists(bridge):
+        processutils.execute('brctl', 'delif', bridge, dev,
+                             run_as_root=True)
+        processutils.execute('ip', 'link', 'set', bridge, 'down',
+                             run_as_root=True)
+        processutils.execute('brctl', 'delbr', bridge,
+                             run_as_root=True)
+
+
+def add_bridge_port(bridge, dev):
+    processutils.execute('ip', 'link', 'set', bridge, 'up',
+                         run_as_root=True)
+    processutils.execute('brctl', 'addif', bridge, dev,
+                         run_as_root=True)
+
+
 def _set_device_mtu(dev, mtu):
     """Set the device MTU."""
     processutils.execute('ip', 'link', 'set', dev, 'mtu', mtu,

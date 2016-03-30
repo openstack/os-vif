@@ -32,6 +32,18 @@ class TestVIFS(base.TestCase):
         self.assertEqual("os_vif", prim["versioned_object.namespace"])
         vif2 = objects.vif.VIFBase.obj_from_primitive(prim)
 
+        # The __eq__ function works by using obj_to_primitive()
+        # and this includes a list of changed fields. Very
+        # occassionally the ordering of the list of changes
+        # varies, causing bogus equality failures. This is
+        # arguably a bug in oslo.versionedobjects since the
+        # set of changes fields should not affect equality
+        # comparisons. Remove this hack once this is fixed:
+        #
+        # https://bugs.launchpad.net/oslo.versionedobjects/+bug/1563787
+        vif.obj_reset_changes(recursive=True)
+        vif2.obj_reset_changes(recursive=True)
+
         self.assertEqual(vif, vif2)
 
     def test_vif_generic(self):

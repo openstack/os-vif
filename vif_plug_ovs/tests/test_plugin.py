@@ -55,15 +55,15 @@ class PluginTest(testtools.TestCase):
                      self.subnet_bridge_6])
 
         self.network_ovs = objects.network.Network(
-            id='network-id-xxx-yyy-zzz',
+            id='437c6db5-4e6f-4b43-b64b-ed6a11ee5ba7',
             bridge='br0',
             subnets=self.subnets,
             vlan=99)
 
         self.profile_ovs = objects.vif.VIFPortProfileOpenVSwitch(
-            interface_id='aaa-bbb-ccc')
+            interface_id='e65867e0-9340-4a7f-a256-09af6eb7a3aa')
         self.vif_ovs = objects.vif.VIFBridge(
-            id='vif-xxx-yyy-zzz',
+            id='b679325f-ca89-4ee0-a8be-6db1409b69ea',
             address='ca:fe:de:ad:be:ef',
             network=self.network_ovs,
             dev_name='tap-xxx-yyy-zzz',
@@ -77,9 +77,9 @@ class PluginTest(testtools.TestCase):
     def _test_plug_ovs_hybrid(self, ipv6_exists):
         calls = {
             'device_exists': [mock.call('qbrvif-xxx-yyy'),
-                              mock.call('qvovif-xxx-yyy')],
-            '_create_veth_pair': [mock.call('qvbvif-xxx-yyy',
-                                            'qvovif-xxx-yyy',
+                              mock.call('qvob679325f-ca')],
+            '_create_veth_pair': [mock.call('qvbb679325f-ca',
+                                            'qvob679325f-ca',
                                             1500)],
             'execute': [mock.call('brctl', 'addbr', 'qbrvif-xxx-yyy',
                                   run_as_root=True),
@@ -92,7 +92,8 @@ class PluginTest(testtools.TestCase):
                                   process_input='0', run_as_root=True,
                                   check_exit_code=[0, 1])],
             'create_ovs_vif_port': [mock.call(
-                                    'br0', 'qvovif-xxx-yyy', 'aaa-bbb-ccc',
+                                    'br0', 'qvob679325f-ca',
+                                    'e65867e0-9340-4a7f-a256-09af6eb7a3aa',
                                     'ca:fe:de:ad:be:ef',
                                     'f0000000-0000-0000-0000-000000000001',
                                     1500,
@@ -109,7 +110,7 @@ class PluginTest(testtools.TestCase):
             mock.call('ip', 'link', 'set', 'qbrvif-xxx-yyy', 'up',
                       run_as_root=True),
             mock.call('brctl', 'addif', 'qbrvif-xxx-yyy',
-                      'qvbvif-xxx-yyy', run_as_root=True)])
+                      'qvbb679325f-ca', run_as_root=True)])
 
         with nested(
                 mock.patch.object(linux_net, 'device_exists',
@@ -137,12 +138,12 @@ class PluginTest(testtools.TestCase):
         calls = {
             'device_exists': [mock.call('qbrvif-xxx-yyy')],
             'execute': [mock.call('brctl', 'delif', 'qbrvif-xxx-yyy',
-                                  'qvbvif-xxx-yyy', run_as_root=True),
+                                  'qvbb679325f-ca', run_as_root=True),
                         mock.call('ip', 'link', 'set',
                                   'qbrvif-xxx-yyy', 'down', run_as_root=True),
                         mock.call('brctl', 'delbr',
                                   'qbrvif-xxx-yyy', run_as_root=True)],
-            'delete_ovs_vif_port': [mock.call('br0', 'qvovif-xxx-yyy',
+            'delete_ovs_vif_port': [mock.call('br0', 'qvob679325f-ca',
                                     timeout=120)]
         }
         with nested(
@@ -160,7 +161,7 @@ class PluginTest(testtools.TestCase):
     def test_unplug_ovs_hybrid_bridge_does_not_exist(self):
         calls = {
             'device_exists': [mock.call('qbrvif-xxx-yyy')],
-            'delete_ovs_vif_port': [mock.call('br0', 'qvovif-xxx-yyy',
+            'delete_ovs_vif_port': [mock.call('br0', 'qvob679325f-ca',
                                               timeout=120)]
         }
         with nested(

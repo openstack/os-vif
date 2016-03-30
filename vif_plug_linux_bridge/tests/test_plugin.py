@@ -43,11 +43,11 @@ class PluginTest(testtools.TestCase):
 
     def test_plug_bridge(self):
         network = objects.network.Network(
-            id='network-id-xxx-yyy-zzz',
+            id='437c6db5-4e6f-4b43-b64b-ed6a11ee5ba7',
             bridge='br0')
 
         vif = objects.vif.VIFBridge(
-            id='vif-xxx-yyy-zzz',
+            id='b679325f-ca89-4ee0-a8be-6db1409b69ea',
             address='ca:fe:de:ad:be:ef',
             network=network,
             dev_name='tap-xxx-yyy-zzz',
@@ -65,13 +65,13 @@ class PluginTest(testtools.TestCase):
 
     def test_plug_bridge_create_br(self):
         network = objects.network.Network(
-            id='network-id-xxx-yyy-zzz',
+            id='437c6db5-4e6f-4b43-b64b-ed6a11ee5ba7',
             bridge='br0',
             bridge_interface='eth0',
             should_provide_bridge=True)
 
         vif = objects.vif.VIFBridge(
-            id='vif-xxx-yyy-zzz',
+            id='b679325f-ca89-4ee0-a8be-6db1409b69ea',
             address='ca:fe:de:ad:be:ef',
             network=network,
             dev_name='tap-xxx-yyy-zzz',
@@ -89,7 +89,7 @@ class PluginTest(testtools.TestCase):
 
     def test_plug_bridge_create_br_vlan(self):
         network = objects.network.Network(
-            id='network-id-xxx-yyy-zzz',
+            id='437c6db5-4e6f-4b43-b64b-ed6a11ee5ba7',
             bridge='br0',
             bridge_interface='eth0',
             vlan=99,
@@ -97,7 +97,7 @@ class PluginTest(testtools.TestCase):
             should_provide_vlan=True)
 
         vif = objects.vif.VIFBridge(
-            id='vif-xxx-yyy-zzz',
+            id='b679325f-ca89-4ee0-a8be-6db1409b69ea',
             address='ca:fe:de:ad:be:ef',
             network=network,
             dev_name='tap-xxx-yyy-zzz',

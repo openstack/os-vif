@@ -109,8 +109,9 @@ class TestOSVIF(base.TestCase):
                            return_value=plg):
             os_vif.initialize()
             info = objects.instance_info.InstanceInfo()
-            vif = objects.vif.VIFBridge(id='uniq',
-                                        plugin='foobar')
+            vif = objects.vif.VIFBridge(
+                id='9a12694f-f95e-49fa-9edb-70239aee5a2c',
+                plugin='foobar')
             os_vif.plug(vif, info)
             mock_plug.assert_called_once_with(vif, info)
 
@@ -126,7 +127,8 @@ class TestOSVIF(base.TestCase):
                            return_value=plg):
             os_vif.initialize()
             info = objects.instance_info.InstanceInfo()
-            vif = objects.vif.VIFBridge(id='uniq',
-                                        plugin='foobar')
+            vif = objects.vif.VIFBridge(
+                id='9a12694f-f95e-49fa-9edb-70239aee5a2c',
+                plugin='foobar')
             os_vif.unplug(vif, info)
             mock_unplug.assert_called_once_with(vif, info)

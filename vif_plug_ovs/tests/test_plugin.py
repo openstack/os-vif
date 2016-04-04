@@ -18,7 +18,7 @@ import testtools
 from os_vif import objects
 
 from vif_plug_ovs import linux_net
-from vif_plug_ovs import ovs_hybrid
+from vif_plug_ovs import ovs
 
 
 if six.PY2:
@@ -71,7 +71,7 @@ class PluginTest(testtools.TestCase):
             name='demo',
             uuid='f0000000-0000-0000-0000-000000000001')
 
-    def test_plug_ovs_hybrid(self):
+    def test_plug_ovs_bridge(self):
         calls = {
             'device_exists': [mock.call('qvob679325f-ca')],
             'create_veth_pair': [mock.call('qvbb679325f-ca',
@@ -98,7 +98,7 @@ class PluginTest(testtools.TestCase):
                 mock.patch.object(linux_net, 'create_ovs_vif_port')
         ) as (ensure_bridge, device_exists, create_veth_pair,
               add_bridge_port, create_ovs_vif_port):
-            plugin = ovs_hybrid.OvsHybridPlugin.load("ovs_hybrid")
+            plugin = ovs.OvsPlugin.load("ovs")
             plugin.plug(self.vif_ovs, self.instance)
             ensure_bridge.assert_has_calls(calls['ensure_bridge'])
             device_exists.assert_has_calls(calls['device_exists'])
@@ -106,7 +106,7 @@ class PluginTest(testtools.TestCase):
             add_bridge_port.assert_has_calls(calls['add_bridge_port'])
             create_ovs_vif_port.assert_has_calls(calls['create_ovs_vif_port'])
 
-    def test_unplug_ovs_hybrid(self):
+    def test_unplug_ovs_bridge(self):
         calls = {
             'delete_bridge': [mock.call('qbrvif-xxx-yyy', 'qvbb679325f-ca')],
             'delete_ovs_vif_port': [mock.call('br0', 'qvob679325f-ca',
@@ -116,7 +116,7 @@ class PluginTest(testtools.TestCase):
                 mock.patch.object(linux_net, 'delete_bridge'),
                 mock.patch.object(linux_net, 'delete_ovs_vif_port')
         ) as (delete_bridge, delete_ovs_vif_port):
-            plugin = ovs_hybrid.OvsHybridPlugin.load("ovs_hybrid")
+            plugin = ovs.OvsPlugin.load("ovs")
             plugin.unplug(self.vif_ovs, self.instance)
             delete_bridge.assert_has_calls(calls['delete_bridge'])
             delete_ovs_vif_port.assert_has_calls(calls['delete_ovs_vif_port'])

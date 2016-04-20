@@ -1,0 +1,17 @@
+---
+prelude: >
+    Initial release of os-vif
+features:
+  - There is an object model describing the different
+    ways a virtual network interface can be configured on
+    the host.
+
+    There is a plugin API contract defined to enable
+    configuration of the host OS to match a desired
+    VIF setup
+
+    There is an object model describing the plugins
+    available on the host.
+
+    Two built-in plugins provide support for Linux Bridge
+    and OpenVSwitch integration on Linux compute hosts.

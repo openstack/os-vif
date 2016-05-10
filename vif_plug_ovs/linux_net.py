@@ -25,6 +25,7 @@ from oslo_concurrency import processutils
 from oslo_log import log as logging
 from oslo_utils import excutils
 
+from vif_plug_ovs import constants
 from vif_plug_ovs import exception
 from vif_plug_ovs.i18n import _LE
 from vif_plug_ovs import privsep
@@ -45,18 +46,35 @@ def _ovs_vsctl(args, timeout=None):
         raise exception.AgentError(method=full_args)
 
 
+def _create_ovs_vif_cmd(bridge, dev, iface_id, mac,
+                        instance_id, interface_type=None):
+    cmd = ['--', '--if-exists', 'del-port', dev, '--',
+            'add-port', bridge, dev,
+            '--', 'set', 'Interface', dev,
+            'external-ids:iface-id=%s' % iface_id,
+            'external-ids:iface-status=active',
+            'external-ids:attached-mac=%s' % mac,
+            'external-ids:vm-uuid=%s' % instance_id]
+    if interface_type:
+        cmd += ['type=%s' % interface_type]
+    return cmd
+
+
 @privsep.vif_plug.entrypoint
-def create_ovs_vif_port(bridge, dev, iface_id, mac, instance_id, mtu,
-                        timeout=None):
-    _ovs_vsctl(['--', '--if-exists', 'del-port', dev, '--',
-                'add-port', bridge, dev,
-                '--', 'set', 'Interface', dev,
-                'external-ids:iface-id=%s' % iface_id,
-                'external-ids:iface-status=active',
-                'external-ids:attached-mac=%s' % mac,
-                'external-ids:vm-uuid=%s' % instance_id],
-                timeout=timeout)
-    _set_device_mtu(dev, mtu)
+def create_ovs_vif_port(bridge, dev, iface_id, mac, instance_id,
+                        mtu=None, interface_type=None):
+    _ovs_vsctl(_create_ovs_vif_cmd(bridge, dev, iface_id,
+                                   mac, instance_id,
+                                   interface_type))
+    # Note at present there is no support for setting the
+    # mtu for vhost-user type ports.
+    if interface_type != constants.OVS_VHOSTUSER_INTERFACE_TYPE:
+        _set_device_mtu(dev, mtu)
+    else:
+        LOG.debug("MTU not set on %(interface_name)s interface "
+                  "of type %(interface_type)s.",
+                  {'interface_name': dev,
+                   'interface_type': interface_type})
 
 
 @privsep.vif_plug.entrypoint

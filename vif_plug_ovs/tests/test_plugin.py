@@ -59,12 +59,21 @@ class PluginTest(testtools.TestCase):
 
         self.profile_ovs = objects.vif.VIFPortProfileOpenVSwitch(
             interface_id='e65867e0-9340-4a7f-a256-09af6eb7a3aa')
+
         self.vif_ovs = objects.vif.VIFBridge(
             id='b679325f-ca89-4ee0-a8be-6db1409b69ea',
             address='ca:fe:de:ad:be:ef',
             network=self.network_ovs,
             dev_name='tap-xxx-yyy-zzz',
             bridge_name="qbrvif-xxx-yyy",
+            port_profile=self.profile_ovs)
+
+        self.vif_vhostuser = objects.vif.VIFVHostUser(
+            id='b679325f-ca89-4ee0-a8be-6db1409b69ea',
+            address='ca:fe:de:ad:be:ef',
+            network=self.network_ovs,
+            path='/var/run/openvswitch/vhub679325f-ca',
+            mode='client',
             port_profile=self.profile_ovs)
 
         self.instance = objects.instance_info.InstanceInfo(
@@ -119,4 +128,33 @@ class PluginTest(testtools.TestCase):
             plugin = ovs.OvsPlugin.load("ovs")
             plugin.unplug(self.vif_ovs, self.instance)
             delete_bridge.assert_has_calls(calls['delete_bridge'])
+            delete_ovs_vif_port.assert_has_calls(calls['delete_ovs_vif_port'])
+
+    def test_plug_ovs_vhostuser(self):
+        calls = {
+            'create_ovs_vif_port': [mock.call(
+                                    'br0', 'vhub679325f-ca',
+                                    'e65867e0-9340-4a7f-a256-09af6eb7a3aa',
+                                    'ca:fe:de:ad:be:ef',
+                                    'f0000000-0000-0000-0000-000000000001',
+                                    1500,
+                                    interface_type='dpdkvhostuser',
+                                    timeout=120)]
+        }
+
+        with mock.patch.object(linux_net, 'create_ovs_vif_port') \
+            as (create_ovs_vif_port):
+            plugin = ovs.OvsPlugin.load("ovs")
+            plugin.plug(self.vif_vhostuser, self.instance)
+            create_ovs_vif_port.assert_has_calls(calls['create_ovs_vif_port'])
+
+    def test_unplug_ovs_vhostuser(self):
+        calls = {
+            'delete_ovs_vif_port': [mock.call('br0', 'vhub679325f-ca',
+                                    timeout=120)]
+        }
+        with mock.patch.object(linux_net, 'delete_ovs_vif_port') \
+            as delete_ovs_vif_port:
+            plugin = ovs.OvsPlugin.load("ovs")
+            plugin.unplug(self.vif_vhostuser, self.instance)
             delete_ovs_vif_port.assert_has_calls(calls['delete_ovs_vif_port'])

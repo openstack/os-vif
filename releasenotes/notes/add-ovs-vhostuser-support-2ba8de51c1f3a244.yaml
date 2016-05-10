@@ -1,0 +1,6 @@
+---
+features:
+  - The ovs plugin has been extended to support
+    vhost-user interfaces. vhost-user is a userspace
+    protocol for high speed virtual networking introduced
+    in qemu 2.1 and first supported in ovs 2.4 with dpdk 2.0

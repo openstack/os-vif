@@ -18,9 +18,9 @@ import testtools
 
 from oslo_concurrency import processutils
 
+from vif_plug_ovs import constants
 from vif_plug_ovs import linux_net
 from vif_plug_ovs import privsep
-
 
 if six.PY2:
     nested = contextlib.nested
@@ -118,3 +118,41 @@ class LinuxNetTest(testtools.TestCase):
             mock.call('ip', 'link', 'set', 'br0', 'up'),
             mock.call('brctl', 'addif', 'br0', 'vnet1'),
         ])
+
+    def test_ovs_vif_port_cmd(self):
+        expected = ['--', '--if-exists',
+                    'del-port', 'fake-dev', '--', 'add-port',
+                    'fake-bridge', 'fake-dev',
+                    '--', 'set', 'Interface', 'fake-dev',
+                    'external-ids:iface-id=fake-iface-id',
+                    'external-ids:iface-status=active',
+                    'external-ids:attached-mac=fake-mac',
+                    'external-ids:vm-uuid=fake-instance-uuid']
+        cmd = linux_net._create_ovs_vif_cmd('fake-bridge', 'fake-dev',
+                                            'fake-iface-id', 'fake-mac',
+                                            'fake-instance-uuid')
+
+        self.assertEqual(expected, cmd)
+
+        expected += ['type=fake-type']
+        cmd = linux_net._create_ovs_vif_cmd('fake-bridge', 'fake-dev',
+                                            'fake-iface-id', 'fake-mac',
+                                            'fake-instance-uuid',
+                                            'fake-type')
+        self.assertEqual(expected, cmd)
+
+    @mock.patch.object(linux_net, '_ovs_vsctl')
+    @mock.patch.object(linux_net, '_create_ovs_vif_cmd')
+    @mock.patch.object(linux_net, '_set_device_mtu')
+    def test_ovs_vif_port_with_type_vhostuser(self, mock_set_device_mtu,
+                                              mock_create_cmd, mock_vsctl):
+        linux_net.create_ovs_vif_port(
+            'fake-bridge',
+            'fake-dev', 'fake-iface-id', 'fake-mac',
+            "fake-instance-uuid", mtu=1500,
+            interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE)
+        mock_create_cmd.assert_called_once_with('fake-bridge',
+            'fake-dev', 'fake-iface-id', 'fake-mac',
+            "fake-instance-uuid", constants.OVS_VHOSTUSER_INTERFACE_TYPE)
+        self.assertFalse(mock_set_device_mtu.called)
+        self.assertTrue(mock_vsctl.called)

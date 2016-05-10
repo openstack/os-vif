@@ -21,6 +21,7 @@ from os_vif import objects
 from os_vif import plugin
 from oslo_config import cfg
 
+from vif_plug_ovs import constants
 from vif_plug_ovs import exception
 from vif_plug_ovs import linux_net
 
@@ -53,10 +54,13 @@ class OvsPlugin(plugin.PluginBase):
     )
 
     @staticmethod
+    def gen_port_name(prefix, id):
+        return ("%s%s" % (prefix, id))[:OvsPlugin.NIC_NAME_LEN]
+
+    @staticmethod
     def get_veth_pair_names(vif):
-        iface_id = vif.id
-        return (("qvb%s" % iface_id)[:OvsPlugin.NIC_NAME_LEN],
-                ("qvo%s" % iface_id)[:OvsPlugin.NIC_NAME_LEN])
+        return (OvsPlugin.gen_port_name("qvb", vif.id),
+                OvsPlugin.gen_port_name("qvo", vif.id))
 
     def describe(self):
         return objects.host_info.HostPluginInfo(
@@ -69,8 +73,22 @@ class OvsPlugin(plugin.PluginBase):
                 objects.host_info.HostVIFInfo(
                     vif_object_name=objects.vif.VIFOpenVSwitch.__name__,
                     min_version="1.0",
+                    max_version="1.0"),
+                objects.host_info.HostVIFInfo(
+                    vif_object_name=objects.vif.VIFVHostUser.__name__,
+                    min_version="1.0",
                     max_version="1.0")
             ])
+
+    def _plug_vhostuser(self, vif, instance_info):
+        linux_net.create_ovs_vif_port(
+            vif.network.bridge,
+            OvsPlugin.gen_port_name("vhu", vif.id),
+            vif.port_profile.interface_id,
+            vif.address, instance_info.uuid,
+            self.config.network_device_mtu,
+            timeout=self.config.ovs_vsctl_timeout,
+            interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE)
 
     def _plug_bridge(self, vif, instance_info):
         """Plug using hybrid strategy
@@ -107,6 +125,13 @@ class OvsPlugin(plugin.PluginBase):
 
         if isinstance(vif, objects.vif.VIFBridge):
             self._plug_bridge(vif, instance_info)
+        elif isinstance(vif, objects.vif.VIFVHostUser):
+            self._plug_vhostuser(vif, instance_info)
+
+    def _unplug_vhostuser(self, vif, instance_info):
+        linux_net.delete_ovs_vif_port(vif.network.bridge,
+                                      OvsPlugin.gen_port_name("vhu", vif.id),
+                                      timeout=self.config.ovs_vsctl_timeout)
 
     def _unplug_bridge(self, vif, instance_info):
         """UnPlug using hybrid strategy
@@ -132,3 +157,5 @@ class OvsPlugin(plugin.PluginBase):
 
         if isinstance(vif, objects.vif.VIFBridge):
             self._unplug_bridge(vif, instance_info)
+        elif isinstance(vif, objects.vif.VIFVHostUser):
+            self._unplug_vhostuser(vif, instance_info)

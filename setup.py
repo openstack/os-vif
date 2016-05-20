@@ -27,17 +27,4 @@ except ImportError:
 
 setuptools.setup(
     setup_requires=['pbr'],
-    entry_points={
-        'os_vif.plugin': [
-            'bridge = os_vif._plugins.linux_bridge:LinuxBridgePlugin',
-            'iovisor = os_vif._plugins.iovisor:IovisorPlugin',
-            'ivs = os_vif._plugins.ivs:IvsPlugin',
-            'ivs_hybrid = os_vif._plugins.ivs_hybrid:IvsHybridPlugin',
-            'ovs = os_vif._plugins.ovs:OvsPlugin',
-            'ovs_hybrid = os_vif._plugins.ovs_hybrid:OvsHybridPlugin',
-            'mlnx = os_vif._plugins.mellanox:MellanoxDirectPlugin',
-            'midonet = os_vif._plugins.midonet:MidonetPlugin',
-            'vhostuser = os_vif._plugins.vhostuser:VhostuserPlugin',
-            'vrouter = os_vif._plugins.vrouter:VrouterPlugin',
-        ]},
     pbr=True)

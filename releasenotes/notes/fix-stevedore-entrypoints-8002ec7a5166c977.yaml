@@ -1,0 +1,6 @@
+---
+fixes:
+  - os-vif plugins were previously incorrectly registered 
+    in both the setup.py and setup.cfg. All plugin registration
+    have been removed form the setup.py as they were not used
+    and may have blocked registration of out of tree plugins.

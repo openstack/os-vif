@@ -1,0 +1,5 @@
+---
+fixes:
+  - The ovs direct and ovs hybrid plug methods are now
+    handled by a single plugin. To reflect that the
+    ovs plugin has been renamed to 'ovs' from 'ovs_hybrid'

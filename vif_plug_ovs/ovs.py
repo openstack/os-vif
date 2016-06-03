@@ -60,7 +60,7 @@ class OvsPlugin(plugin.PluginBase):
 
     def describe(self):
         return objects.host_info.HostPluginInfo(
-            plugin_name="ovs_hybrid",
+            plugin_name="ovs",
             vif_info=[
                 objects.host_info.HostVIFInfo(
                     vif_object_name=objects.vif.VIFBridge.__name__,

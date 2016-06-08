@@ -76,8 +76,8 @@ def plug(vif, instance_info):
         plugin.plug(vif, instance_info)
         LOG.info(_LI("Successfully plugged vif %s"), vif)
     except Exception as err:
-        LOG.error(_LE("Failed to plug vif %(vif)s. Got error: %(err)s"),
-                  vif=vif, err=err)
+        LOG.error(_LE("Failed to plug vif %(vif)s"),
+                  {"vif": vif}, exc_info=True)
         raise os_vif.exception.PlugException(vif=vif, err=err)
 
 
@@ -109,8 +109,8 @@ def unplug(vif, instance_info):
         plugin.unplug(vif, instance_info)
         LOG.info(_LI("Successfully unplugged vif %s"), vif)
     except Exception as err:
-        LOG.error(_LE("Failed to unplug vif %(vif)s. Got error: %(err)s"),
-                  vif=vif, err=err)
+        LOG.error(_LE("Failed to unplug vif %(vif)s"),
+                  {"vif": vif}, exc_info=True)
         raise os_vif.exception.UnplugException(vif=vif, err=err)
 
 

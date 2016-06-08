@@ -21,7 +21,7 @@ _LE = os_vif.i18n._LE
 _LI = os_vif.i18n._LI
 
 _EXT_MANAGER = None
-LOG = logging.getLogger('os_vif')
+LOG = logging.getLogger(__name__)
 
 
 def initialize(reset=False):
@@ -43,6 +43,8 @@ def initialize(reset=False):
         for plugin_name in _EXT_MANAGER.names():
             cls = _EXT_MANAGER[plugin_name].plugin
             obj = cls.load(plugin_name)
+            LOG.info("Loaded VIF plugin class '%s' with name '%s'",
+                     cls, plugin_name)
             _EXT_MANAGER[plugin_name].obj = obj
 
 

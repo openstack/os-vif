@@ -34,6 +34,9 @@ def initialize(reset=False):
 
     """
     global _EXT_MANAGER
+    if _EXT_MANAGER is None:
+        os_vif.objects.register_all()
+
     if reset or (_EXT_MANAGER is None):
         _EXT_MANAGER = extension.ExtensionManager(namespace='os_vif',
                                                   invoke_on_load=False)
@@ -41,8 +44,6 @@ def initialize(reset=False):
             cls = _EXT_MANAGER[plugin_name].plugin
             obj = cls.load(plugin_name)
             _EXT_MANAGER[plugin_name].obj = obj
-
-        os_vif.objects.register_all()
 
 
 def plug(vif, instance_info):

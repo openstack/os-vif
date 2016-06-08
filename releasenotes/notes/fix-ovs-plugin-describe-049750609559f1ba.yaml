@@ -1,0 +1,6 @@
+---
+fixes:
+  - The OpenVSwitch plugin was registered with an entrypoint
+    name of "ovs", but its describe method mistakenly reported
+    that its name was "ovs_hybrid". The latter has been fixed
+    to match the registered name.

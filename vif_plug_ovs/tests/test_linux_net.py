@@ -156,3 +156,18 @@ class LinuxNetTest(testtools.TestCase):
             "fake-instance-uuid", constants.OVS_VHOSTUSER_INTERFACE_TYPE)
         self.assertFalse(mock_set_device_mtu.called)
         self.assertTrue(mock_vsctl.called)
+
+    @mock.patch.object(linux_net, '_ovs_vsctl')
+    @mock.patch.object(linux_net, '_create_ovs_vif_cmd')
+    @mock.patch.object(linux_net, '_set_device_mtu')
+    def test_ovs_vif_port_with_no_mtu(self, mock_set_device_mtu,
+                                      mock_create_cmd, mock_vsctl):
+        linux_net.create_ovs_vif_port(
+            'fake-bridge',
+            'fake-dev', 'fake-iface-id', 'fake-mac',
+            "fake-instance-uuid")
+        mock_create_cmd.assert_called_once_with('fake-bridge',
+            'fake-dev', 'fake-iface-id', 'fake-mac',
+            "fake-instance-uuid", None)
+        self.assertFalse(mock_set_device_mtu.called)
+        self.assertTrue(mock_vsctl.called)

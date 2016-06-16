@@ -1,0 +1,7 @@
+---
+features:
+  - The ovs plugin has been modified to ensure that the
+    specified OVS bridge that the vif will be attached to
+    has been created.  If the OVS bridge does not exist, it
+    will be created with the proper datapath_type.
+

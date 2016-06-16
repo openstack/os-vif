@@ -60,6 +60,11 @@ def _create_ovs_vif_cmd(bridge, dev, iface_id, mac,
     return cmd
 
 
+def _create_ovs_bridge_cmd(bridge, datapath_type):
+    return ['--', '--may-exist', 'add-br', bridge,
+            '--', 'set', 'Bridge', bridge, 'datapath_type=%s' % datapath_type]
+
+
 @privsep.vif_plug.entrypoint
 def create_ovs_vif_port(bridge, dev, iface_id, mac, instance_id,
                         mtu=None, interface_type=None):
@@ -115,6 +120,11 @@ def create_veth_pair(dev1_name, dev2_name, mtu):
         processutils.execute('ip', 'link', 'set', dev, 'up')
         processutils.execute('ip', 'link', 'set', dev, 'promisc', 'on')
         _set_device_mtu(dev, mtu)
+
+
+@privsep.vif_plug.entrypoint
+def ensure_ovs_bridge(bridge, datapath_type):
+    _ovs_vsctl(_create_ovs_bridge_cmd(bridge, datapath_type))
 
 
 @privsep.vif_plug.entrypoint

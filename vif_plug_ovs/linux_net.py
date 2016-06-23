@@ -62,10 +62,10 @@ def _create_ovs_vif_cmd(bridge, dev, iface_id, mac,
 
 @privsep.vif_plug.entrypoint
 def create_ovs_vif_port(bridge, dev, iface_id, mac, instance_id,
-                        mtu=None, interface_type=None):
+                        mtu=None, interface_type=None, timeout=None):
     _ovs_vsctl(_create_ovs_vif_cmd(bridge, dev, iface_id,
                                    mac, instance_id,
-                                   interface_type))
+                                   interface_type), timeout=timeout)
     # Note at present there is no support for setting the
     # mtu for vhost-user type ports.
     if mtu and interface_type != constants.OVS_VHOSTUSER_INTERFACE_TYPE:

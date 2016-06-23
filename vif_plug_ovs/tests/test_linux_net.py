@@ -171,3 +171,42 @@ class LinuxNetTest(testtools.TestCase):
             "fake-instance-uuid", None)
         self.assertFalse(mock_set_device_mtu.called)
         self.assertTrue(mock_vsctl.called)
+
+    @mock.patch.object(linux_net, '_ovs_vsctl')
+    @mock.patch.object(linux_net, '_create_ovs_vif_cmd',
+                       return_value='ovs_command')
+    @mock.patch.object(linux_net, '_set_device_mtu')
+    def test_ovs_vif_port_with_timeout(self, mock_set_device_mtu,
+                                      mock_create_cmd, mock_vsctl):
+        linux_net.create_ovs_vif_port(
+            'fake-bridge',
+            'fake-dev', 'fake-iface-id', 'fake-mac',
+            "fake-instance-uuid", timeout=42)
+        self.assertTrue(mock_create_cmd.called)
+        self.assertFalse(mock_set_device_mtu.called)
+        mock_vsctl.assert_called_with('ovs_command', timeout=42)
+
+    @mock.patch.object(linux_net, '_ovs_vsctl')
+    @mock.patch.object(linux_net, '_create_ovs_vif_cmd',
+                       return_value='ovs_command')
+    @mock.patch.object(linux_net, '_set_device_mtu')
+    def test_ovs_vif_port_with_no_timeout(self, mock_set_device_mtu,
+                                      mock_create_cmd, mock_vsctl):
+        linux_net.create_ovs_vif_port(
+            'fake-bridge',
+            'fake-dev', 'fake-iface-id', 'fake-mac',
+            "fake-instance-uuid")
+        self.assertTrue(mock_create_cmd.called)
+        self.assertFalse(mock_set_device_mtu.called)
+        mock_vsctl.assert_called_with('ovs_command', timeout=None)
+
+    @mock.patch.object(processutils, "execute")
+    def test_ovs_vsctl(self, mock_execute):
+        args = ['fake-args', 42]
+        timeout = 42
+        linux_net._ovs_vsctl(args)
+        linux_net._ovs_vsctl(args, timeout=timeout)
+        self.assertEqual(
+            [mock.call('ovs-vsctl', *args),
+             mock.call('ovs-vsctl', '--timeout=%s' % timeout, *args)],
+            mock_execute.mock_calls)

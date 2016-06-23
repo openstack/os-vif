@@ -123,7 +123,9 @@ class OvsPlugin(plugin.PluginBase):
             raise exception.WrongPortProfile(
                 profile=vif.port_profile.__class__.__name__)
 
-        if isinstance(vif, objects.vif.VIFBridge):
+        if isinstance(vif, objects.vif.VIFOpenVSwitch):
+            pass  # no special plugging required
+        elif isinstance(vif, objects.vif.VIFBridge):
             self._plug_bridge(vif, instance_info)
         elif isinstance(vif, objects.vif.VIFVHostUser):
             self._plug_vhostuser(vif, instance_info)
@@ -155,7 +157,9 @@ class OvsPlugin(plugin.PluginBase):
             raise exception.WrongPortProfile(
                 profile=vif.port_profile.__class__.__name__)
 
-        if isinstance(vif, objects.vif.VIFBridge):
+        if isinstance(vif, objects.vif.VIFOpenVSwitch):
+            pass  # no special unplugging required
+        elif isinstance(vif, objects.vif.VIFBridge):
             self._unplug_bridge(vif, instance_info)
         elif isinstance(vif, objects.vif.VIFVHostUser):
             self._unplug_vhostuser(vif, instance_info)

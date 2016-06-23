@@ -1,0 +1,6 @@
+---
+fixes:
+  - The ovs plugin now handles vifs of type VIFOpenVSwitch
+    properly. Before, it would improperly create an extraneous
+    linux bridge and veth pair attached to the target OVS bridge.
+

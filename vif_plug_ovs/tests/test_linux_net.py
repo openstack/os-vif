@@ -141,6 +141,24 @@ class LinuxNetTest(testtools.TestCase):
                                             'fake-type')
         self.assertEqual(expected, cmd)
 
+    @mock.patch.object(linux_net, '_create_ovs_bridge_cmd')
+    @mock.patch.object(linux_net, '_ovs_vsctl')
+    def test_ensure_ovs_bridge(self, mock_vsctl, mock_create_ovs_bridge):
+        bridge = 'fake-bridge'
+        dp_type = 'fake-type'
+        linux_net.ensure_ovs_bridge(bridge, dp_type)
+        mock_create_ovs_bridge.assert_called_once_with(bridge, dp_type)
+        self.assertTrue(mock_vsctl.called)
+
+    def test_create_ovs_bridge_cmd(self):
+        bridge = 'fake-bridge'
+        dp_type = 'fake-type'
+        expected = ['--', '--may-exist', 'add-br', bridge,
+                    '--', 'set', 'Bridge', bridge,
+                    'datapath_type=%s' % dp_type]
+        actual = linux_net._create_ovs_bridge_cmd(bridge, dp_type)
+        self.assertEqual(expected, actual)
+
     @mock.patch.object(linux_net, '_ovs_vsctl')
     @mock.patch.object(linux_net, '_create_ovs_vif_cmd')
     @mock.patch.object(linux_net, '_set_device_mtu')

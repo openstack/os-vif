@@ -54,7 +54,7 @@ class HostVIFInfo(osv_base.VersionedObject, base.ComparableVersionedObject):
             minwant = _vers_tuple(self.min_version)
             maxwant = _vers_tuple(self.max_version)
 
-            if got >= minwant and got <= maxwant:
+            if minwant <= got <= maxwant:
                 return regobj.VERSION
 
         raise exception.NoSupportedVIFVersion(vif_name=self.name,

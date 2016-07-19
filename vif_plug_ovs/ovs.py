@@ -17,6 +17,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import sys
+
 from os_vif import objects
 from os_vif import plugin
 from oslo_config import cfg
@@ -80,16 +82,22 @@ class OvsPlugin(plugin.PluginBase):
                     max_version="1.0")
             ])
 
-    def _plug_vhostuser(self, vif, instance_info):
-        linux_net.ensure_ovs_bridge(vif.network.bridge,
-                                    constants.OVS_DATAPATH_NETDEV)
+    def _create_vif_port(self, vif, vif_name, instance_info, **kwargs):
         linux_net.create_ovs_vif_port(
             vif.network.bridge,
-            OvsPlugin.gen_port_name("vhu", vif.id),
+            vif_name,
             vif.port_profile.interface_id,
             vif.address, instance_info.uuid,
             self.config.network_device_mtu,
             timeout=self.config.ovs_vsctl_timeout,
+            **kwargs)
+
+    def _plug_vhostuser(self, vif, instance_info):
+        linux_net.ensure_ovs_bridge(vif.network.bridge,
+                                    constants.OVS_DATAPATH_NETDEV)
+        vif_name = OvsPlugin.gen_port_name("vhu", vif.id)
+        self._create_vif_port(
+            vif, vif_name, instance_info,
             interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE)
 
     def _plug_bridge(self, vif, instance_info):
@@ -111,13 +119,15 @@ class OvsPlugin(plugin.PluginBase):
             linux_net.add_bridge_port(vif.bridge_name, v1_name)
             linux_net.ensure_ovs_bridge(vif.network.bridge,
                                         constants.OVS_DATAPATH_SYSTEM)
-            linux_net.create_ovs_vif_port(
-                vif.network.bridge,
-                v2_name,
-                vif.port_profile.interface_id,
-                vif.address, instance_info.uuid,
-                self.config.network_device_mtu,
-                timeout=self.config.ovs_vsctl_timeout)
+            self._create_vif_port(vif, v2_name, instance_info)
+
+    def _plug_vif_windows(self, vif, instance_info):
+        """Create a per-VIF OVS port."""
+
+        if not linux_net.device_exists(vif.id):
+            linux_net.ensure_ovs_bridge(vif.network.bridge,
+                                            constants.OVS_DATAPATH_SYSTEM)
+            self._create_vif_port(vif, vif.id, instance_info)
 
     def plug(self, vif, instance_info):
         if not hasattr(vif, "port_profile"):
@@ -128,10 +138,16 @@ class OvsPlugin(plugin.PluginBase):
                 profile=vif.port_profile.__class__.__name__)
 
         if isinstance(vif, objects.vif.VIFOpenVSwitch):
-            linux_net.ensure_ovs_bridge(vif.network.bridge,
-                                        constants.OVS_DATAPATH_SYSTEM)
+            if sys.platform != constants.PLATFORM_WIN32:
+                linux_net.ensure_ovs_bridge(vif.network.bridge,
+                                            constants.OVS_DATAPATH_SYSTEM)
+            else:
+                self._plug_vif_windows(vif, instance_info)
         elif isinstance(vif, objects.vif.VIFBridge):
-            self._plug_bridge(vif, instance_info)
+            if sys.platform != constants.PLATFORM_WIN32:
+                self._plug_bridge(vif, instance_info)
+            else:
+                self._plug_vif_windows(vif, instance_info)
         elif isinstance(vif, objects.vif.VIFVHostUser):
             self._plug_vhostuser(vif, instance_info)
 
@@ -154,6 +170,12 @@ class OvsPlugin(plugin.PluginBase):
         linux_net.delete_ovs_vif_port(vif.network.bridge, v2_name,
                                       timeout=self.config.ovs_vsctl_timeout)
 
+    def _unplug_vif_windows(self, vif, instance_info):
+        """Remove port from OVS."""
+
+        linux_net.delete_ovs_vif_port(vif.network.bridge, vif.id,
+                                      timeout=self.config.ovs_vsctl_timeout)
+
     def unplug(self, vif, instance_info):
         if not hasattr(vif, "port_profile"):
             raise exception.MissingPortProfile()
@@ -163,8 +185,12 @@ class OvsPlugin(plugin.PluginBase):
                 profile=vif.port_profile.__class__.__name__)
 
         if isinstance(vif, objects.vif.VIFOpenVSwitch):
-            pass  # no special unplugging required
+            if sys.platform == constants.PLATFORM_WIN32:
+                self._unplug_vif_windows(vif, instance_info)
         elif isinstance(vif, objects.vif.VIFBridge):
-            self._unplug_bridge(vif, instance_info)
+            if sys.platform != constants.PLATFORM_WIN32:
+                self._unplug_bridge(vif, instance_info)
+            else:
+                self._unplug_vif_windows(vif, instance_info)
         elif isinstance(vif, objects.vif.VIFVHostUser):
             self._unplug_vhostuser(vif, instance_info)

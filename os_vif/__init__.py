@@ -43,8 +43,9 @@ def initialize(reset=False):
         for plugin_name in _EXT_MANAGER.names():
             cls = _EXT_MANAGER[plugin_name].plugin
             obj = cls.load(plugin_name)
-            LOG.info("Loaded VIF plugin class '%s' with name '%s'",
-                     cls, plugin_name)
+            LOG.info(_LI("Loaded VIF plugin class '%(cls)s' "
+                         "with name '%(plugin_name)s'"),
+                     {'cls': cls, 'plugin_name': plugin_name})
             _EXT_MANAGER[plugin_name].obj = obj
 
 

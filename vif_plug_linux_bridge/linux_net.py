@@ -175,7 +175,7 @@ def _ensure_bridge_privileged(bridge, interface, net_attrs, gateway,
 def _ensure_bridge_filtering(bridge, gateway):
     # This method leaves privsep usage to iptables manager
     # Don't forward traffic unless we were told to be a gateway
-    LOG.debug("ENsuring filtering %s to %s" % (bridge, gateway))
+    LOG.debug("Ensuring filtering %s to %s", bridge, gateway)
     global _IPTABLES_MANAGER
     ipv4_filter = _IPTABLES_MANAGER.ipv4['filter']
     if gateway:

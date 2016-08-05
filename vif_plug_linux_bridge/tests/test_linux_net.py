@@ -12,6 +12,7 @@
 
 import contextlib
 import mock
+import os.path
 import six
 import testtools
 
@@ -84,3 +85,41 @@ class LinuxNetTest(testtools.TestCase):
         linux_net._ensure_vlan_privileged(123, 'fake-bridge',
                                           mac_address='fake-mac', mtu=None)
         self.assertFalse(mock_set_mtu.called)
+
+    @mock.patch.object(processutils, "execute")
+    @mock.patch.object(linux_net, "device_exists", return_value=True)
+    def test_ensure_bridge_exists(self, mock_dev_exists, mock_exec):
+        linux_net.ensure_bridge("br0", None, filtering=False)
+
+        self.assertEqual([], mock_exec.mock_calls)
+        mock_dev_exists.assert_called_once_with("br0")
+
+    @mock.patch.object(os.path, "exists", return_value=False)
+    @mock.patch.object(processutils, "execute")
+    @mock.patch.object(linux_net, "device_exists", return_value=False)
+    def test_ensure_bridge_new_ipv4(self, mock_dev_exists, mock_exec,
+                                    mock_path_exists):
+        linux_net.ensure_bridge("br0", None, filtering=False)
+
+        calls = [mock.call('brctl', 'addbr', 'br0'),
+                 mock.call('brctl', 'setfd', 'br0', 0),
+                 mock.call('brctl', 'stp', 'br0', "off"),
+                 mock.call('ip', 'link', 'set', 'br0', "up")]
+        self.assertEqual(calls, mock_exec.mock_calls)
+        mock_dev_exists.assert_called_once_with("br0")
+
+    @mock.patch.object(os.path, "exists", return_value=True)
+    @mock.patch.object(processutils, "execute")
+    @mock.patch.object(linux_net, "device_exists", return_value=False)
+    def test_ensure_bridge_new_ipv6(self, mock_dev_exists, mock_exec,
+                                    mock_path_exists):
+        linux_net.ensure_bridge("br0", None, filtering=False)
+
+        calls = [mock.call('brctl', 'addbr', 'br0'),
+                 mock.call('brctl', 'setfd', 'br0', 0),
+                 mock.call('brctl', 'stp', 'br0', "off"),
+                 mock.call('tee', '/proc/sys/net/ipv6/conf/br0/disable_ipv6',
+                           check_exit_code=[0, 1], process_input='1'),
+                 mock.call('ip', 'link', 'set', 'br0', "up")]
+        self.assertEqual(calls, mock_exec.mock_calls)
+        mock_dev_exists.assert_called_once_with("br0")

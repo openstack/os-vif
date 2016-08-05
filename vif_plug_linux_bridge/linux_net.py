@@ -126,6 +126,12 @@ def _ensure_bridge_privileged(bridge, interface, net_attrs, gateway,
         processutils.execute('brctl', 'setfd', bridge, 0)
         # processutils.execute('brctl setageing %s 10' % bridge)
         processutils.execute('brctl', 'stp', bridge, 'off')
+        disv6 = ('/proc/sys/net/ipv6/conf/%s/disable_ipv6' % bridge)
+        if os.path.exists(disv6):
+            processutils.execute('tee',
+                                 disv6,
+                                 process_input='1',
+                                 check_exit_code=[0, 1])
         # (danwent) bridge device MAC address can't be set directly.
         # instead it inherits the MAC address of the first device on the
         # bridge, which will either be the vlan interface, or a

@@ -25,6 +25,8 @@ class Route(osv_base.VersionedObject):
     fields = {
         'cidr': fields.IPNetworkField(),
         'gateway': fields.IPAddressField(),
+        # TODO(mriedem): This field is never set by Nova, remove it in v2.0
+        # of this object.
         'interface': fields.StringField(),
     }
 

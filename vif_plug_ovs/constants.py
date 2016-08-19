@@ -11,6 +11,8 @@
 #    under the License.
 
 OVS_VHOSTUSER_INTERFACE_TYPE = 'dpdkvhostuser'
+OVS_VHOSTUSER_CLIENT_INTERFACE_TYPE = 'dpdkvhostuserclient'
+OVS_VHOSTUSER_PREFIX = 'vhu'
 
 OVS_DATAPATH_SYSTEM = 'system'
 OVS_DATAPATH_NETDEV = 'netdev'

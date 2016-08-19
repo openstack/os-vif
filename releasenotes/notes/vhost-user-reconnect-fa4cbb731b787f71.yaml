@@ -1,0 +1,14 @@
+---
+features:
+  - vhost-user reconnect is a new feature of qemu that
+    allows a vhost-user frontend(e.g. qemu) to reconnect
+    to a vhost-user backend (e.g. ovs with dpdk) in the event
+    that backend is restarted while the interface is in use.
+    vhost-user reconnect leverages qemu vhost-user server mode
+    with ovs-dpdk in client mode. This configuration requires
+    ovs 2.6 with dpdk 16.07 and qemu 2.7 or newer to function.
+    When qemu server mode is used with older qemu versions such
+    as 2.5, vhost-user will still function with ovs 2.6 and
+    dpdk 16.07, however, reconnect functionality will not be
+    available.
+

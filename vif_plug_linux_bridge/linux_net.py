@@ -24,6 +24,7 @@ import os
 from oslo_concurrency import lockutils
 from oslo_concurrency import processutils
 from oslo_log import log as logging
+from oslo_utils import excutils
 
 from vif_plug_linux_bridge import privsep
 
@@ -122,7 +123,11 @@ def _ensure_bridge_privileged(bridge, interface, net_attrs, gateway,
     """
     if not device_exists(bridge):
         LOG.debug('Starting Bridge %s', bridge)
-        processutils.execute('brctl', 'addbr', bridge)
+        try:
+            processutils.execute('brctl', 'addbr', bridge)
+        except Exception:
+            with excutils.save_and_reraise_exception() as ectx:
+                ectx.reraise = not device_exists(bridge)
         processutils.execute('brctl', 'setfd', bridge, 0)
         # processutils.execute('brctl setageing %s 10' % bridge)
         processutils.execute('brctl', 'stp', bridge, 'off')

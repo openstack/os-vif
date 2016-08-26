@@ -94,6 +94,26 @@ class LinuxNetTest(testtools.TestCase):
         self.assertEqual([], mock_exec.mock_calls)
         mock_dev_exists.assert_called_once_with("br0")
 
+    @mock.patch.object(processutils, "execute")
+    @mock.patch.object(linux_net, "device_exists", return_value=False)
+    def test_ensure_bridge_addbr_exception(self, mock_dev_exists, mock_exec):
+        mock_exec.side_effect = ValueError()
+        with testtools.ExpectedException(ValueError):
+            linux_net.ensure_bridge("br0", None, filtering=False)
+
+    @mock.patch.object(processutils, "execute")
+    @mock.patch.object(linux_net, "device_exists", side_effect=[False, True])
+    def test_ensure_bridge_concurrent_add(self, mock_dev_exists, mock_exec):
+        mock_exec.side_effect = [ValueError(), 0, 0, 0]
+        linux_net.ensure_bridge("br0", None, filtering=False)
+
+        calls = [mock.call('brctl', 'addbr', 'br0'),
+                 mock.call('brctl', 'setfd', 'br0', 0),
+                 mock.call('brctl', 'stp', 'br0', "off"),
+                 mock.call('ip', 'link', 'set', 'br0', "up")]
+        self.assertEqual(calls, mock_exec.mock_calls)
+        mock_dev_exists.assert_has_calls([mock.call("br0"), mock.call("br0")])
+
     @mock.patch.object(os.path, "exists", return_value=False)
     @mock.patch.object(processutils, "execute")
     @mock.patch.object(linux_net, "device_exists", return_value=False)

@@ -83,12 +83,16 @@ class OvsPlugin(plugin.PluginBase):
             ])
 
     def _create_vif_port(self, vif, vif_name, instance_info, **kwargs):
+        if vif.network and vif.network.mtu:
+            mtu = vif.network.mtu
+        else:
+            mtu = self.config.network_device_mtu
         linux_net.create_ovs_vif_port(
             vif.network.bridge,
             vif_name,
             vif.port_profile.interface_id,
             vif.address, instance_info.uuid,
-            self.config.network_device_mtu,
+            mtu,
             timeout=self.config.ovs_vsctl_timeout,
             **kwargs)
 
@@ -114,8 +118,11 @@ class OvsPlugin(plugin.PluginBase):
         linux_net.ensure_bridge(vif.bridge_name)
 
         if not linux_net.device_exists(v2_name):
-            linux_net.create_veth_pair(v1_name, v2_name,
-                                       self.config.network_device_mtu)
+            if vif.network and vif.network.mtu:
+                mtu = vif.network.mtu
+            else:
+                mtu = self.config.network_device_mtu
+            linux_net.create_veth_pair(v1_name, v2_name, mtu)
             linux_net.add_bridge_port(vif.bridge_name, v1_name)
             linux_net.ensure_ovs_bridge(vif.network.bridge,
                                         constants.OVS_DATAPATH_SYSTEM)

@@ -58,6 +58,13 @@ class PluginTest(testtools.TestCase):
             subnets=self.subnets,
             vlan=99)
 
+        self.network_ovs_mtu = objects.network.Network(
+            id='437c6db5-4e6f-4b43-b64b-ed6a11ee5ba7',
+            bridge='br0',
+            subnets=self.subnets,
+            vlan=99,
+            mtu=1234)
+
         self.profile_ovs = objects.vif.VIFPortProfileOpenVSwitch(
             interface_id='e65867e0-9340-4a7f-a256-09af6eb7a3aa')
 
@@ -99,6 +106,21 @@ class PluginTest(testtools.TestCase):
             self.vif_ovs.port_profile.interface_id,
             self.vif_ovs.address, self.instance.uuid,
             plugin.config.network_device_mtu,
+            timeout=plugin.config.ovs_vsctl_timeout,
+            interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE)
+
+    @mock.patch.object(linux_net, 'create_ovs_vif_port')
+    def test_create_vif_port_mtu_in_model(self, mock_create_ovs_vif_port):
+        self.vif_ovs.network = self.network_ovs_mtu
+        plugin = ovs.OvsPlugin.load('ovs')
+        plugin._create_vif_port(
+            self.vif_ovs, mock.sentinel.vif_name, self.instance,
+            interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE)
+        mock_create_ovs_vif_port.assert_called_once_with(
+            self.vif_ovs.network.bridge, mock.sentinel.vif_name,
+            self.vif_ovs.port_profile.interface_id,
+            self.vif_ovs.address, self.instance.uuid,
+            self.network_ovs_mtu.mtu,
             timeout=plugin.config.ovs_vsctl_timeout,
             interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE)
 

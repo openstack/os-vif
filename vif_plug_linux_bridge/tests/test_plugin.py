@@ -87,14 +87,21 @@ class PluginTest(testtools.TestCase):
             mock_ensure_bridge.assert_called_with("br0", "eth0")
             self.assertEqual(len(mock_ensure_vlan_bridge.calls), 0)
 
-    def test_plug_bridge_create_br_vlan(self):
+    def test_plug_bridge_create_br_vlan_mtu_in_model(self):
+        self._test_plug_bridge_create_br_vlan(mtu=1234)
+
+    def test_plug_bridge_create_br_vlan_mtu_from_config(self):
+        self._test_plug_bridge_create_br_vlan()
+
+    def _test_plug_bridge_create_br_vlan(self, mtu=None):
         network = objects.network.Network(
             id='437c6db5-4e6f-4b43-b64b-ed6a11ee5ba7',
             bridge='br0',
             bridge_interface='eth0',
             vlan=99,
             should_provide_bridge=True,
-            should_provide_vlan=True)
+            should_provide_vlan=True,
+            mtu=mtu)
 
         vif = objects.vif.VIFBridge(
             id='b679325f-ca89-4ee0-a8be-6db1409b69ea',
@@ -112,4 +119,4 @@ class PluginTest(testtools.TestCase):
 
             self.assertEqual(len(mock_ensure_bridge.calls), 0)
             mock_ensure_vlan_bridge.assert_called_with(
-                99, "br0", "eth0", mtu=1500)
+                99, "br0", "eth0", mtu=mtu or 1500)

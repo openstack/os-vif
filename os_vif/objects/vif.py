@@ -81,10 +81,18 @@ class VIFBridge(VIFBase):
 
 
 @base.VersionedObjectRegistry.register
-class VIFOpenVSwitch(VIFBridge):
+class VIFOpenVSwitch(VIFBase):
     # For libvirt drivers, this also maps to type='bridge'
 
     VERSION = '1.0'
+
+    fields = {
+        # Name of the virtual device to create
+        'vif_name': fields.StringField(),
+
+        # Name of the physical device to connect to (eg br0)
+        'bridge_name': fields.StringField(),
+    }
 
 
 @base.VersionedObjectRegistry.register

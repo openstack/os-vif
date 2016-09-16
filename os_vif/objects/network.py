@@ -10,6 +10,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo_utils import versionutils
 from oslo_versionedobjects import base
 from oslo_versionedobjects import fields
 
@@ -21,7 +22,8 @@ from os_vif.objects import base as osv_base
 class Network(osv_base.VersionedObject):
     """Represents a network."""
     # Version 1.0: Initial version
-    VERSION = '1.0'
+    # Version 1.1: Added MTU field
+    VERSION = '1.1'
 
     fields = {
         'id': fields.UUIDField(),
@@ -33,6 +35,7 @@ class Network(osv_base.VersionedObject):
         'should_provide_vlan': fields.BooleanField(),
         'bridge_interface': fields.StringField(nullable=True),
         'vlan': fields.IntegerField(nullable=True),
+        'mtu': fields.IntegerField(nullable=True),
     }
 
     def __init__(self, **kwargs):
@@ -40,4 +43,10 @@ class Network(osv_base.VersionedObject):
         kwargs.setdefault('multi_host', False)
         kwargs.setdefault('should_provide_bridge', False)
         kwargs.setdefault('should_provide_vlan', False)
+        kwargs.setdefault('mtu', None)
         super(Network, self).__init__(**kwargs)
+
+    def obj_make_compatible(self, primitive, target_version):
+        target_version = versionutils.convert_version_to_tuple(target_version)
+        if target_version < (1, 1):
+            primitive.pop('mtu', None)

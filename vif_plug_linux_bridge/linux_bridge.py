@@ -97,7 +97,7 @@ class LinuxBridgePlugin(plugin.PluginBase):
         if not network.multi_host and network.should_provide_bridge:
             if network.should_provide_vlan:
                 iface = self.config.vlan_interface or network.bridge_interface
-                mtu = self.config.network_device_mtu
+                mtu = network.mtu or self.config.network_device_mtu
                 linux_net.ensure_vlan_bridge(network.vlan,
                                              bridge_name, iface, mtu=mtu)
             else:

@@ -40,13 +40,16 @@ def initialize(reset=False):
     if reset or (_EXT_MANAGER is None):
         _EXT_MANAGER = extension.ExtensionManager(namespace='os_vif',
                                                   invoke_on_load=False)
+        loaded_plugins = []
         for plugin_name in _EXT_MANAGER.names():
             cls = _EXT_MANAGER[plugin_name].plugin
             obj = cls.load(plugin_name)
-            LOG.info(_LI("Loaded VIF plugin class '%(cls)s' "
-                         "with name '%(plugin_name)s'"),
-                     {'cls': cls, 'plugin_name': plugin_name})
+            LOG.debug(("Loaded VIF plugin class '%(cls)s' "
+                       "with name '%(plugin_name)s'"),
+                      {'cls': cls, 'plugin_name': plugin_name})
+            loaded_plugins.append(plugin_name)
             _EXT_MANAGER[plugin_name].obj = obj
+        LOG.info(_LI("Loaded VIF plugins: %s"), ", ".join(loaded_plugins))
 
 
 def plug(vif, instance_info):

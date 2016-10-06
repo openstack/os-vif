@@ -10,24 +10,13 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import contextlib
 import mock
-import six
 import testtools
 
 from os_vif import objects
 
 from vif_plug_linux_bridge import linux_bridge
 from vif_plug_linux_bridge import linux_net
-
-
-if six.PY2:
-    nested = contextlib.nested
-else:
-    @contextlib.contextmanager
-    def nested(*contexts):
-        with contextlib.ExitStack() as stack:
-            yield [stack.enter_context(c) for c in contexts]
 
 
 class PluginTest(testtools.TestCase):
@@ -41,7 +30,10 @@ class PluginTest(testtools.TestCase):
             name='demo',
             uuid='f0000000-0000-0000-0000-000000000001')
 
-    def test_plug_bridge(self):
+    @mock.patch.object(linux_net, 'ensure_vlan_bridge')
+    @mock.patch.object(linux_net, 'ensure_bridge')
+    def test_plug_bridge(self, mock_ensure_bridge,
+                         mock_ensure_vlan_bridge):
         network = objects.network.Network(
             id='437c6db5-4e6f-4b43-b64b-ed6a11ee5ba7',
             bridge='br0')
@@ -53,17 +45,16 @@ class PluginTest(testtools.TestCase):
             dev_name='tap-xxx-yyy-zzz',
             bridge_name="br0")
 
-        with nested(
-                mock.patch.object(linux_net, 'ensure_bridge'),
-                mock.patch.object(linux_net, 'ensure_vlan_bridge')
-        ) as (mock_ensure_bridge, mock_ensure_vlan_bridge):
-            plugin = linux_bridge.LinuxBridgePlugin.load("linux_bridge")
-            plugin.plug(vif, self.instance)
+        plugin = linux_bridge.LinuxBridgePlugin.load("linux_bridge")
+        plugin.plug(vif, self.instance)
 
-            self.assertEqual(len(mock_ensure_bridge.calls), 0)
-            self.assertEqual(len(mock_ensure_vlan_bridge.calls), 0)
+        self.assertEqual(len(mock_ensure_bridge.calls), 0)
+        self.assertEqual(len(mock_ensure_vlan_bridge.calls), 0)
 
-    def test_plug_bridge_create_br(self):
+    @mock.patch.object(linux_net, 'ensure_vlan_bridge')
+    @mock.patch.object(linux_net, 'ensure_bridge')
+    def test_plug_bridge_create_br(self, mock_ensure_bridge,
+                                   mock_ensure_vlan_bridge):
         network = objects.network.Network(
             id='437c6db5-4e6f-4b43-b64b-ed6a11ee5ba7',
             bridge='br0',
@@ -77,15 +68,11 @@ class PluginTest(testtools.TestCase):
             dev_name='tap-xxx-yyy-zzz',
             bridge_name="br0")
 
-        with nested(
-                mock.patch.object(linux_net, 'ensure_bridge'),
-                mock.patch.object(linux_net, 'ensure_vlan_bridge')
-        ) as (mock_ensure_bridge, mock_ensure_vlan_bridge):
-            plugin = linux_bridge.LinuxBridgePlugin.load("linux_bridge")
-            plugin.plug(vif, self.instance)
+        plugin = linux_bridge.LinuxBridgePlugin.load("linux_bridge")
+        plugin.plug(vif, self.instance)
 
-            mock_ensure_bridge.assert_called_with("br0", "eth0")
-            self.assertEqual(len(mock_ensure_vlan_bridge.calls), 0)
+        mock_ensure_bridge.assert_called_with("br0", "eth0")
+        self.assertEqual(len(mock_ensure_vlan_bridge.calls), 0)
 
     def test_plug_bridge_create_br_vlan_mtu_in_model(self):
         self._test_plug_bridge_create_br_vlan(mtu=1234)
@@ -93,7 +80,11 @@ class PluginTest(testtools.TestCase):
     def test_plug_bridge_create_br_vlan_mtu_from_config(self):
         self._test_plug_bridge_create_br_vlan()
 
-    def _test_plug_bridge_create_br_vlan(self, mtu=None):
+    @mock.patch.object(linux_net, 'ensure_vlan_bridge')
+    @mock.patch.object(linux_net, 'ensure_bridge')
+    def _test_plug_bridge_create_br_vlan(self, mock_ensure_bridge,
+                                         mock_ensure_vlan_bridge,
+                                         mtu=None):
         network = objects.network.Network(
             id='437c6db5-4e6f-4b43-b64b-ed6a11ee5ba7',
             bridge='br0',
@@ -110,13 +101,9 @@ class PluginTest(testtools.TestCase):
             dev_name='tap-xxx-yyy-zzz',
             bridge_name="br0")
 
-        with nested(
-                mock.patch.object(linux_net, 'ensure_bridge'),
-                mock.patch.object(linux_net, 'ensure_vlan_bridge')
-        ) as (mock_ensure_bridge, mock_ensure_vlan_bridge):
-            plugin = linux_bridge.LinuxBridgePlugin.load("linux_bridge")
-            plugin.plug(vif, self.instance)
+        plugin = linux_bridge.LinuxBridgePlugin.load("linux_bridge")
+        plugin.plug(vif, self.instance)
 
-            self.assertEqual(len(mock_ensure_bridge.calls), 0)
-            mock_ensure_vlan_bridge.assert_called_with(
-                99, "br0", "eth0", mtu=mtu or 1500)
+        self.assertEqual(len(mock_ensure_bridge.calls), 0)
+        mock_ensure_vlan_bridge.assert_called_with(
+            99, "br0", "eth0", mtu=mtu or 1500)

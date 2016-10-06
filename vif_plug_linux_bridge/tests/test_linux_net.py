@@ -10,10 +10,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import contextlib
 import mock
 import os.path
-import six
 import testtools
 
 import fixtures
@@ -27,14 +25,6 @@ from vif_plug_linux_bridge import linux_net
 from vif_plug_linux_bridge import privsep
 
 CONF = cfg.CONF
-
-if six.PY2:
-    nested = contextlib.nested
-else:
-    @contextlib.contextmanager
-    def nested(*contexts):
-        with contextlib.ExitStack() as stack:
-            yield [stack.enter_context(c) for c in contexts]
 
 
 class LinuxNetTest(testtools.TestCase):

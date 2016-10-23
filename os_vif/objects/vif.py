@@ -181,6 +181,45 @@ class VIFPortProfileOpenVSwitch(VIFPortProfileBase):
 
 
 @base.VersionedObjectRegistry.register
+class VIFPortProfileFPOpenVSwitch(VIFPortProfileOpenVSwitch):
+    # Port profile info for OpenVSwitch networks using fastpath
+
+    VERSION = '1.0'
+
+    fields = {
+        # Name of the bridge (managed by fast path) to connect to
+        'bridge_name': fields.StringField(),
+
+        # Whether the OpenVSwitch network is using hybrid plug
+        'hybrid_plug': fields.BooleanField(default=False),
+    }
+
+
+@base.VersionedObjectRegistry.register
+class VIFPortProfileFPBridge(VIFPortProfileBase):
+    # Port profile info for LinuxBridge networks using fastpath
+
+    VERSION = '1.0'
+
+    fields = {
+        # Name of the bridge (managed by fast path) to connect to
+        'bridge_name': fields.StringField(),
+    }
+
+
+@base.VersionedObjectRegistry.register
+class VIFPortProfileFPTap(VIFPortProfileBase):
+    # Port profile info for Calico networks using fastpath
+
+    VERSION = '1.0'
+
+    fields = {
+        # The mac address of the host vhostuser port
+        'mac_address': fields.MACAddressField(nullable=True),
+    }
+
+
+@base.VersionedObjectRegistry.register
 class VIFPortProfile8021Qbg(VIFPortProfileBase):
     # Port profile info for VEPA 802.1qbg networks
 

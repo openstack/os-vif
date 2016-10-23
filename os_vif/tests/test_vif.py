@@ -94,6 +94,34 @@ class TestVIFS(base.TestCase):
                        mode=objects.fields.VIFVHostUserMode.CLIENT,
                        vif_name="vhu123")
 
+    def test_vif_vhost_user_fp_ovs(self):
+        prof = objects.vif.VIFPortProfileFPOpenVSwitch(
+            interface_id="07bd6cea-fb37-4594-b769-90fc51854ee8",
+            profile_id="fishfood",
+            bridge_name="br-int",
+            hybrid_plug=False)
+        self._test_vif(objects.vif.VIFVHostUser,
+                       path="/some/socket.path",
+                       mode=objects.fields.VIFVHostUserMode.CLIENT,
+                       vif_name="tap123",
+                       port_profile=prof)
+
+    def test_vif_vhost_user_fp_lb(self):
+        prof = objects.vif.VIFPortProfileFPBridge(bridge_name="brq456")
+        self._test_vif(objects.vif.VIFVHostUser,
+                       path="/some/socket.path",
+                       mode=objects.fields.VIFVHostUserMode.CLIENT,
+                       vif_name="tap123",
+                       port_profile=prof)
+
+    def test_vif_vhost_user_fp_tap(self):
+        prof = objects.vif.VIFPortProfileFPTap(mac_address="fa:16:3e:4c:2c:30")
+        self._test_vif(objects.vif.VIFVHostUser,
+                       path="/some/socket.path",
+                       mode=objects.fields.VIFVHostUserMode.CLIENT,
+                       vif_name="tap123",
+                       port_profile=prof)
+
     def test_vif_host_dev_plain(self):
         self._test_vif(
             objects.vif.VIFHostDevice,
@@ -129,6 +157,9 @@ object_data = {
     'VIFPortProfile8021Qbh': '1.0-4b945f07d2666ab00a48d1dc225669b1',
     'VIFPortProfileBase': '1.0-77509ea1ea0dd750d5864b9bd87d3f9d',
     'VIFPortProfileOpenVSwitch': '1.0-533126c2a16b1a40ddf38c33e7b1f1c5',
+    'VIFPortProfileFPOpenVSwitch': '1.0-9fc1799cb0adcd469481653b0420dc5e',
+    'VIFPortProfileFPBridge': '1.0-d50872b3cddd245ffebef6053dfbe27a',
+    'VIFPortProfileFPTap': '1.0-11670d8dbabd772ff0da26961adadc5a',
     'VIFVHostUser': '1.1-1f95b43be1f884f090ca1f4d79adfd35',
 }
 

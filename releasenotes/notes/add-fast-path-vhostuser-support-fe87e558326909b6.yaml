@@ -1,0 +1,7 @@
+---
+features:
+  - New port profiles have been added to describe vhostuser fast path VIFs.
+    In particular fast path vhostuser ports can be used with ovs,
+    linuxbridge and calico networks.
+    Thus for each kind of network a dedicated port profile class has been
+    defined.

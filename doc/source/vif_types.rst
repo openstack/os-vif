@@ -97,6 +97,24 @@ VIFPortProfile8021Qbh
 This profile provides the metadata required to associate a VIF
 with a VEPA host device supporting the 801.1Qbg spec.
 
+VIFPortProfileFPOpenVSwitch
+---------------------------
+
+This profile provides the metadata required to associate a fast path
+vhostuser VIF with an openvswitch port.
+
+VIFPortProfileFPBridge
+----------------------
+
+This profile provides the metadata required to associate a fast path
+vhostuser VIF with a linuxbridge port.
+
+VIFPortProfileFPTap
+-------------------
+
+This profile provides the metadata required to associate a fast path
+vhostuser VIF with a calico port.
+
 
 VIF network objects
 ===================

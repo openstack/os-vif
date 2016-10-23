@@ -1,0 +1,7 @@
+---
+features:
+  - The vhostuser vif object has been modified to add the name of the
+    vhostuser port. Previously to this modification, it was responsibility
+    of ovs plugin to compute such name. This should not be necessary
+    with this new field. Because of this new field the VIFVHostUser object
+    version has been updated accordingly (to 1.1).

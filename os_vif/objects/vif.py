@@ -10,6 +10,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo_utils import versionutils
 from oslo_versionedobjects import base
 from oslo_versionedobjects import fields
 
@@ -120,15 +121,25 @@ class VIFDirect(VIFBase):
 class VIFVHostUser(VIFBase):
     # For libvirt drivers, this maps to type='vhostuser'
 
-    VERSION = '1.0'
+    VERSION = '1.1'
 
     fields = {
+        # Name of the vhostuser port to create
+        'vif_name': fields.StringField(),
+
         # UNIX socket path
         'path': fields.StringField(),
 
         # UNIX socket access permissions
         'mode': osv_fields.VIFVHostUserModeField(),
     }
+
+    def obj_make_compatible(self, primitive, target_version):
+        super(VIFVHostUser, self).obj_make_compatible(primitive,
+                                                      target_version)
+        target_version = versionutils.convert_version_to_tuple(target_version)
+        if target_version < (1, 1) and 'vif_name' in primitive:
+            del primitive['vif_name']
 
 
 @base.VersionedObjectRegistry.register

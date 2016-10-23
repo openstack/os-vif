@@ -91,7 +91,8 @@ class TestVIFS(base.TestCase):
     def test_vif_vhost_user(self):
         self._test_vif(objects.vif.VIFVHostUser,
                        path="/some/socket.path",
-                       mode=objects.fields.VIFVHostUserMode.CLIENT)
+                       mode=objects.fields.VIFVHostUserMode.CLIENT,
+                       vif_name="vhu123")
 
     def test_vif_host_dev_plain(self):
         self._test_vif(
@@ -128,7 +129,7 @@ object_data = {
     'VIFPortProfile8021Qbh': '1.0-4b945f07d2666ab00a48d1dc225669b1',
     'VIFPortProfileBase': '1.0-77509ea1ea0dd750d5864b9bd87d3f9d',
     'VIFPortProfileOpenVSwitch': '1.0-533126c2a16b1a40ddf38c33e7b1f1c5',
-    'VIFVHostUser': '1.0-374a7599acffa2a1c7290b0812ea0675',
+    'VIFVHostUser': '1.1-1f95b43be1f884f090ca1f4d79adfd35',
 }
 
 
@@ -147,3 +148,13 @@ class TestObjectVersions(base.TestCase):
                          'Some objects have changed; please make sure the '
                          'versions have been bumped, and then update their '
                          'hashes here.')
+
+    def test_vif_vhost_user_obj_make_compatible(self):
+        vif = objects.vif.VIFVHostUser(
+                path="/some/socket.path",
+                mode=objects.fields.VIFVHostUserMode.CLIENT,
+                vif_name="vhu123")
+        primitive = vif.obj_to_primitive()['versioned_object.data']
+        self.assertIn('vif_name', primitive)
+        vif.obj_make_compatible(primitive, '1.0')
+        self.assertNotIn('vif_name', primitive)

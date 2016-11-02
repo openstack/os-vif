@@ -10,14 +10,17 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from os_vif import exception
 from os_vif import objects
 from os_vif.tests import base
 
 
 class TestHostInfo(base.TestCase):
 
-    def test_serialization(self):
-        ciorig = objects.host_info.HostInfo(
+    def setUp(self):
+        super(TestHostInfo, self).setUp()
+
+        self.host_info = objects.host_info.HostInfo(
             plugin_info=[
                 objects.host_info.HostPluginInfo(
                     plugin_name="linux_brige",
@@ -41,11 +44,29 @@ class TestHostInfo(base.TestCase):
                             min_version="1.0",
                             max_version="2.0"
                         ),
+                        objects.host_info.HostVIFInfo(
+                            vif_object_name="VIFVHostUser",
+                            min_version="1.0",
+                            max_version="2.0"
+                        ),
                     ])
             ])
 
-        json = ciorig.obj_to_primitive()
+    def test_serialization(self):
+        json = self.host_info.obj_to_primitive()
 
-        cinew = objects.host_info.HostInfo.obj_from_primitive(json)
+        host_info = objects.host_info.HostInfo.obj_from_primitive(json)
 
-        self.assertEqual(ciorig, cinew)
+        self.assertEqual(self.host_info, host_info)
+
+    def test_plugin_existance(self):
+        self.assertTrue(self.host_info.has_plugin("ovs"))
+        self.assertFalse(self.host_info.has_plugin("fishfood"))
+
+    def test_plugin_fetch(self):
+        plugin = self.host_info.get_plugin("ovs")
+        self.assertEqual("ovs", plugin.plugin_name)
+
+        self.assertRaises(exception.NoMatchingPlugin,
+                          self.host_info.get_plugin,
+                          "fishfood")

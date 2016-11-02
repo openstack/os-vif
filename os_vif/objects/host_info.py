@@ -107,13 +107,13 @@ class HostInfo(osv_base.VersionedObject, base.ComparableVersionedObject):
 
     def has_plugin(self, name):
         for plugin in self.plugin_info:
-            if name == plugin.name:
+            if name == plugin.plugin_name:
                 return True
         return False
 
     def get_plugin(self, name):
         for plugin in self.plugin_info:
-            if name == plugin.name:
+            if name == plugin.plugin_name:
                 return plugin
 
         raise exception.NoMatchingPlugin(plugin_name=name)

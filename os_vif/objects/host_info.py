@@ -93,6 +93,13 @@ class HostPluginInfo(osv_base.VersionedObject,
 
         raise exception.NoMatchingVIFClass(vif_name=name)
 
+    def filter_vif_types(self, permitted_vif_type_names):
+        new_vif_info = []
+        for vif in self.vif_info:
+            if vif.vif_object_name in permitted_vif_type_names:
+                new_vif_info.append(vif)
+        self.vif_info = new_vif_info
+
 
 @base.VersionedObjectRegistry.register
 class HostInfo(osv_base.VersionedObject, base.ComparableVersionedObject):
@@ -117,3 +124,12 @@ class HostInfo(osv_base.VersionedObject, base.ComparableVersionedObject):
                 return plugin
 
         raise exception.NoMatchingPlugin(plugin_name=name)
+
+    def filter_vif_types(self, permitted_vif_type_names):
+        new_plugins = []
+        for plugin in self.plugin_info:
+            plugin.filter_vif_types(permitted_vif_type_names)
+            if len(plugin.vif_info) == 0:
+                continue
+            new_plugins.append(plugin)
+        self.plugin_info = new_plugins

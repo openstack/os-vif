@@ -118,11 +118,20 @@ def unplug(vif, instance_info):
         raise os_vif.exception.UnplugException(vif=vif, err=err)
 
 
-def host_info():
+def host_info(permitted_vif_type_names=None):
     """
+    :param permitted_vif_type_names: list of VIF object names
+
     Get information about the host platform configuration to be
     provided to the network manager. This will include information
     about what plugins are installed in the host
+
+    If permitted_vif_type_names is not None, the returned HostInfo
+    will be filtered such that it only includes plugins which
+    support one of the listed VIF types. This allows the caller
+    to filter out impls which are not compatible with the current
+    usage configuration. For example, to remove VIFVHostUser if
+    the guest does not support shared memory.
 
     :returns: a os_vif.host_info.HostInfo class instance
     """
@@ -132,7 +141,10 @@ def host_info():
 
     plugins = [
         _EXT_MANAGER[name].obj.describe()
-        for name in _EXT_MANAGER.names()
+        for name in sorted(_EXT_MANAGER.names())
     ]
 
-    return os_vif.objects.host_info.HostInfo(plugin_info=plugins)
+    info = os_vif.objects.host_info.HostInfo(plugin_info=plugins)
+    if permitted_vif_type_names is not None:
+        info.filter_vif_types(permitted_vif_type_names)
+    return info

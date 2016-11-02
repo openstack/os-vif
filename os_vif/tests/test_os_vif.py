@@ -132,3 +132,32 @@ class TestOSVIF(base.TestCase):
                 plugin='foobar')
             os_vif.unplug(vif, info)
             mock_unplug.assert_called_once_with(vif, info)
+
+    def test_host_info_all(self):
+        os_vif.initialize()
+        info = os_vif.host_info()
+
+        self.assertEqual(len(info.plugin_info), 2)
+
+        self.assertEqual(info.plugin_info[0].plugin_name, "linux_bridge")
+        vif_info = info.plugin_info[0].vif_info
+        self.assertEqual(len(vif_info), 1)
+        self.assertEqual(vif_info[0].vif_object_name, "VIFBridge")
+
+        self.assertEqual(info.plugin_info[1].plugin_name, "ovs")
+        vif_info = info.plugin_info[1].vif_info
+        self.assertEqual(len(vif_info), 3)
+        self.assertEqual(vif_info[0].vif_object_name, "VIFBridge")
+        self.assertEqual(vif_info[1].vif_object_name, "VIFOpenVSwitch")
+        self.assertEqual(vif_info[2].vif_object_name, "VIFVHostUser")
+
+    def test_host_info_filtered(self):
+        os_vif.initialize()
+        info = os_vif.host_info(permitted_vif_type_names=["VIFOpenVSwitch"])
+
+        self.assertEqual(len(info.plugin_info), 1)
+
+        self.assertEqual(info.plugin_info[0].plugin_name, "ovs")
+        vif_info = info.plugin_info[0].vif_info
+        self.assertEqual(len(vif_info), 1)
+        self.assertEqual(vif_info[0].vif_object_name, "VIFOpenVSwitch")

@@ -113,3 +113,61 @@ class TestHostInfo(base.TestCase):
         ver = info.get_common_version()
         self.assertEqual(objects.vif.VIFOpenVSwitch.VERSION,
                          ver)
+
+    def test_filtering(self):
+        host_info = objects.host_info.HostInfo(
+            plugin_info=[
+                objects.host_info.HostPluginInfo(
+                    plugin_name="linux_brige",
+                    vif_info=[
+                        objects.host_info.HostVIFInfo(
+                            vif_object_name="VIFBridge",
+                            min_version="1.0",
+                            max_version="3.0"
+                        ),
+                    ]),
+                objects.host_info.HostPluginInfo(
+                    plugin_name="ovs",
+                    vif_info=[
+                        objects.host_info.HostVIFInfo(
+                            vif_object_name="VIFBridge",
+                            min_version="2.0",
+                            max_version="7.0"
+                        ),
+                        objects.host_info.HostVIFInfo(
+                            vif_object_name="VIFOpenVSwitch",
+                            min_version="1.0",
+                            max_version="2.0"
+                        ),
+                        objects.host_info.HostVIFInfo(
+                            vif_object_name="VIFVHostUser",
+                            min_version="1.0",
+                            max_version="2.0"
+                        ),
+                    ])
+            ])
+
+        host_info.filter_vif_types(["VIFBridge", "VIFOpenVSwitch"])
+
+        self.assertEqual(len(host_info.plugin_info), 2)
+
+        plugin = host_info.plugin_info[0]
+        self.assertEqual(len(plugin.vif_info), 1)
+        self.assertEqual(plugin.vif_info[0].vif_object_name,
+                         "VIFBridge")
+
+        plugin = host_info.plugin_info[1]
+        self.assertEqual(len(plugin.vif_info), 2)
+        self.assertEqual(plugin.vif_info[0].vif_object_name,
+                         "VIFBridge")
+        self.assertEqual(plugin.vif_info[1].vif_object_name,
+                         "VIFOpenVSwitch")
+
+        host_info.filter_vif_types(["VIFOpenVSwitch"])
+
+        self.assertEqual(len(host_info.plugin_info), 1)
+
+        plugin = host_info.plugin_info[0]
+        self.assertEqual(len(plugin.vif_info), 1)
+        self.assertEqual(plugin.vif_info[0].vif_object_name,
+                         "VIFOpenVSwitch")

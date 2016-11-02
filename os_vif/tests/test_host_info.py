@@ -70,3 +70,18 @@ class TestHostInfo(base.TestCase):
         self.assertRaises(exception.NoMatchingPlugin,
                           self.host_info.get_plugin,
                           "fishfood")
+
+    def test_vif_existance(self):
+        plugin = self.host_info.get_plugin("ovs")
+        self.assertTrue(plugin.has_vif("VIFOpenVSwitch"))
+        self.assertFalse(plugin.has_vif("VIFFishFood"))
+
+    def test_vif_fetch(self):
+        plugin = self.host_info.get_plugin("ovs")
+
+        vif = plugin.get_vif("VIFOpenVSwitch")
+        self.assertEqual("VIFOpenVSwitch", vif.vif_object_name)
+
+        self.assertRaises(exception.NoMatchingVIFClass,
+                          plugin.get_vif,
+                          "VIFFishFood")

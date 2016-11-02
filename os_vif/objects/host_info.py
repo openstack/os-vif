@@ -82,13 +82,13 @@ class HostPluginInfo(osv_base.VersionedObject,
 
     def has_vif(self, name):
         for vif in self.vif_info:
-            if vif.name == name:
+            if vif.vif_object_name == name:
                 return True
         return False
 
     def get_vif(self, name):
         for vif in self.vif_info:
-            if vif.name == name:
+            if vif.vif_object_name == name:
                 return vif
 
         raise exception.NoMatchingVIFClass(vif_name=name)

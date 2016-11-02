@@ -85,3 +85,31 @@ class TestHostInfo(base.TestCase):
         self.assertRaises(exception.NoMatchingVIFClass,
                           plugin.get_vif,
                           "VIFFishFood")
+
+    def test_common_version_no_obj(self):
+        info = objects.host_info.HostVIFInfo(
+            vif_object_name="VIFFishFood",
+            min_version="1.0",
+            max_version="1.8")
+
+        self.assertRaises(exception.NoMatchingVIFClass,
+                          info.get_common_version)
+
+    def test_common_version_no_version(self):
+        info = objects.host_info.HostVIFInfo(
+            vif_object_name="VIFOpenVSwitch",
+            min_version="1729.0",
+            max_version="8753.0")
+
+        self.assertRaises(exception.NoSupportedVIFVersion,
+                          info.get_common_version)
+
+    def test_common_version_ok(self):
+        info = objects.host_info.HostVIFInfo(
+            vif_object_name="VIFOpenVSwitch",
+            min_version="1.0",
+            max_version="10.0")
+
+        ver = info.get_common_version()
+        self.assertEqual(objects.vif.VIFOpenVSwitch.VERSION,
+                         ver)

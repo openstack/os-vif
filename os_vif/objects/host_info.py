@@ -44,11 +44,11 @@ class HostVIFInfo(osv_base.VersionedObject, base.ComparableVersionedObject):
 
         reg = base.VersionedObjectRegistry.obj_classes()
 
-        if self.name not in reg:
-            raise exception.NoMatchingVIFClass(vif_name=self.name)
+        if self.vif_object_name not in reg:
+            raise exception.NoMatchingVIFClass(vif_name=self.vif_object_name)
 
         gotvers = []
-        for regobj in reg[self.name]:
+        for regobj in reg[self.vif_object_name]:
             gotvers.append(regobj.VERSION)
             got = _vers_tuple(regobj.VERSION)
             minwant = _vers_tuple(self.min_version)
@@ -57,7 +57,7 @@ class HostVIFInfo(osv_base.VersionedObject, base.ComparableVersionedObject):
             if minwant <= got <= maxwant:
                 return regobj.VERSION
 
-        raise exception.NoSupportedVIFVersion(vif_name=self.name,
+        raise exception.NoSupportedVIFVersion(vif_name=self.vif_object_name,
                                               got_versions=",".join(gotvers),
                                               min_version=self.min_version,
                                               max_version=self.max_version)

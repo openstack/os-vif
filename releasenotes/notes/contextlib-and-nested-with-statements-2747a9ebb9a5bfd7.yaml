@@ -1,0 +1,6 @@
+---
+fixes:
+  - The use of contextlib and  with nested statements is deprecated.
+    "with nested" statements are not python 3 compatible as with statement now directly
+    support context managers. The use of contextlib and "with nested" statements has
+    been removed from all unittests in favor of the @mock decorator syntax.

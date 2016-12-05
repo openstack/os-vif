@@ -10,9 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import contextlib
 import mock
-import six
 import testtools
 
 from os_vif import objects
@@ -20,15 +18,6 @@ from os_vif import objects
 from vif_plug_ovs import constants
 from vif_plug_ovs import linux_net
 from vif_plug_ovs import ovs
-
-
-if six.PY2:
-    nested = contextlib.nested
-else:
-    @contextlib.contextmanager
-    def nested(*contexts):
-        with contextlib.ExitStack() as stack:
-            yield [stack.enter_context(c) for c in contexts]
 
 
 class PluginTest(testtools.TestCase):
@@ -124,21 +113,29 @@ class PluginTest(testtools.TestCase):
             timeout=plugin.config.ovs_vsctl_timeout,
             interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE)
 
-    def test_plug_ovs(self):
-        with nested(
-                mock.patch.object(ovs, 'sys'),
-                mock.patch.object(linux_net, 'ensure_ovs_bridge')
-        ) as (mock_sys, ensure_ovs_bridge):
-            mock_sys.platform = 'linux'
-            plug_bridge_mock = mock.Mock()
-            plugin = ovs.OvsPlugin.load("ovs")
-            plugin._plug_bridge = plug_bridge_mock
-            plugin.plug(self.vif_ovs, self.instance)
-            self.assertFalse(plug_bridge_mock.called)
-            ensure_ovs_bridge.assert_called_once_with(
-                self.vif_ovs.network.bridge, constants.OVS_DATAPATH_SYSTEM)
+    @mock.patch.object(ovs, 'sys')
+    @mock.patch.object(linux_net, 'ensure_ovs_bridge')
+    def test_plug_ovs(self, ensure_ovs_bridge, mock_sys):
+        mock_sys.platform = 'linux'
+        plug_bridge_mock = mock.Mock()
+        plugin = ovs.OvsPlugin.load("ovs")
+        plugin._plug_bridge = plug_bridge_mock
+        plugin.plug(self.vif_ovs, self.instance)
+        self.assertFalse(plug_bridge_mock.called)
+        ensure_ovs_bridge.assert_called_once_with(
+            self.vif_ovs.network.bridge, constants.OVS_DATAPATH_SYSTEM)
 
-    def test_plug_ovs_bridge(self):
+    @mock.patch.object(linux_net, 'ensure_ovs_bridge')
+    @mock.patch.object(ovs.OvsPlugin, '_create_vif_port')
+    @mock.patch.object(linux_net, 'add_bridge_port')
+    @mock.patch.object(linux_net, 'create_veth_pair')
+    @mock.patch.object(linux_net, 'device_exists', return_value=False)
+    @mock.patch.object(linux_net, 'ensure_bridge')
+    @mock.patch.object(ovs, 'sys')
+    def test_plug_ovs_bridge(self, mock_sys, ensure_bridge,
+                             device_exists, create_veth_pair,
+                             add_bridge_port, _create_vif_port,
+                             ensure_ovs_bridge):
         calls = {
             'device_exists': [mock.call('qvob679325f-ca')],
             'create_veth_pair': [mock.call('qvbb679325f-ca',
@@ -154,28 +151,22 @@ class PluginTest(testtools.TestCase):
                                             constants.OVS_DATAPATH_SYSTEM)]
         }
 
-        with nested(
-                mock.patch.object(ovs, 'sys'),
-                mock.patch.object(linux_net, 'ensure_bridge'),
-                mock.patch.object(linux_net, 'device_exists',
-                                  return_value=False),
-                mock.patch.object(linux_net, 'create_veth_pair'),
-                mock.patch.object(linux_net, 'add_bridge_port'),
-                mock.patch.object(ovs.OvsPlugin, '_create_vif_port'),
-                mock.patch.object(linux_net, 'ensure_ovs_bridge')
-        ) as (mock_sys, ensure_bridge, device_exists, create_veth_pair,
-              add_bridge_port, _create_vif_port, ensure_ovs_bridge):
-            mock_sys.platform = 'linux'
-            plugin = ovs.OvsPlugin.load("ovs")
-            plugin.plug(self.vif_ovs_hybrid, self.instance)
-            ensure_bridge.assert_has_calls(calls['ensure_bridge'])
-            device_exists.assert_has_calls(calls['device_exists'])
-            create_veth_pair.assert_has_calls(calls['create_veth_pair'])
-            add_bridge_port.assert_has_calls(calls['add_bridge_port'])
-            _create_vif_port.assert_has_calls(calls['_create_vif_port'])
-            ensure_ovs_bridge.assert_has_calls(calls['ensure_ovs_bridge'])
+        mock_sys.platform = 'linux'
+        plugin = ovs.OvsPlugin.load("ovs")
+        plugin.plug(self.vif_ovs_hybrid, self.instance)
+        ensure_bridge.assert_has_calls(calls['ensure_bridge'])
+        device_exists.assert_has_calls(calls['device_exists'])
+        create_veth_pair.assert_has_calls(calls['create_veth_pair'])
+        add_bridge_port.assert_has_calls(calls['add_bridge_port'])
+        _create_vif_port.assert_has_calls(calls['_create_vif_port'])
+        ensure_ovs_bridge.assert_has_calls(calls['ensure_ovs_bridge'])
 
-    def _check_plug_ovs_windows(self, vif):
+    @mock.patch.object(linux_net, 'ensure_ovs_bridge')
+    @mock.patch.object(ovs.OvsPlugin, '_create_vif_port')
+    @mock.patch.object(linux_net, 'device_exists', return_value=False)
+    @mock.patch.object(ovs, 'sys')
+    def _check_plug_ovs_windows(self, vif, mock_sys, device_exists,
+                                _create_vif_port, ensure_ovs_bridge):
         calls = {
             'device_exists': [mock.call(vif.id)],
             '_create_vif_port': [mock.call(vif, vif.id, self.instance)],
@@ -183,19 +174,12 @@ class PluginTest(testtools.TestCase):
                                             constants.OVS_DATAPATH_SYSTEM)]
         }
 
-        with nested(
-                mock.patch.object(ovs, 'sys'),
-                mock.patch.object(linux_net, 'device_exists',
-                                  return_value=False),
-                mock.patch.object(ovs.OvsPlugin, '_create_vif_port'),
-                mock.patch.object(linux_net, 'ensure_ovs_bridge')
-        ) as (mock_sys, device_exists, _create_vif_port, ensure_ovs_bridge):
-            mock_sys.platform = constants.PLATFORM_WIN32
-            plugin = ovs.OvsPlugin.load("ovs")
-            plugin.plug(vif, self.instance)
-            device_exists.assert_has_calls(calls['device_exists'])
-            _create_vif_port.assert_has_calls(calls['_create_vif_port'])
-            ensure_ovs_bridge.assert_has_calls(calls['ensure_ovs_bridge'])
+        mock_sys.platform = constants.PLATFORM_WIN32
+        plugin = ovs.OvsPlugin.load("ovs")
+        plugin.plug(vif, self.instance)
+        device_exists.assert_has_calls(calls['device_exists'])
+        _create_vif_port.assert_has_calls(calls['_create_vif_port'])
+        ensure_ovs_bridge.assert_has_calls(calls['ensure_ovs_bridge'])
 
     def test_plug_ovs_windows(self):
         self._check_plug_ovs_windows(self.vif_ovs)
@@ -210,33 +194,29 @@ class PluginTest(testtools.TestCase):
         plugin.unplug(self.vif_ovs, self.instance)
         self.assertFalse(unplug_bridge_mock.called)
 
-    def test_unplug_ovs_bridge(self):
+    @mock.patch.object(linux_net, 'delete_ovs_vif_port')
+    @mock.patch.object(linux_net, 'delete_bridge')
+    @mock.patch.object(ovs, 'sys')
+    def test_unplug_ovs_bridge(self, mock_sys, delete_bridge,
+                               delete_ovs_vif_port):
         calls = {
             'delete_bridge': [mock.call('qbrvif-xxx-yyy', 'qvbb679325f-ca')],
             'delete_ovs_vif_port': [mock.call('br0', 'qvob679325f-ca',
                                     timeout=120)]
         }
-        with nested(
-                mock.patch.object(ovs, 'sys'),
-                mock.patch.object(linux_net, 'delete_bridge'),
-                mock.patch.object(linux_net, 'delete_ovs_vif_port')
-        ) as (mock_sys, delete_bridge, delete_ovs_vif_port):
-            mock_sys.platform = 'linux'
-            plugin = ovs.OvsPlugin.load("ovs")
-            plugin.unplug(self.vif_ovs_hybrid, self.instance)
-            delete_bridge.assert_has_calls(calls['delete_bridge'])
-            delete_ovs_vif_port.assert_has_calls(calls['delete_ovs_vif_port'])
+        mock_sys.platform = 'linux'
+        plugin = ovs.OvsPlugin.load("ovs")
+        plugin.unplug(self.vif_ovs_hybrid, self.instance)
+        delete_bridge.assert_has_calls(calls['delete_bridge'])
+        delete_ovs_vif_port.assert_has_calls(calls['delete_ovs_vif_port'])
 
-    def _check_unplug_ovs_windows(self, vif):
-        with nested(
-                mock.patch.object(ovs, 'sys'),
-                mock.patch.object(linux_net, 'delete_ovs_vif_port')
-        ) as (mock_sys, delete_ovs_vif_port):
-            mock_sys.platform = constants.PLATFORM_WIN32
-            plugin = ovs.OvsPlugin.load("ovs")
-            plugin.unplug(vif, self.instance)
-            delete_ovs_vif_port.assert_called_once_with(
-                'br0', vif.id, timeout=120)
+    @mock.patch.object(linux_net, 'delete_ovs_vif_port')
+    @mock.patch.object(ovs, 'sys')
+    def _check_unplug_ovs_windows(self, vif, mock_sys, delete_ovs_vif_port):
+        mock_sys.platform = constants.PLATFORM_WIN32
+        plugin = ovs.OvsPlugin.load("ovs")
+        plugin.unplug(vif, self.instance)
+        delete_ovs_vif_port.assert_called_once_with('br0', vif.id, timeout=120)
 
     def test_unplug_ovs_windows(self):
         self._check_unplug_ovs_windows(self.vif_ovs)
@@ -244,7 +224,9 @@ class PluginTest(testtools.TestCase):
     def test_unplug_ovs_bridge_windows(self):
         self._check_unplug_ovs_windows(self.vif_ovs_hybrid)
 
-    def test_plug_ovs_vhostuser(self):
+    @mock.patch.object(linux_net, 'ensure_ovs_bridge')
+    @mock.patch.object(ovs.OvsPlugin, '_create_vif_port')
+    def test_plug_ovs_vhostuser(self, _create_vif_port, ensure_ovs_bridge):
         calls = {
 
             '_create_vif_port': [mock.call(
@@ -255,22 +237,17 @@ class PluginTest(testtools.TestCase):
                                             constants.OVS_DATAPATH_NETDEV)]
         }
 
-        with nested(
-                mock.patch.object(ovs.OvsPlugin, '_create_vif_port'),
-                mock.patch.object(linux_net, 'ensure_ovs_bridge')
-        ) as (_create_vif_port, ensure_ovs_bridge):
-            plugin = ovs.OvsPlugin.load("ovs")
-            plugin.plug(self.vif_vhostuser, self.instance)
-            _create_vif_port.assert_has_calls(calls['_create_vif_port'])
-            ensure_ovs_bridge.assert_has_calls(calls['ensure_ovs_bridge'])
+        plugin = ovs.OvsPlugin.load("ovs")
+        plugin.plug(self.vif_vhostuser, self.instance)
+        _create_vif_port.assert_has_calls(calls['_create_vif_port'])
+        ensure_ovs_bridge.assert_has_calls(calls['ensure_ovs_bridge'])
 
-    def test_unplug_ovs_vhostuser(self):
+    @mock.patch.object(linux_net, 'delete_ovs_vif_port')
+    def test_unplug_ovs_vhostuser(self, delete_ovs_vif_port):
         calls = {
             'delete_ovs_vif_port': [mock.call('br0', 'vhub679325f-ca',
                                     timeout=120)]
         }
-        with mock.patch.object(linux_net, 'delete_ovs_vif_port') \
-            as delete_ovs_vif_port:
-            plugin = ovs.OvsPlugin.load("ovs")
-            plugin.unplug(self.vif_vhostuser, self.instance)
-            delete_ovs_vif_port.assert_has_calls(calls['delete_ovs_vif_port'])
+        plugin = ovs.OvsPlugin.load("ovs")
+        plugin.unplug(self.vif_vhostuser, self.instance)
+        delete_ovs_vif_port.assert_has_calls(calls['delete_ovs_vif_port'])

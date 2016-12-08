@@ -75,17 +75,12 @@ def create_ovs_vif_port(bridge, dev, iface_id, mac, instance_id,
     _ovs_vsctl(_create_ovs_vif_cmd(bridge, dev, iface_id,
                                    mac, instance_id, interface_type,
                                    vhost_server_path), timeout=timeout)
-    # Note at present there is no support for setting the
-    # mtu for vhost-user type ports.
-    if mtu and interface_type not in [
-        constants.OVS_VHOSTUSER_INTERFACE_TYPE,
-        constants.OVS_VHOSTUSER_CLIENT_INTERFACE_TYPE]:
-        _set_device_mtu(dev, mtu)
-    else:
-        LOG.debug("MTU not set on %(interface_name)s interface "
-                  "of type %(interface_type)s.",
-                  {'interface_name': dev,
-                   'interface_type': interface_type})
+    _update_device_mtu(dev, mtu, interface_type)
+
+
+@privsep.vif_plug.entrypoint
+def update_ovs_vif_port(dev, mtu=None, interface_type=None):
+    _update_device_mtu(dev, mtu, interface_type)
 
 
 @privsep.vif_plug.entrypoint
@@ -125,7 +120,14 @@ def create_veth_pair(dev1_name, dev2_name, mtu):
     for dev in [dev1_name, dev2_name]:
         processutils.execute('ip', 'link', 'set', dev, 'up')
         processutils.execute('ip', 'link', 'set', dev, 'promisc', 'on')
-        _set_device_mtu(dev, mtu)
+        _update_device_mtu(dev, mtu)
+
+
+@privsep.vif_plug.entrypoint
+def update_veth_pair(dev1_name, dev2_name, mtu):
+    """Update a pair of veth devices with new configuration."""
+    for dev in [dev1_name, dev2_name]:
+        _update_device_mtu(dev, mtu)
 
 
 @privsep.vif_plug.entrypoint
@@ -164,6 +166,20 @@ def delete_bridge(bridge, dev):
 def add_bridge_port(bridge, dev):
     processutils.execute('ip', 'link', 'set', bridge, 'up')
     processutils.execute('brctl', 'addif', bridge, dev)
+
+
+def _update_device_mtu(dev, mtu, interface_type=None):
+    # Note at present there is no support for setting the
+    # mtu for vhost-user type ports.
+    if mtu and interface_type not in [
+            constants.OVS_VHOSTUSER_INTERFACE_TYPE,
+            constants.OVS_VHOSTUSER_CLIENT_INTERFACE_TYPE]:
+        _set_device_mtu(dev, mtu)
+    else:
+        LOG.debug("MTU not set on %(interface_name)s interface "
+                  "of type %(interface_type)s.",
+                  {'interface_name': dev,
+                   'interface_type': interface_type})
 
 
 def _set_device_mtu(dev, mtu):

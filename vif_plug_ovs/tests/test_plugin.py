@@ -134,40 +134,67 @@ class PluginTest(testtools.TestCase):
             self.vif_ovs.network.bridge, constants.OVS_DATAPATH_SYSTEM)
 
     @mock.patch.object(linux_net, 'ensure_ovs_bridge')
+    @mock.patch.object(ovs.OvsPlugin, '_update_vif_port')
     @mock.patch.object(ovs.OvsPlugin, '_create_vif_port')
     @mock.patch.object(linux_net, 'add_bridge_port')
+    @mock.patch.object(linux_net, 'update_veth_pair')
     @mock.patch.object(linux_net, 'create_veth_pair')
-    @mock.patch.object(linux_net, 'device_exists', return_value=False)
+    @mock.patch.object(linux_net, 'device_exists')
     @mock.patch.object(linux_net, 'ensure_bridge')
     @mock.patch.object(ovs, 'sys')
-    def test_plug_ovs_bridge(self, mock_sys, ensure_bridge,
-                             device_exists, create_veth_pair,
+    def test_plug_ovs_bridge(self, mock_sys, ensure_bridge, device_exists,
+                             create_veth_pair, update_veth_pair,
                              add_bridge_port, _create_vif_port,
-                             ensure_ovs_bridge):
+                             _update_vif_port, ensure_ovs_bridge):
         calls = {
             'device_exists': [mock.call('qvob679325f-ca')],
             'create_veth_pair': [mock.call('qvbb679325f-ca',
                                            'qvob679325f-ca',
                                            1500)],
+            'update_veth_pair': [mock.call('qvbb679325f-ca',
+                                           'qvob679325f-ca',
+                                           1500)],
             'ensure_bridge': [mock.call('qbrvif-xxx-yyy')],
             'add_bridge_port': [mock.call('qbrvif-xxx-yyy',
                                           'qvbb679325f-ca')],
-            '_create_vif_port': [mock.call(
-                                 self.vif_ovs_hybrid, 'qvob679325f-ca',
-                                 self.instance)],
+            '_update_vif_port': [mock.call(self.vif_ovs_hybrid,
+                                           'qvob679325f-ca')],
+            '_create_vif_port': [mock.call(self.vif_ovs_hybrid,
+                                           'qvob679325f-ca',
+                                           self.instance)],
             'ensure_ovs_bridge': [mock.call('br0',
                                             constants.OVS_DATAPATH_SYSTEM)]
         }
 
+        # plugging new devices should result in devices being created
+
+        device_exists.return_value = False
         mock_sys.platform = 'linux'
-        plugin = ovs.OvsPlugin.load("ovs")
+        plugin = ovs.OvsPlugin.load('ovs')
         plugin.plug(self.vif_ovs_hybrid, self.instance)
         ensure_bridge.assert_has_calls(calls['ensure_bridge'])
         device_exists.assert_has_calls(calls['device_exists'])
         create_veth_pair.assert_has_calls(calls['create_veth_pair'])
+        self.assertFalse(update_veth_pair.called)
+        self.assertFalse(_update_vif_port.called)
         add_bridge_port.assert_has_calls(calls['add_bridge_port'])
         _create_vif_port.assert_has_calls(calls['_create_vif_port'])
         ensure_ovs_bridge.assert_has_calls(calls['ensure_ovs_bridge'])
+
+        # reset call stacks
+
+        create_veth_pair.reset_mock()
+        _create_vif_port.reset_mock()
+
+        # plugging existing devices should result in devices being updated
+
+        device_exists.return_value = True
+        self.assertTrue(linux_net.device_exists('test'))
+        plugin.plug(self.vif_ovs_hybrid, self.instance)
+        self.assertFalse(create_veth_pair.called)
+        self.assertFalse(_create_vif_port.called)
+        update_veth_pair.assert_has_calls(calls['update_veth_pair'])
+        _update_vif_port.assert_has_calls(calls['_update_vif_port'])
 
     @mock.patch.object(linux_net, 'ensure_ovs_bridge')
     @mock.patch.object(ovs.OvsPlugin, '_create_vif_port')

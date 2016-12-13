@@ -1,0 +1,10 @@
+---
+features:
+  - In the ocata cycle support was added for setting
+    the MTU of vhost-user port with ovs.
+  - vhost-user MTU support enable jumbo frames to
+    be used with vhost-user interfaces.
+other:
+  - vhost-user MTU support requires ovs 2.6 or newer.
+    On older versions of ovs, the MTU request will
+    not be made and jumbo frames are not supported.

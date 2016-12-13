@@ -157,11 +157,14 @@ class LinuxNetTest(testtools.TestCase):
         actual = linux_net._create_ovs_bridge_cmd(bridge, dp_type)
         self.assertEqual(expected, actual)
 
+    @mock.patch.object(linux_net, '_ovs_supports_mtu_requests')
     @mock.patch.object(linux_net, '_ovs_vsctl')
     @mock.patch.object(linux_net, '_create_ovs_vif_cmd')
     @mock.patch.object(linux_net, '_set_device_mtu')
     def test_ovs_vif_port_with_type_vhostuser(self, mock_set_device_mtu,
-                                              mock_create_cmd, mock_vsctl):
+                                              mock_create_cmd, mock_vsctl,
+                                              mock_ovs_supports_mtu_requests):
+        mock_ovs_supports_mtu_requests.return_value = True
         linux_net.create_ovs_vif_port(
             'fake-bridge',
             'fake-dev', 'fake-iface-id', 'fake-mac',
@@ -174,11 +177,14 @@ class LinuxNetTest(testtools.TestCase):
         self.assertFalse(mock_set_device_mtu.called)
         self.assertTrue(mock_vsctl.called)
 
+    @mock.patch.object(linux_net, '_ovs_supports_mtu_requests')
     @mock.patch.object(linux_net, '_ovs_vsctl')
     @mock.patch.object(linux_net, '_create_ovs_vif_cmd')
     @mock.patch.object(linux_net, '_set_device_mtu')
     def test_ovs_vif_port_with_type_vhostuserclient(self,
-        mock_set_device_mtu, mock_create_cmd, mock_vsctl):
+        mock_set_device_mtu, mock_create_cmd,
+        mock_vsctl, mock_ovs_supports_mtu_requests):
+        mock_ovs_supports_mtu_requests.return_value = True
         linux_net.create_ovs_vif_port(
             'fake-bridge',
             'fake-dev', 'fake-iface-id', 'fake-mac',
@@ -193,11 +199,14 @@ class LinuxNetTest(testtools.TestCase):
         self.assertFalse(mock_set_device_mtu.called)
         self.assertTrue(mock_vsctl.called)
 
+    @mock.patch.object(linux_net, '_ovs_supports_mtu_requests')
     @mock.patch.object(linux_net, '_ovs_vsctl')
     @mock.patch.object(linux_net, '_create_ovs_vif_cmd')
     @mock.patch.object(linux_net, '_set_device_mtu')
     def test_ovs_vif_port_with_no_mtu(self, mock_set_device_mtu,
-                                      mock_create_cmd, mock_vsctl):
+                                      mock_create_cmd, mock_vsctl,
+                                      mock_ovs_supports_mtu_requests):
+        mock_ovs_supports_mtu_requests.return_value = True
         linux_net.create_ovs_vif_port(
             'fake-bridge',
             'fake-dev', 'fake-iface-id', 'fake-mac',
@@ -208,12 +217,18 @@ class LinuxNetTest(testtools.TestCase):
         self.assertFalse(mock_set_device_mtu.called)
         self.assertTrue(mock_vsctl.called)
 
+    @mock.patch.object(linux_net, '_ovs_supports_mtu_requests')
+    @mock.patch.object(linux_net, '_set_mtu_request')
     @mock.patch.object(linux_net, '_ovs_vsctl')
     @mock.patch.object(linux_net, '_create_ovs_vif_cmd',
                        return_value='ovs_command')
     @mock.patch.object(linux_net, '_set_device_mtu')
     def test_ovs_vif_port_with_timeout(self, mock_set_device_mtu,
-                                      mock_create_cmd, mock_vsctl):
+                                       mock_create_cmd, mock_vsctl,
+                                       mock_set_mtu_request,
+                                       mock_ovs_supports_mtu_requests):
+        mock_ovs_supports_mtu_requests.return_value = True
+
         linux_net.create_ovs_vif_port(
             'fake-bridge',
             'fake-dev', 'fake-iface-id', 'fake-mac',
@@ -222,12 +237,17 @@ class LinuxNetTest(testtools.TestCase):
         self.assertFalse(mock_set_device_mtu.called)
         mock_vsctl.assert_called_with('ovs_command', timeout=42)
 
+    @mock.patch.object(linux_net, '_ovs_supports_mtu_requests')
+    @mock.patch.object(linux_net, '_set_mtu_request')
     @mock.patch.object(linux_net, '_ovs_vsctl')
     @mock.patch.object(linux_net, '_create_ovs_vif_cmd',
                        return_value='ovs_command')
     @mock.patch.object(linux_net, '_set_device_mtu')
     def test_ovs_vif_port_with_no_timeout(self, mock_set_device_mtu,
-                                      mock_create_cmd, mock_vsctl):
+                                          mock_create_cmd, mock_vsctl,
+                                          mock_set_mtu_request,
+                                          mock_ovs_supports_mtu_requests):
+        mock_ovs_supports_mtu_requests.return_value = True
         linux_net.create_ovs_vif_port(
             'fake-bridge',
             'fake-dev', 'fake-iface-id', 'fake-mac',
@@ -246,3 +266,30 @@ class LinuxNetTest(testtools.TestCase):
             [mock.call('ovs-vsctl', *args),
              mock.call('ovs-vsctl', '--timeout=%s' % timeout, *args)],
             mock_execute.mock_calls)
+
+    @mock.patch.object(linux_net, '_ovs_vsctl')
+    def test_set_mtu_request(self, mock_vsctl):
+        dev = 'fake-dev'
+        mtu = 'fake-mtu'
+        timeout = 120
+        linux_net._set_mtu_request(dev, mtu, timeout=timeout)
+        args = ['--', 'set', 'interface', dev,
+                'mtu_request=%s' % mtu]
+        mock_vsctl.assert_called_with(args, timeout=timeout)
+
+    @mock.patch.object(linux_net, '_ovs_vsctl')
+    def test_ovs_supports_mtu_requests(self, mock_vsctl):
+        args = ['--columns=mtu_request', 'list', 'interface']
+        timeout = 120
+        msg = 'ovs-vsctl: Interface does not contain' + \
+              ' a column whose name matches "mtu_request"'
+
+        mock_vsctl.return_value = (None, msg)
+        result = linux_net._ovs_supports_mtu_requests(timeout=timeout)
+        mock_vsctl.assert_called_with(args, timeout=timeout)
+        self.assertFalse(result)
+
+        mock_vsctl.return_value = (None, None)
+        result = linux_net._ovs_supports_mtu_requests(timeout=timeout)
+        mock_vsctl.assert_called_with(args, timeout=timeout)
+        self.assertTrue(result)

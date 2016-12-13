@@ -75,12 +75,12 @@ def create_ovs_vif_port(bridge, dev, iface_id, mac, instance_id,
     _ovs_vsctl(_create_ovs_vif_cmd(bridge, dev, iface_id,
                                    mac, instance_id, interface_type,
                                    vhost_server_path), timeout=timeout)
-    _update_device_mtu(dev, mtu, interface_type)
+    _update_device_mtu(dev, mtu, interface_type, timeout=timeout)
 
 
 @privsep.vif_plug.entrypoint
-def update_ovs_vif_port(dev, mtu=None, interface_type=None):
-    _update_device_mtu(dev, mtu, interface_type)
+def update_ovs_vif_port(dev, mtu=None, interface_type=None, timeout=None):
+    _update_device_mtu(dev, mtu, interface_type, timeout=timeout)
 
 
 @privsep.vif_plug.entrypoint
@@ -168,13 +168,15 @@ def add_bridge_port(bridge, dev):
     processutils.execute('brctl', 'addif', bridge, dev)
 
 
-def _update_device_mtu(dev, mtu, interface_type=None):
-    # Note at present there is no support for setting the
-    # mtu for vhost-user type ports.
-    if mtu and interface_type not in [
-            constants.OVS_VHOSTUSER_INTERFACE_TYPE,
-            constants.OVS_VHOSTUSER_CLIENT_INTERFACE_TYPE]:
+def _update_device_mtu(dev, mtu, interface_type=None, timeout=120):
+    if not mtu:
+        return
+    if interface_type not in [
+        constants.OVS_VHOSTUSER_INTERFACE_TYPE,
+        constants.OVS_VHOSTUSER_CLIENT_INTERFACE_TYPE]:
         _set_device_mtu(dev, mtu)
+    elif _ovs_supports_mtu_requests(timeout=timeout):
+        _set_mtu_request(dev, mtu, timeout=timeout)
     else:
         LOG.debug("MTU not set on %(interface_name)s interface "
                   "of type %(interface_type)s.",
@@ -182,7 +184,25 @@ def _update_device_mtu(dev, mtu, interface_type=None):
                    'interface_type': interface_type})
 
 
+@privsep.vif_plug.entrypoint
 def _set_device_mtu(dev, mtu):
     """Set the device MTU."""
     processutils.execute('ip', 'link', 'set', dev, 'mtu', mtu,
                          check_exit_code=[0, 2, 254])
+
+
+@privsep.vif_plug.entrypoint
+def _set_mtu_request(dev, mtu, timeout=None):
+    args = ['--', 'set', 'interface', dev,
+            'mtu_request=%s' % mtu]
+    _ovs_vsctl(args, timeout=timeout)
+
+
+@privsep.vif_plug.entrypoint
+def _ovs_supports_mtu_requests(timeout=None):
+    args = ['--columns=mtu_request', 'list', 'interface']
+    _, error = _ovs_vsctl(args, timeout=timeout)
+    if (error == 'ovs-vsctl: Interface does not contain' +
+              ' a column whose name matches "mtu_request"'):
+            return False
+    return True

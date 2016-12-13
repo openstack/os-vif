@@ -99,10 +99,19 @@ class OvsPlugin(plugin.PluginBase):
     def _plug_vhostuser(self, vif, instance_info):
         linux_net.ensure_ovs_bridge(vif.network.bridge,
                                     constants.OVS_DATAPATH_NETDEV)
-        vif_name = OvsPlugin.gen_port_name("vhu", vif.id)
+        vif_name = OvsPlugin.gen_port_name(
+            constants.OVS_VHOSTUSER_PREFIX, vif.id)
+        args = {}
+        if vif.mode == "client":
+            args['interface_type'] = \
+                constants.OVS_VHOSTUSER_INTERFACE_TYPE
+        else:
+            args['interface_type'] = \
+                constants.OVS_VHOSTUSER_CLIENT_INTERFACE_TYPE
+            args['vhost_server_path'] = vif.path
+
         self._create_vif_port(
-            vif, vif_name, instance_info,
-            interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE)
+            vif, vif_name, instance_info, **args)
 
     def _plug_bridge(self, vif, instance_info):
         """Plug using hybrid strategy
@@ -160,7 +169,9 @@ class OvsPlugin(plugin.PluginBase):
 
     def _unplug_vhostuser(self, vif, instance_info):
         linux_net.delete_ovs_vif_port(vif.network.bridge,
-                                      OvsPlugin.gen_port_name("vhu", vif.id),
+                                      OvsPlugin.gen_port_name(
+                                          constants.OVS_VHOSTUSER_PREFIX,
+                                          vif.id),
                                       timeout=self.config.ovs_vsctl_timeout)
 
     def _unplug_bridge(self, vif, instance_info):

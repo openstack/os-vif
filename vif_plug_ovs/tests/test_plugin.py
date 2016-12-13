@@ -80,6 +80,14 @@ class PluginTest(testtools.TestCase):
             mode='client',
             port_profile=self.profile_ovs)
 
+        self.vif_vhostuser_client = objects.vif.VIFVHostUser(
+            id='b679325f-ca89-4ee0-a8be-6db1409b69ea',
+            address='ca:fe:de:ad:be:ef',
+            network=self.network_ovs,
+            path='/var/run/openvswitch/vhub679325f-ca',
+            mode='server',  # qemu server mode <=> ovs client mode
+            port_profile=self.profile_ovs)
+
         self.instance = objects.instance_info.InstanceInfo(
             name='demo',
             uuid='f0000000-0000-0000-0000-000000000001')
@@ -240,6 +248,29 @@ class PluginTest(testtools.TestCase):
         plugin = ovs.OvsPlugin.load("ovs")
         plugin.plug(self.vif_vhostuser, self.instance)
         _create_vif_port.assert_has_calls(calls['_create_vif_port'])
+        ensure_ovs_bridge.assert_has_calls(calls['ensure_ovs_bridge'])
+
+    @mock.patch.object(linux_net, 'ensure_ovs_bridge')
+    @mock.patch.object(linux_net, 'create_ovs_vif_port')
+    def test_plug_ovs_vhostuser_client(self, create_ovs_vif_port,
+                                       ensure_ovs_bridge):
+        calls = {
+            'create_ovs_vif_port': [
+                 mock.call(
+                     'br0', 'vhub679325f-ca',
+                     'e65867e0-9340-4a7f-a256-09af6eb7a3aa',
+                     'ca:fe:de:ad:be:ef',
+                     'f0000000-0000-0000-0000-000000000001',
+                     1500, interface_type='dpdkvhostuserclient',
+                     vhost_server_path='/var/run/openvswitch/vhub679325f-ca',
+                     timeout=120)],
+            'ensure_ovs_bridge': [mock.call('br0',
+                                            constants.OVS_DATAPATH_NETDEV)]
+        }
+
+        plugin = ovs.OvsPlugin.load("ovs")
+        plugin.plug(self.vif_vhostuser_client, self.instance)
+        create_ovs_vif_port.assert_has_calls(calls['create_ovs_vif_port'])
         ensure_ovs_bridge.assert_has_calls(calls['ensure_ovs_bridge'])
 
     @mock.patch.object(linux_net, 'delete_ovs_vif_port')

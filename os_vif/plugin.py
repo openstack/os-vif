@@ -40,7 +40,7 @@ class PluginBase(object):
         Return an object that describes the plugin's supported vif types and
         the earliest/latest known VIF object versions.
 
-        :returns: A `os_vif.host_info.HostPluginInfo` instance
+        :returns: A `os_vif.objects.host_info.HostPluginInfo` instance
         """
 
     @abc.abstractmethod
@@ -48,8 +48,9 @@ class PluginBase(object):
         """
         Given a model of a VIF, perform operations to plug the VIF properly.
 
-        :param vif: `os_vif.objects.VIF` object.
-        :param instance_info: `os_vif.objects.InstanceInfo` object.
+        :param vif: `os_vif.objects.vif.VIFBase` object.
+        :param instance_info: `os_vif.objects.instance_info.InstanceInfo`
+            object.
         :raises `processutils.ProcessExecutionError`. Plugins implementing
                 this method should let `processutils.ProcessExecutionError`
                 bubble up.
@@ -60,8 +61,9 @@ class PluginBase(object):
         """
         Given a model of a VIF, perform operations to unplug the VIF properly.
 
-        :param vif: `os_vif.objects.VIF` object.
-        :param instance_info: `os_vif.objects.InstanceInfo` object.
+        :param vif: `os_vif.objects.vif.VIFBase` object.
+        :param instance_info: `os_vif.objects.instance_info.InstanceInfo`
+            object.
         :raises `processutils.ProcessExecutionError`. Plugins implementing
                 this method should let `processutils.ProcessExecutionError`
                 bubble up.

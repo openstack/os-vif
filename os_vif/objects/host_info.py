@@ -26,7 +26,7 @@ class HostVIFInfo(osv_base.VersionedObject, base.ComparableVersionedObject):
     VERSION = "1.0"
 
     fields = {
-        # object name of the subclass of os_vif.objects.vif.VIF
+        # object name of the subclass of os_vif.objects.vif.VIFBase
         "vif_object_name": fields.StringField(),
 
         # String representing the earliest version of @name

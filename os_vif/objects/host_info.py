@@ -10,6 +10,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo_utils import versionutils
 from oslo_versionedobjects import base
 from oslo_versionedobjects import fields
 
@@ -17,13 +18,68 @@ from os_vif import exception
 from os_vif.objects import base as osv_base
 
 
+def _get_common_version(object_name, max_version, min_version, exc_notmatch,
+                        exc_notsupported):
+    """Returns the accepted version from the loaded OVO registry"""
+    reg = base.VersionedObjectRegistry.obj_classes()
+
+    if object_name not in reg:
+        raise exc_notmatch(name=object_name)
+
+    gotvers = []
+    for regobj in reg[object_name]:
+        gotvers.append(regobj.VERSION)
+        got = versionutils.convert_version_to_tuple(regobj.VERSION)
+        minwant = versionutils.convert_version_to_tuple(min_version)
+        maxwant = versionutils.convert_version_to_tuple(max_version)
+
+        if minwant <= got <= maxwant:
+            return regobj.VERSION
+
+    raise exc_notsupported(name=object_name,
+                           got_versions=",".join(gotvers),
+                           min_version=min_version,
+                           max_version=max_version)
+
+
+@base.VersionedObjectRegistry.register
+class HostPortProfileInfo(osv_base.VersionedObject,
+                          base.ComparableVersionedObject):
+    """
+    Class describing a PortProfile class and its supported versions
+    """
+    # Version 1.0: Initial version
+    VERSION = "1.0"
+
+    fields = {
+        # object name of the subclass of os_vif.objects.vif.VIFPortProfileBase
+        "profile_object_name": fields.StringField(),
+
+        # String representing the earliest version of @name
+        # that the plugin understands
+        "min_version": fields.StringField(),
+
+        # String representing the latest version of @name
+        # that the plugin understands
+        "max_version": fields.StringField(),
+    }
+
+    def get_common_version(self):
+        return _get_common_version(self.profile_object_name,
+                                   self.max_version,
+                                   self.min_version,
+                                   exception.NoMatchingPortProfileClass,
+                                   exception.NoSupportedPortProfileVersion)
+
+
 @base.VersionedObjectRegistry.register
 class HostVIFInfo(osv_base.VersionedObject, base.ComparableVersionedObject):
     """
     Class describing a VIF class and its supported versions
     """
-
-    VERSION = "1.0"
+    # Version 1.0: Initial version
+    # Version 1.1: Adds 'supported_port_profiles' field
+    VERSION = "1.1"
 
     fields = {
         # object name of the subclass of os_vif.objects.vif.VIFBase
@@ -36,31 +92,25 @@ class HostVIFInfo(osv_base.VersionedObject, base.ComparableVersionedObject):
         # String representing the latest version of @name
         # that the plugin understands
         "max_version": fields.StringField(),
+
+        # list of supported PortProfile objects and versions.
+        "supported_port_profiles": fields.ListOfObjectsField(
+            "HostPortProfileInfo")
     }
 
+    def obj_make_compatible(self, primitive, target_version):
+        super(HostVIFInfo, self).obj_make_compatible(primitive,
+                                                      target_version)
+        target_version = versionutils.convert_version_to_tuple(target_version)
+        if target_version < (1, 1) and 'supported_port_profiles' in primitive:
+            del primitive['supported_port_profiles']
+
     def get_common_version(self):
-        def _vers_tuple(ver):
-            return tuple([int(x) for x in ver.split(".")])
-
-        reg = base.VersionedObjectRegistry.obj_classes()
-
-        if self.vif_object_name not in reg:
-            raise exception.NoMatchingVIFClass(vif_name=self.vif_object_name)
-
-        gotvers = []
-        for regobj in reg[self.vif_object_name]:
-            gotvers.append(regobj.VERSION)
-            got = _vers_tuple(regobj.VERSION)
-            minwant = _vers_tuple(self.min_version)
-            maxwant = _vers_tuple(self.max_version)
-
-            if minwant <= got <= maxwant:
-                return regobj.VERSION
-
-        raise exception.NoSupportedVIFVersion(vif_name=self.vif_object_name,
-                                              got_versions=",".join(gotvers),
-                                              min_version=self.min_version,
-                                              max_version=self.max_version)
+        return _get_common_version(self.vif_object_name,
+                                   self.max_version,
+                                   self.min_version,
+                                   exception.NoMatchingVIFClass,
+                                   exception.NoSupportedVIFVersion)
 
 
 @base.VersionedObjectRegistry.register
@@ -69,7 +119,7 @@ class HostPluginInfo(osv_base.VersionedObject,
     """
     Class describing a plugin and its supported VIF classes
     """
-
+    # Version 1.0: Initial version
     VERSION = "1.0"
 
     fields = {

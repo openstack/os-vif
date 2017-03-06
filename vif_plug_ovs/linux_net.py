@@ -20,6 +20,7 @@
 """Implements vlans, bridges using linux utilities."""
 
 import os
+import sys
 
 from oslo_concurrency import processutils
 from oslo_log import log as logging
@@ -174,7 +175,12 @@ def _update_device_mtu(dev, mtu, interface_type=None, timeout=120):
     if interface_type not in [
         constants.OVS_VHOSTUSER_INTERFACE_TYPE,
         constants.OVS_VHOSTUSER_CLIENT_INTERFACE_TYPE]:
-        _set_device_mtu(dev, mtu)
+        if sys.platform != constants.PLATFORM_WIN32:
+            # Hyper-V with OVS does not support external programming of virtual
+            # interface MTUs via netsh or other Windows tools.
+            # When plugging an interface on Windows, we therefore skip
+            # programming the MTU and fallback to DHCP advertisement.
+            _set_device_mtu(dev, mtu)
     elif _ovs_supports_mtu_requests(timeout=timeout):
         _set_mtu_request(dev, mtu, timeout=timeout)
     else:

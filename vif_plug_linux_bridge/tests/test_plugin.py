@@ -66,13 +66,19 @@ class PluginTest(testtools.TestCase):
             address='ca:fe:de:ad:be:ef',
             network=network,
             dev_name='tap-xxx-yyy-zzz',
+            has_traffic_filtering=True,
             bridge_name="br0")
 
         plugin = linux_bridge.LinuxBridgePlugin.load("linux_bridge")
         plugin.plug(vif, self.instance)
 
-        mock_ensure_bridge.assert_called_with("br0", "eth0")
+        mock_ensure_bridge.assert_called_with("br0", "eth0", filtering=False)
         self.assertEqual(len(mock_ensure_vlan_bridge.calls), 0)
+
+        mock_ensure_bridge.reset_mock()
+        vif.has_traffic_filtering = False
+        plugin.plug(vif, self.instance)
+        mock_ensure_bridge.assert_called_with("br0", "eth0", filtering=True)
 
     def test_plug_bridge_create_br_vlan_mtu_in_model(self):
         self._test_plug_bridge_create_br_vlan(mtu=1234)

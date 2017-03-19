@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import glob
 import mock
 import os.path
 import testtools
@@ -17,6 +18,7 @@ import testtools
 from oslo_concurrency import processutils
 
 from vif_plug_ovs import constants
+from vif_plug_ovs import exception
 from vif_plug_ovs import linux_net
 from vif_plug_ovs import privsep
 
@@ -34,7 +36,8 @@ class LinuxNetTest(testtools.TestCase):
         linux_net.ensure_bridge("br0")
 
         self.assertEqual(mock_execute.mock_calls, [
-            mock.call('ip', 'link', 'set', 'br0', 'up'),
+            mock.call('ip', 'link', 'set', 'br0', 'up',
+                      check_exit_code=[0, 2, 254]),
         ])
         self.assertEqual(mock_dev_exists.mock_calls, [
             mock.call("br0"),
@@ -53,7 +56,8 @@ class LinuxNetTest(testtools.TestCase):
             mock.call('brctl', 'stp', 'br0', "off"),
             mock.call('tee', '/sys/class/net/br0/bridge/multicast_snooping',
                       check_exit_code=[0, 1], process_input='0'),
-            mock.call('ip', 'link', 'set', 'br0', 'up'),
+            mock.call('ip', 'link', 'set', 'br0', 'up',
+                      check_exit_code=[0, 2, 254]),
         ])
         self.assertEqual(mock_dev_exists.mock_calls, [
             mock.call("br0")
@@ -74,7 +78,8 @@ class LinuxNetTest(testtools.TestCase):
                       check_exit_code=[0, 1], process_input='0'),
             mock.call('tee', '/proc/sys/net/ipv6/conf/br0/disable_ipv6',
                       check_exit_code=[0, 1], process_input='1'),
-            mock.call('ip', 'link', 'set', 'br0', 'up'),
+            mock.call('ip', 'link', 'set', 'br0', 'up',
+                      check_exit_code=[0, 2, 254]),
         ])
         self.assertEqual(mock_dev_exists.mock_calls, [
             mock.call("br0")
@@ -296,3 +301,114 @@ class LinuxNetTest(testtools.TestCase):
         result = linux_net._ovs_supports_mtu_requests(timeout=timeout)
         mock_vsctl.assert_called_with(args, timeout=timeout)
         self.assertTrue(result)
+
+    @mock.patch('six.moves.builtins.open')
+    @mock.patch.object(os.path, 'isfile')
+    @mock.patch.object(os, 'listdir')
+    def test_get_representor_port(self, mock_listdir, mock_isfile, mock_open):
+        mock_listdir.return_value = [
+            'pf_ifname', 'vf1_ifname', 'vf2_ifname', 'rep_vf_1', 'rep_vf_2'
+        ]
+        mock_isfile.side_effect = [True, True, True, True, True]
+        mock_open.return_value.__enter__ = lambda s: s
+        mock_open.return_value.__exit__ = mock.Mock()
+        readline_mock = mock_open.return_value.readline
+        readline_mock.side_effect = ['', '', '1', '2']
+        ifname = linux_net.get_representor_port('pf_ifname', '2')
+        self.assertEqual('rep_vf_2', ifname)
+
+    @mock.patch('six.moves.builtins.open')
+    @mock.patch.object(os.path, 'isfile')
+    @mock.patch.object(os, 'listdir')
+    def test_get_representor_port_not_found(
+            self, mock_listdir, mock_isfile, mock_open):
+        mock_listdir.return_value = [
+            'pf_ifname', 'vf1_ifname', 'vf2_ifname', 'rep_vf_1', 'rep_vf_2'
+        ]
+        mock_isfile.side_effect = [True, True, True, True, True]
+        mock_open.return_value.__enter__ = lambda s: s
+        mock_open.return_value.__exit__ = mock.Mock()
+        readline_mock = mock_open.return_value.readline
+        readline_mock.side_effect = ['', '', '1', '2']
+        self.assertRaises(
+            exception.RepresentorNotFound,
+            linux_net.get_representor_port,
+            'pf_ifname', '3'),
+
+    @mock.patch('six.moves.builtins.open')
+    @mock.patch.object(os.path, 'isfile')
+    @mock.patch.object(os, 'listdir')
+    def test_get_representor_port_exception(
+            self, mock_listdir, mock_isfile, mock_open):
+        mock_listdir.return_value = [
+            'pf_ifname', 'vf1_ifname', 'vf2_ifname', 'rep_vf_1', 'rep_vf_2'
+        ]
+        mock_isfile.side_effect = [True, True, True, True, True]
+        mock_open.return_value.__enter__ = lambda s: s
+        mock_open.return_value.__exit__ = mock.Mock()
+        readline_mock = mock_open.return_value.readline
+        readline_mock.side_effect = ['', IOError(), '1', '2']
+        self.assertRaises(
+            exception.RepresentorNotFound,
+            linux_net.get_representor_port,
+            'pf_ifname', '3'),
+
+    @mock.patch.object(os, 'listdir')
+    def test_physical_function_inferface_name(self, mock_listdir):
+        mock_listdir.return_value = ['foo', 'bar']
+        ifname = linux_net.get_ifname_by_pci_address(
+            '0000:00:00.1', pf_interface=True)
+        self.assertEqual(ifname, 'bar')
+
+    @mock.patch.object(os, 'listdir')
+    def test_virtual_function_inferface_name(self, mock_listdir):
+        mock_listdir.return_value = ['foo', 'bar']
+        ifname = linux_net.get_ifname_by_pci_address(
+            '0000:00:00.1', pf_interface=False)
+        self.assertEqual(ifname, 'bar')
+
+    @mock.patch.object(os, 'listdir')
+    def test_get_ifname_by_pci_address_exception(self, mock_listdir):
+        mock_listdir.side_effect = OSError('No such file or directory')
+        self.assertRaises(
+            exception.PciDeviceNotFoundById,
+            linux_net.get_ifname_by_pci_address,
+            '0000:00:00.1'
+        )
+
+    @mock.patch.object(os, 'readlink')
+    @mock.patch.object(glob, 'iglob')
+    def test_vf_number_found(self, mock_iglob, mock_readlink):
+        mock_iglob.return_value = [
+            '/sys/bus/pci/devices/0000:00:00.1/physfn/virtfn3',
+        ]
+        mock_readlink.return_value = '../../0000:00:00.1'
+        vf_num = linux_net.get_vf_num_by_pci_address('0000:00:00.1')
+        self.assertEqual(vf_num, '3')
+
+    @mock.patch.object(os, 'readlink')
+    @mock.patch.object(glob, 'iglob')
+    def test_vf_number_not_found(self, mock_iglob, mock_readlink):
+        mock_iglob.return_value = [
+            '/sys/bus/pci/devices/0000:00:00.1/physfn/virtfn3',
+        ]
+        mock_readlink.return_value = '../../0000:00:00.2'
+        self.assertRaises(
+            exception.PciDeviceNotFoundById,
+            linux_net.get_vf_num_by_pci_address,
+            '0000:00:00.1'
+        )
+
+    @mock.patch.object(os, 'readlink')
+    @mock.patch.object(glob, 'iglob')
+    def test_get_vf_num_by_pci_address_exception(
+            self, mock_iglob, mock_readlink):
+        mock_iglob.return_value = [
+            '/sys/bus/pci/devices/0000:00:00.1/physfn/virtfn3',
+        ]
+        mock_readlink.side_effect = OSError('No such file or directory')
+        self.assertRaises(
+            exception.PciDeviceNotFoundById,
+            linux_net.get_vf_num_by_pci_address,
+            '0000:00:00.1'
+        )

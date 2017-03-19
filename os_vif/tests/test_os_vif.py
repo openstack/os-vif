@@ -146,10 +146,11 @@ class TestOSVIF(base.TestCase):
 
         self.assertEqual(info.plugin_info[1].plugin_name, "ovs")
         vif_info = info.plugin_info[1].vif_info
-        self.assertEqual(len(vif_info), 3)
+        self.assertEqual(len(vif_info), 4)
         self.assertEqual(vif_info[0].vif_object_name, "VIFBridge")
         self.assertEqual(vif_info[1].vif_object_name, "VIFOpenVSwitch")
         self.assertEqual(vif_info[2].vif_object_name, "VIFVHostUser")
+        self.assertEqual(vif_info[3].vif_object_name, "VIFHostDevice")
 
     def test_host_info_filtered(self):
         os_vif.initialize()

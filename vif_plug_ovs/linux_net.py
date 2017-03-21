@@ -28,7 +28,6 @@ from oslo_utils import excutils
 
 from vif_plug_ovs import constants
 from vif_plug_ovs import exception
-from vif_plug_ovs.i18n import _LE
 from vif_plug_ovs import privsep
 
 LOG = logging.getLogger(__name__)
@@ -42,7 +41,7 @@ def _ovs_vsctl(args, timeout=None):
     try:
         return processutils.execute(*full_args)
     except Exception as e:
-        LOG.error(_LE("Unable to execute %(cmd)s. Exception: %(exception)s"),
+        LOG.error("Unable to execute %(cmd)s. Exception: %(exception)s",
                   {'cmd': full_args, 'exception': e})
         raise exception.AgentError(method=full_args)
 
@@ -105,7 +104,7 @@ def _delete_net_dev(dev):
             LOG.debug("Net device removed: '%s'", dev)
         except processutils.ProcessExecutionError:
             with excutils.save_and_reraise_exception():
-                LOG.error(_LE("Failed removing net device: '%s'"), dev)
+                LOG.error("Failed removing net device: '%s'", dev)
 
 
 @privsep.vif_plug.entrypoint

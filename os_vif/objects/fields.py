@@ -17,8 +17,6 @@ import re
 from oslo_versionedobjects import fields
 import six
 
-from os_vif.i18n import _LE
-
 
 class PCIAddress(fields.FieldType):
 
@@ -30,7 +28,7 @@ class PCIAddress(fields.FieldType):
             newvalue = value.lower()
             if PCIAddress._REGEX.match(newvalue):
                 return newvalue
-        raise ValueError(_LE("Malformed PCI address %s"), value)
+        raise ValueError("Malformed PCI address %s", value)
 
 
 class PCIAddressField(fields.AutoTypedField):

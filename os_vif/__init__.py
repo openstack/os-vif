@@ -17,9 +17,6 @@ import os_vif.exception
 import os_vif.i18n
 import os_vif.objects
 
-_LE = os_vif.i18n._LE
-_LI = os_vif.i18n._LI
-
 _EXT_MANAGER = None
 LOG = logging.getLogger(__name__)
 
@@ -49,7 +46,7 @@ def initialize(reset=False):
                       {'cls': cls, 'plugin_name': plugin_name})
             loaded_plugins.append(plugin_name)
             _EXT_MANAGER[plugin_name].obj = obj
-        LOG.info(_LI("Loaded VIF plugins: %s"), ", ".join(loaded_plugins))
+        LOG.info("Loaded VIF plugins: %s", ", ".join(loaded_plugins))
 
 
 def plug(vif, instance_info):
@@ -78,9 +75,9 @@ def plug(vif, instance_info):
     try:
         LOG.debug("Plugging vif %s", vif)
         plugin.plug(vif, instance_info)
-        LOG.info(_LI("Successfully plugged vif %s"), vif)
+        LOG.info("Successfully plugged vif %s", vif)
     except Exception as err:
-        LOG.error(_LE("Failed to plug vif %(vif)s"),
+        LOG.error("Failed to plug vif %(vif)s",
                   {"vif": vif}, exc_info=True)
         raise os_vif.exception.PlugException(vif=vif, err=err)
 
@@ -111,9 +108,9 @@ def unplug(vif, instance_info):
     try:
         LOG.debug("Unplugging vif %s", vif)
         plugin.unplug(vif, instance_info)
-        LOG.info(_LI("Successfully unplugged vif %s"), vif)
+        LOG.info("Successfully unplugged vif %s", vif)
     except Exception as err:
-        LOG.error(_LE("Failed to unplug vif %(vif)s"),
+        LOG.error("Failed to unplug vif %(vif)s",
                   {"vif": vif}, exc_info=True)
         raise os_vif.exception.UnplugException(vif=vif, err=err)
 

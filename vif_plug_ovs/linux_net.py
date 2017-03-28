@@ -152,6 +152,8 @@ def ensure_bridge(bridge):
                                  disv6,
                                  process_input='1',
                                  check_exit_code=[0, 1])
+    # we bring up the bridge to allow it to switch packets
+    processutils.execute('ip', 'link', 'set', bridge, 'up')
 
 
 @privsep.vif_plug.entrypoint
@@ -164,7 +166,6 @@ def delete_bridge(bridge, dev):
 
 @privsep.vif_plug.entrypoint
 def add_bridge_port(bridge, dev):
-    processutils.execute('ip', 'link', 'set', bridge, 'up')
     processutils.execute('brctl', 'addif', bridge, dev)
 
 

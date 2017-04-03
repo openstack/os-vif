@@ -8,6 +8,7 @@ Contents:
 
    vif_types
    host_info
+   glossary
 
 Indices and tables
 ==================

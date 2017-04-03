@@ -41,11 +41,12 @@ VIFDirect
 
 This class provides a configuration where the guest is connected to a physical
 network device. The connection to the device may operate in one of a number of
-different modes, VEPA (either 802.1qbg 802.1qbh), passthrough (exclusive
-assignment of the host NIC) or bridge (ethernet layer bridging of traffic). The
-passthrough mode would be used when there is a network device which needs to
-have a MAC address or VLAN configuration. For passthrough of network devices
-without MAC/VLAN configuration, the `VIFHostDevice` should be used instead.
+different modes, :term:`VEPA` (either :term:`802.1qbg` or :term:`802.1qbh`),
+passthrough (exclusive assignment of the host NIC) or bridge (ethernet layer
+bridging of traffic). The passthrough mode would be used when there is a
+network device which needs to have a MAC address or VLAN configuration. For
+passthrough of network devices without MAC/VLAN configuration, the
+`VIFHostDevice` should be used instead.
 
 VIFVHostUser
 ------------
@@ -53,14 +54,14 @@ VIFVHostUser
 This class provides another totally generic type of configuration, where the
 guest is exposing a UNIX socket for its control plane, allowing an external
 userspace service to provide the backend data plane via a mapped memory region.
-The process must implement the virtio-net vhost protocol on this socket in
-whatever means is most suitable.
+The process must implement the :term:`virtio-net` vhost protocol on this socket
+in whatever means is most suitable.
 
 VIFHostDevice
 -------------
 
 This class provides a way to pass a physical device to the guest.  Either an
-entire physical device, or a SR-IOV PCI device virtual function, are permitted.
+entire physical device, or an SR-IOV PCI device virtual function, are permitted.
 
 
 VIF port profile objects
@@ -93,14 +94,14 @@ device supporting the 801.1Qbg spec.
 VIFPortProfileFPOpenVSwitch
 ---------------------------
 
-This profile provides the metadata required to associate a fast path vhost-user
-VIF with an Open vSwitch port.
+This profile provides the metadata required to associate a fast path :term:`vhost-user`
+VIF with an :term:`Open vSwitch` port.
 
 VIFPortProfileFPBridge
 ----------------------
 
 This profile provides the metadata required to associate a fast path vhost-user
-VIF with a Linux bridge port.
+VIF with a :term:`Linux bridge` port.
 
 VIFPortProfileFPTap
 -------------------

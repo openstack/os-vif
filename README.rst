@@ -67,13 +67,13 @@ argument of type `os_vif.objects.VIF`::
     # Now do the actual plug operations to connect the VIF to
     # the backing network interface.
     try:
-        os_vif.plug(vif)
+        os_vif.plug(vif, instance_info)
     except vif_exc.PlugException as err:
         # Handle the failure...
 
     # If you are removing a virtual machine and its interfaces,
     # you would use the unplug() operation:
     try:
-        os_vif.unplug(vif)
+        os_vif.unplug(vif, instance_info)
     except vif_exc.UnplugException as err:
         # Handle the failure...

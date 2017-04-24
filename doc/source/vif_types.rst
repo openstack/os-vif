@@ -15,6 +15,8 @@ os-vif, subclassed from `os_vif.objects.VIFBase`. The `VIFBase` class defines
 some fields that are common to all types of VIF, and provides an association to
 a versioned object describing the network the VIF is plugged into.
 
+.. _vif-generic:
+
 VIFGeneric
 ----------
 
@@ -23,6 +25,8 @@ simply associated with an arbitrary TAP device (or equivalent).  The way the
 TAP device is connected to the host network stack is explicitly left undefined
 and entirely up to the plugin to decide.
 
+.. _vif-bridge:
+
 VIFBridge
 ---------
 
@@ -30,11 +34,15 @@ This class provides a configuration where the guest is connected directly to an
 explicit host bridge device. This provides ethernet layer bridging, typically
 to the LAN.
 
+.. _vif-openvswitch:
+
 VIFOpenVSwitch
 --------------
 
 This class provides a configuration where the guest is connected to an Open
 vSwitch port.
+
+.. _vif-direct:
 
 VIFDirect
 ---------
@@ -48,6 +56,8 @@ network device which needs to have a MAC address or VLAN configuration. For
 passthrough of network devices without MAC/VLAN configuration, the
 `VIFHostDevice` should be used instead.
 
+.. _vif-vhostuser:
+
 VIFVHostUser
 ------------
 
@@ -56,6 +66,8 @@ guest is exposing a UNIX socket for its control plane, allowing an external
 userspace service to provide the backend data plane via a mapped memory region.
 The process must implement the :term:`virtio-net` vhost protocol on this socket
 in whatever means is most suitable.
+
+.. _vif-hostdevice:
 
 VIFHostDevice
 -------------

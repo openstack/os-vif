@@ -8,6 +8,7 @@ os-vif
    vif_types
    host_info
    plugins/ovs
+   plugins/linux-bridge
    glossary
 
 `os-vif` is a library for plugging and unplugging virtual interfaces (VIFs) in

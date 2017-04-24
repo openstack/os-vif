@@ -4,7 +4,7 @@ Open vSwitch
 
 The Open vSwitch plugin, `vif_plug_ovs`, is an `os-vif` VIF plugin for the Open
 vSwitch network backend. It is one of two plugins provided as part of `os-vif`
-itself, the other being `linux-bridge`.
+itself, the other being :doc:`linux-bridge`.
 
 Supported VIF Types
 -------------------

@@ -41,7 +41,7 @@ VIFDirect
 
 This class provides a configuration where the guest is connected to a physical
 network device. The connection to the device may operate in one of a number of
-different modes, :term:`VEPA` (either :term:`802.1qbg` or :term:`802.1qbh`),
+different modes, :term:`VEPA` (either :term:`802.1Qbg` or :term:`802.1Qbh`),
 passthrough (exclusive assignment of the host NIC) or bridge (ethernet layer
 bridging of traffic). The passthrough mode would be used when there is a
 network device which needs to have a MAC address or VLAN configuration. For
@@ -83,13 +83,13 @@ VIFPortProfile8021Qbg
 ---------------------
 
 This profile provides the metadata required to associate a VIF with a VEPA host
-device supporting the 801.1Qbg spec.
+device supporting the :term:`802.1Qbg` spec.
 
 VIFPortProfile8021Qbh
 ---------------------
 
 This profile provides the metadata required to associate a VIF with a VEPA host
-device supporting the 801.1Qbg spec.
+device supporting the :term:`802.1Qbh` spec.
 
 VIFPortProfileFPOpenVSwitch
 ---------------------------

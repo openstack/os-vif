@@ -79,11 +79,7 @@ class OvsPlugin(plugin.PluginBase):
                 objects.host_info.HostVIFInfo(
                     vif_object_name=objects.vif.VIFVHostUser.__name__,
                     min_version="1.0",
-                    max_version="1.0"),
-                objects.host_info.HostVIFInfo(
-                    vif_object_name=objects.vif.VIFHostDevice.__name__,
-                    min_version="1.0",
-                    max_version="1.0"),
+                    max_version="1.0")
             ])
 
     def _get_mtu(self, vif):
@@ -155,17 +151,6 @@ class OvsPlugin(plugin.PluginBase):
                                             constants.OVS_DATAPATH_SYSTEM)
             self._create_vif_port(vif, vif.id, instance_info)
 
-    def _plug_vf_passthrough(self, vif, instance_info):
-        linux_net.ensure_ovs_bridge(
-            vif.network.bridge, constants.OVS_DATAPATH_SYSTEM)
-        pci_slot = vif.dev_address
-        pf_ifname = linux_net.get_ifname_by_pci_address(
-            pci_slot, pf_interface=True)
-        vf_num = linux_net.get_vf_num_by_pci_address(pci_slot)
-        representor = linux_net.get_representor_port(pf_ifname, vf_num)
-        linux_net.set_interface_state(representor, 'up')
-        self._create_vif_port(vif, representor, instance_info)
-
     def plug(self, vif, instance_info):
         if not hasattr(vif, "port_profile"):
             raise exception.MissingPortProfile()
@@ -187,8 +172,6 @@ class OvsPlugin(plugin.PluginBase):
                 self._plug_vif_windows(vif, instance_info)
         elif isinstance(vif, objects.vif.VIFVHostUser):
             self._plug_vhostuser(vif, instance_info)
-        elif isinstance(vif, objects.vif.VIFHostDevice):
-            self._plug_vf_passthrough(vif, instance_info)
 
     def _unplug_vhostuser(self, vif, instance_info):
         linux_net.delete_ovs_vif_port(vif.network.bridge,
@@ -217,16 +200,6 @@ class OvsPlugin(plugin.PluginBase):
         linux_net.delete_ovs_vif_port(vif.network.bridge, vif.id,
                                       timeout=self.config.ovs_vsctl_timeout)
 
-    def _unplug_vf_passthrough(self, vif, instance_info):
-        """Remove port from OVS."""
-        pci_slot = vif.dev_address
-        pf_ifname = linux_net.get_ifname_by_pci_address(pci_slot,
-            pf_interface=True)
-        vf_num = linux_net.get_vf_num_by_pci_address(pci_slot)
-        representor = linux_net.get_representor_port(pf_ifname, vf_num)
-        linux_net.delete_ovs_vif_port(vif.network.bridge, representor)
-        linux_net.set_interface_state(representor, 'down')
-
     def unplug(self, vif, instance_info):
         if not hasattr(vif, "port_profile"):
             raise exception.MissingPortProfile()
@@ -245,5 +218,3 @@ class OvsPlugin(plugin.PluginBase):
                 self._unplug_vif_windows(vif, instance_info)
         elif isinstance(vif, objects.vif.VIFVHostUser):
             self._unplug_vhostuser(vif, instance_info)
-        elif isinstance(vif, objects.vif.VIFHostDevice):
-            self._unplug_vf_passthrough(vif, instance_info)

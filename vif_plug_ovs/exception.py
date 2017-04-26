@@ -26,12 +26,3 @@ class MissingPortProfile(osv_exception.ExceptionBase):
 class WrongPortProfile(osv_exception.ExceptionBase):
     msg_fmt = _('Port profile %(profile)s is not a subclass '
                 'of VIFPortProfileOpenVSwitch')
-
-
-class RepresentorNotFound(osv_exception.ExceptionBase):
-    msg_fmt = _('Failed getting representor port for PF %(ifname)s with '
-                '%(vf_num)s')
-
-
-class PciDeviceNotFoundById(osv_exception.ExceptionBase):
-    msg_fmt = _("PCI device %(id)s not found")

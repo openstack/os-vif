@@ -7,6 +7,7 @@ os-vif
 
    vif_types
    host_info
+   usage
    plugins/ovs
    plugins/linux-bridge
    glossary

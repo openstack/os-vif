@@ -163,3 +163,48 @@ Glossary
      Refer to the `IEEE spec`__ for more information.
 
      __ http://www.ieee802.org/1/pages/802.1br.html
+
+   tc
+
+      A framework for interacting with traffic control settings (QoS,
+      essentially) in the Linux kernel.
+
+      Refer to the `tc(8) man page`__ for more information.
+
+      __ https://linux.die.net/man/8/tc
+
+   SR-IOV
+   Single Root I/O Virtualization
+
+     An extension to the PCI Express (PCIe) specification that allows a device,
+     typically a network adapter, to split access to its resources among
+     various PCIe hardware functions, :term:`physical <PF>` or :term:`virtual
+     <VF>`.
+
+     Refer to this `article by Scott Lowe`__ or the original `PCI-SIG spec`__
+     (paywall) for more information.
+
+     __ http://blog.scottlowe.org/2009/12/02/what-is-sr-iov/
+     __ https://members.pcisig.com/wg/PCI-SIG/document/download/8272
+
+   PF
+   Physical Function
+
+     In SR-IOV, a PCIe function that has full configuration resources. An
+     SR-IOV device can have *up to* 8 PFs, though this varies between devices.
+     A PF would typically correspond to a single interface on a NIC.
+
+     Refer to this `article by Scott Lowe`__ for more information.
+
+     __ http://blog.scottlowe.org/2009/12/02/what-is-sr-iov/
+
+   VF
+   Virtual Function
+
+     In SR-IOV, a PCIe function that lacks configuration resources. An SR-IOV
+     device can have *up to* 256 VFs, though this varies between devices. A VF
+     must be of the same type as the parent device's :term:`PF`.
+
+     Refer to this `article by Scott Lowe`__ for more information.
+
+     __ http://blog.scottlowe.org/2009/12/02/what-is-sr-iov/

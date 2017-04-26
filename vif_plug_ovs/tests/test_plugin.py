@@ -14,6 +14,7 @@ import mock
 import testtools
 
 from os_vif import objects
+from os_vif.objects import fields
 
 from vif_plug_ovs import constants
 from vif_plug_ovs import linux_net
@@ -88,6 +89,15 @@ class PluginTest(testtools.TestCase):
             mode='server',  # qemu server mode <=> ovs client mode
             port_profile=self.profile_ovs)
 
+        self.vif_ovs_vf_passthrough = objects.vif.VIFHostDevice(
+            id='b679325f-ca89-4ee0-a8be-6db1409b69ea',
+            address='ca:fe:de:ad:be:ef',
+            network=self.network_ovs,
+            dev_type=fields.VIFHostDeviceDevType.ETHERNET,
+            dev_address='0002:24:12.3',
+            bridge_name='br-int',
+            port_profile=self.profile_ovs)
+
         self.instance = objects.instance_info.InstanceInfo(
             name='demo',
             uuid='f0000000-0000-0000-0000-000000000001')
@@ -133,6 +143,7 @@ class PluginTest(testtools.TestCase):
         ensure_ovs_bridge.assert_called_once_with(
             self.vif_ovs.network.bridge, constants.OVS_DATAPATH_SYSTEM)
 
+    @mock.patch.object(linux_net, 'set_interface_state')
     @mock.patch.object(linux_net, 'ensure_ovs_bridge')
     @mock.patch.object(ovs.OvsPlugin, '_update_vif_port')
     @mock.patch.object(ovs.OvsPlugin, '_create_vif_port')
@@ -145,7 +156,8 @@ class PluginTest(testtools.TestCase):
     def test_plug_ovs_bridge(self, mock_sys, ensure_bridge, device_exists,
                              create_veth_pair, update_veth_pair,
                              add_bridge_port, _create_vif_port,
-                             _update_vif_port, ensure_ovs_bridge):
+                             _update_vif_port, ensure_ovs_bridge,
+                             set_interface_state):
         calls = {
             'device_exists': [mock.call('qvob679325f-ca')],
             'create_veth_pair': [mock.call('qvbb679325f-ca',
@@ -155,6 +167,8 @@ class PluginTest(testtools.TestCase):
                                            'qvob679325f-ca',
                                            1500)],
             'ensure_bridge': [mock.call('qbrvif-xxx-yyy')],
+            'set_interface_state': [mock.call('qbrvif-xxx-yyy',
+                                              'up')],
             'add_bridge_port': [mock.call('qbrvif-xxx-yyy',
                                           'qvbb679325f-ca')],
             '_update_vif_port': [mock.call(self.vif_ovs_hybrid,
@@ -309,3 +323,79 @@ class PluginTest(testtools.TestCase):
         plugin = ovs.OvsPlugin.load("ovs")
         plugin.unplug(self.vif_vhostuser, self.instance)
         delete_ovs_vif_port.assert_has_calls(calls['delete_ovs_vif_port'])
+
+    @mock.patch.object(linux_net, 'ensure_ovs_bridge')
+    @mock.patch.object(linux_net, 'get_ifname_by_pci_address')
+    @mock.patch.object(linux_net, 'get_vf_num_by_pci_address')
+    @mock.patch.object(linux_net, 'get_representor_port')
+    @mock.patch.object(linux_net, 'set_interface_state')
+    @mock.patch.object(ovs.OvsPlugin, '_create_vif_port')
+    def test_plug_ovs_vf_passthrough(self, _create_vif_port,
+                                   set_interface_state,
+                                   get_representor_port,
+                                   get_vf_num_by_pci_address,
+                                   get_ifname_by_pci_address,
+                                   ensure_ovs_bridge):
+
+        get_ifname_by_pci_address.return_value = 'eth0'
+        get_vf_num_by_pci_address.return_value = '2'
+        get_representor_port.return_value = 'eth0_2'
+        calls = {
+
+            'ensure_ovs_bridge': [mock.call('br0',
+                                  constants.OVS_DATAPATH_SYSTEM)],
+            'get_ifname_by_pci_address': [mock.call('0002:24:12.3',
+                                          pf_interface=True)],
+            'get_vf_num_by_pci_address': [mock.call('0002:24:12.3')],
+            'get_representor_port': [mock.call('eth0', '2')],
+            'set_interface_state': [mock.call('eth0_2', 'up')],
+            '_create_vif_port': [mock.call(
+                                 self.vif_ovs_vf_passthrough, 'eth0_2',
+                                 self.instance)]
+        }
+
+        plugin = ovs.OvsPlugin.load("ovs")
+        plugin.plug(self.vif_ovs_vf_passthrough, self.instance)
+        ensure_ovs_bridge.assert_has_calls(calls['ensure_ovs_bridge'])
+        get_ifname_by_pci_address.assert_has_calls(
+            calls['get_ifname_by_pci_address'])
+        get_vf_num_by_pci_address.assert_has_calls(
+            calls['get_vf_num_by_pci_address'])
+        get_representor_port.assert_has_calls(
+            calls['get_representor_port'])
+        set_interface_state.assert_has_calls(calls['set_interface_state'])
+        _create_vif_port.assert_has_calls(calls['_create_vif_port'])
+
+    @mock.patch.object(linux_net, 'get_ifname_by_pci_address')
+    @mock.patch.object(linux_net, 'get_vf_num_by_pci_address')
+    @mock.patch.object(linux_net, 'get_representor_port')
+    @mock.patch.object(linux_net, 'set_interface_state')
+    @mock.patch.object(linux_net, 'delete_ovs_vif_port')
+    def test_unplug_ovs_vf_passthrough(self, delete_ovs_vif_port,
+                                     set_interface_state,
+                                     get_representor_port,
+                                     get_vf_num_by_pci_address,
+                                     get_ifname_by_pci_address):
+        calls = {
+
+            'get_ifname_by_pci_address': [mock.call('0002:24:12.3',
+                                          pf_interface=True)],
+            'get_vf_num_by_pci_address': [mock.call('0002:24:12.3')],
+            'get_representor_port': [mock.call('eth0', '2')],
+            'set_interface_state': [mock.call('eth0_2', 'down')],
+            'delete_ovs_vif_port': [mock.call('br0', 'eth0_2')]
+        }
+
+        get_ifname_by_pci_address.return_value = 'eth0'
+        get_vf_num_by_pci_address.return_value = '2'
+        get_representor_port.return_value = 'eth0_2'
+        plugin = ovs.OvsPlugin.load("ovs")
+        plugin.unplug(self.vif_ovs_vf_passthrough, self.instance)
+        get_ifname_by_pci_address.assert_has_calls(
+            calls['get_ifname_by_pci_address'])
+        get_vf_num_by_pci_address.assert_has_calls(
+            calls['get_vf_num_by_pci_address'])
+        get_representor_port.assert_has_calls(
+            calls['get_representor_port'])
+        delete_ovs_vif_port.assert_has_calls(calls['delete_ovs_vif_port'])
+        set_interface_state.assert_has_calls(calls['set_interface_state'])

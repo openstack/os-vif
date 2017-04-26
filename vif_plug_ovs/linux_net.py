@@ -19,10 +19,7 @@
 
 """Implements vlans, bridges using linux utilities."""
 
-import errno
-import glob
 import os
-import re
 import sys
 
 from oslo_concurrency import processutils
@@ -34,8 +31,6 @@ from vif_plug_ovs import exception
 from vif_plug_ovs import privsep
 
 LOG = logging.getLogger(__name__)
-
-VIRTFN_RE = re.compile("virtfn(\d+)")
 
 
 def _ovs_vsctl(args, timeout=None):
@@ -158,7 +153,7 @@ def ensure_bridge(bridge):
                                  process_input='1',
                                  check_exit_code=[0, 1])
     # we bring up the bridge to allow it to switch packets
-    set_interface_state(bridge, 'up')
+    processutils.execute('ip', 'link', 'set', bridge, 'up')
 
 
 @privsep.vif_plug.entrypoint
@@ -203,12 +198,6 @@ def _set_device_mtu(dev, mtu):
 
 
 @privsep.vif_plug.entrypoint
-def set_interface_state(interface_name, port_state):
-    processutils.execute('ip', 'link', 'set', interface_name, port_state,
-                         check_exit_code=[0, 2, 254])
-
-
-@privsep.vif_plug.entrypoint
 def _set_mtu_request(dev, mtu, timeout=None):
     args = ['--', 'set', 'interface', dev,
             'mtu_request=%s' % mtu]
@@ -223,84 +212,3 @@ def _ovs_supports_mtu_requests(timeout=None):
               ' a column whose name matches "mtu_request"'):
             return False
     return True
-
-
-def get_representor_port(pf_ifname, vf_num):
-    """Get the representor netdevice which is corresponding to the VF.
-
-    This method gets PF interface name and number of VF. It iterates over all
-    the interfaces under the PF location and looks for interface that has the
-    VF number in the phys_port_name. That interface is the representor for
-    the requested VF.
-    """
-    path = "/sys/class/net/%s/subsystem/" % pf_ifname
-    try:
-        for device in os.listdir(path):
-            if device == pf_ifname:
-                continue
-            file_name = os.path.join(path, device, 'phys_port_name')
-            if not os.path.isfile(file_name):
-                continue
-            try:
-                representor_num = open("%s/%s/phys_port_name" %
-                    (path, device)).readline().rstrip()
-                if int(representor_num) == int(vf_num):
-                    return device
-            except IOError as e:
-                # We want to ignore interfaces which we can't read their
-                # phys_port_name file.
-                with excutils.save_and_reraise_exception() as ctxt:
-                    if e.errno == errno.EOPNOTSUPP:
-                        ctxt.reraise = False
-            except ValueError:
-                # skip representor_num which we can't convert to integer
-                continue
-
-    except IOError:
-        pass
-    raise exception.RepresentorNotFound(ifname=pf_ifname, vf_num=vf_num)
-
-
-def _get_sysfs_netdev_path(pci_addr, pf_interface):
-    """Get the sysfs path based on the PCI address of the device.
-
-    Assumes a networking device - will not check for the existence of the path.
-    """
-    if pf_interface:
-        return "/sys/bus/pci/devices/%s/physfn/net" % (pci_addr)
-    return "/sys/bus/pci/devices/%s/net" % (pci_addr)
-
-
-def get_ifname_by_pci_address(pci_addr, pf_interface=False):
-    """Get the interface name based on a VF's pci address
-
-    The returned interface name is either the parent PF's or that of the VF
-    itself based on the argument of pf_interface.
-    """
-    dev_path = _get_sysfs_netdev_path(pci_addr, pf_interface)
-    try:
-        dev_info = os.listdir(dev_path)
-        return dev_info.pop()
-    except Exception:
-        raise exception.PciDeviceNotFoundById(id=pci_addr)
-
-
-def get_vf_num_by_pci_address(pci_addr):
-    """Get the VF number based on a VF's pci address
-
-    A VF is associated with an VF number, which ip link command uses to
-    configure it. This number can be obtained from the PCI device filesystem.
-    """
-    virtfns_path = "/sys/bus/pci/devices/%s/physfn/virtfn*" % (pci_addr)
-    vf_num = None
-    try:
-        for vf_path in glob.iglob(virtfns_path):
-            if re.search(pci_addr, os.readlink(vf_path)):
-                t = VIRTFN_RE.search(vf_path)
-                vf_num = t.group(1)
-                break
-    except Exception:
-        pass
-    if vf_num is None:
-        raise exception.PciDeviceNotFoundById(id=pci_addr)
-    return vf_num

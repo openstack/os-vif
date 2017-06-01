@@ -47,6 +47,11 @@ class LinuxNetTest(testtools.TestCase):
         execute.assert_called_with(*expected, check_exit_code=mock.ANY)
 
     @mock.patch.object(processutils, "execute")
+    def test_set_device_invalid_mtu(self, mock_exec):
+        linux_net._set_device_mtu(dev='fakedev', mtu=None)
+        mock_exec.assert_not_called()
+
+    @mock.patch.object(processutils, "execute")
     @mock.patch.object(linux_net, "device_exists", return_value=False)
     @mock.patch.object(linux_net, "_set_device_mtu")
     def test_ensure_vlan(self, mock_set_mtu,
@@ -66,15 +71,6 @@ class LinuxNetTest(testtools.TestCase):
                            check_exit_code=[0, 2, 254])]
         mock_exec.assert_has_calls(calls)
         mock_set_mtu.assert_called_once_with('vlan123', 1500)
-
-    @mock.patch.object(processutils, "execute")
-    @mock.patch.object(linux_net, "device_exists", return_value=False)
-    @mock.patch.object(linux_net, "_set_device_mtu")
-    def test_ensure_vlan_invalid_mtu(self, mock_set_mtu,
-                                     mock_dev_exists, mock_exec):
-        linux_net._ensure_vlan_privileged(123, 'fake-bridge',
-                                          mac_address='fake-mac', mtu=None)
-        self.assertFalse(mock_set_mtu.called)
 
     @mock.patch.object(processutils, "execute")
     @mock.patch.object(linux_net, "device_exists", return_value=True)
@@ -103,6 +99,36 @@ class LinuxNetTest(testtools.TestCase):
                  mock.call('ip', 'link', 'set', 'br0', "up")]
         mock_exec.assert_has_calls(calls)
         mock_dev_exists.assert_has_calls([mock.call("br0"), mock.call("br0")])
+
+    @mock.patch.object(linux_net, "_set_device_mtu")
+    @mock.patch.object(os.path, "exists", return_value=False)
+    @mock.patch.object(processutils, "execute")
+    @mock.patch.object(linux_net, "device_exists", return_value=False)
+    def test_ensure_bridge_mtu_not_called(self, mock_dev_exists, mock_exec,
+                                          mock_path_exists, mock_set_mtu):
+        """This test validates that mtus are updated only if an interface
+           is added to the bridge
+        """
+        linux_net._ensure_bridge_privileged("fake-bridge", None,
+                                            None, False, mtu=1500)
+        mock_set_mtu.assert_not_called()
+
+    @mock.patch.object(linux_net, "_set_device_mtu")
+    @mock.patch.object(os.path, "exists", return_value=False)
+    @mock.patch.object(processutils, "execute", return_value=("", ""))
+    @mock.patch.object(linux_net, "device_exists", return_value=False)
+    def test_ensure_bridge_mtu_order(self, mock_dev_exists, mock_exec,
+                                          mock_path_exists, mock_set_mtu):
+        """This test validates that when adding an interface
+           to a bridge, the interface mtu is updated first
+           followed by the bridge. This is required to work around
+           https://bugs.launchpad.net/ubuntu/+source/linux/+bug/1399064
+        """
+        linux_net._ensure_bridge_privileged("fake-bridge", "fake-interface",
+                                            None, False, mtu=1500)
+        calls = [mock.call('fake-interface', 1500),
+                 mock.call('fake-bridge', 1500)]
+        mock_set_mtu.assert_has_calls(calls)
 
     @mock.patch.object(os.path, "exists", return_value=False)
     @mock.patch.object(processutils, "execute")

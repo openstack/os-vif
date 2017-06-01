@@ -39,8 +39,12 @@ def device_exists(device):
 
 def _set_device_mtu(dev, mtu):
     """Set the device MTU."""
-    processutils.execute('ip', 'link', 'set', dev, 'mtu', mtu,
-                         check_exit_code=[0, 2, 254])
+    if mtu:
+        processutils.execute('ip', 'link', 'set', dev, 'mtu', mtu,
+                             check_exit_code=[0, 2, 254])
+    else:
+        LOG.debug("MTU not set on %(interface_name)s interface",
+                  {'interface_name': dev})
 
 
 def _ip_bridge_cmd(action, params, device):
@@ -85,33 +89,32 @@ def _ensure_vlan_privileged(vlan_num, bridge_interface, mac_address, mtu):
                                  check_exit_code=[0, 2, 254])
         processutils.execute('ip', 'link', 'set', interface, 'up',
                              check_exit_code=[0, 2, 254])
-    if mtu:
         # NOTE(vish): set mtu every time to ensure that changes to mtu get
         #             propogated
         _set_device_mtu(interface, mtu)
-    else:
-        LOG.debug("MTU not set on %(interface_name)s interface",
-                  {'interface_name': interface})
+
     return interface
 
 
 @lockutils.synchronized('nova-lock_bridge', external=True)
 def ensure_bridge(bridge, interface, net_attrs=None, gateway=True,
-                  filtering=True):
-    _ensure_bridge_privileged(bridge, interface, net_attrs, gateway, filtering)
+                  filtering=True, mtu=None):
+    _ensure_bridge_privileged(bridge, interface, net_attrs, gateway,
+                              filtering=filtering, mtu=mtu)
     if filtering:
         _ensure_bridge_filtering(bridge, gateway)
 
 
 @privsep.vif_plug.entrypoint
 def _ensure_bridge_privileged(bridge, interface, net_attrs, gateway,
-                              filtering=True):
+                              filtering=True, mtu=None):
     """Create a bridge unless it already exists.
 
     :param interface: the interface to create the bridge on.
     :param net_attrs: dictionary with  attributes used to create bridge.
     :param gateway: whether or not the bridge is a gateway.
     :param filtering: whether or not to create filters on the bridge.
+    :param mtu: MTU of bridge.
 
     If net_attrs is set, it will add the net_attrs['gateway'] to the bridge
     using net_attrs['broadcast'] and net_attrs['cidr'].  It will also add
@@ -156,6 +159,8 @@ def _ensure_bridge_privileged(bridge, interface, net_attrs, gateway,
         out, err = processutils.execute('ip', 'link', 'set',
                                         interface, 'up', check_exit_code=False)
 
+        _set_device_mtu(interface, mtu)
+
         # NOTE(vish): This will break if there is already an ip on the
         #             interface, so we move any ips to the bridge
         # NOTE(danms): We also need to copy routes to the bridge so as
@@ -185,6 +190,12 @@ def _ensure_bridge_privileged(bridge, interface, net_attrs, gateway,
                                      check_exit_code=[0, 2, 254])
         for fields in old_routes:
             processutils.execute('ip', 'route', 'add', *fields)
+
+        # NOTE(sean-k-mooney):
+        # The bridge mtu cannont be set until after an
+        # interface is added due to bug:
+        # https://bugs.launchpad.net/ubuntu/+source/linux/+bug/1399064
+        _set_device_mtu(bridge, mtu)
 
 
 def _ensure_bridge_filtering(bridge, gateway):

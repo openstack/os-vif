@@ -51,15 +51,23 @@ class PluginTest(testtools.TestCase):
         mock_ensure_bridge.assert_not_called()
         mock_ensure_vlan_bridge.assert_not_called()
 
+    def test_plug_bridge_create_br_mtu_in_model(self):
+        self._test_plug_bridge_create_br(mtu=1234)
+
+    def test_plug_bridge_create_br_mtu_from_config(self):
+        self._test_plug_bridge_create_br()
+
     @mock.patch.object(linux_net, 'ensure_vlan_bridge')
     @mock.patch.object(linux_net, 'ensure_bridge')
-    def test_plug_bridge_create_br(self, mock_ensure_bridge,
-                                   mock_ensure_vlan_bridge):
+    def _test_plug_bridge_create_br(self, mock_ensure_bridge,
+                                   mock_ensure_vlan_bridge,
+                                   mtu=None):
         network = objects.network.Network(
             id='437c6db5-4e6f-4b43-b64b-ed6a11ee5ba7',
             bridge='br0',
             bridge_interface='eth0',
-            should_provide_bridge=True)
+            should_provide_bridge=True,
+            mtu=mtu)
 
         vif = objects.vif.VIFBridge(
             id='b679325f-ca89-4ee0-a8be-6db1409b69ea',
@@ -72,13 +80,17 @@ class PluginTest(testtools.TestCase):
         plugin = linux_bridge.LinuxBridgePlugin.load("linux_bridge")
         plugin.plug(vif, self.instance)
 
-        mock_ensure_bridge.assert_called_with("br0", "eth0", filtering=False)
+        mock_ensure_bridge.assert_called_with("br0", "eth0",
+                                              filtering=False,
+                                              mtu=mtu or 1500)
         mock_ensure_vlan_bridge.assert_not_called()
 
         mock_ensure_bridge.reset_mock()
         vif.has_traffic_filtering = False
         plugin.plug(vif, self.instance)
-        mock_ensure_bridge.assert_called_with("br0", "eth0", filtering=True)
+        mock_ensure_bridge.assert_called_with("br0", "eth0",
+                                              filtering=True,
+                                              mtu=mtu or 1500)
 
     def test_plug_bridge_create_br_vlan_mtu_in_model(self):
         self._test_plug_bridge_create_br_vlan(mtu=1234)

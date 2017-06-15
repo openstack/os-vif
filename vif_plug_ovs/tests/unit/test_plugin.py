@@ -56,7 +56,12 @@ class PluginTest(testtools.TestCase):
             mtu=1234)
 
         self.profile_ovs = objects.vif.VIFPortProfileOpenVSwitch(
-            interface_id='e65867e0-9340-4a7f-a256-09af6eb7a3aa')
+            interface_id='e65867e0-9340-4a7f-a256-09af6eb7a3aa',
+            datapath_type='netdev')
+
+        self.profile_ovs_no_datatype = objects.vif.VIFPortProfileOpenVSwitch(
+            interface_id='e65867e0-9340-4a7f-a256-09af6eb7a3aa',
+            datapath_type='')
 
         self.vif_ovs_hybrid = objects.vif.VIFBridge(
             id='b679325f-ca89-4ee0-a8be-6db1409b69ea',
@@ -64,7 +69,7 @@ class PluginTest(testtools.TestCase):
             network=self.network_ovs,
             dev_name='tap-xxx-yyy-zzz',
             bridge_name="qbrvif-xxx-yyy",
-            port_profile=self.profile_ovs)
+            port_profile=self.profile_ovs_no_datatype)
 
         self.vif_ovs = objects.vif.VIFOpenVSwitch(
             id='b679325f-ca89-4ee0-a8be-6db1409b69ea',
@@ -101,6 +106,16 @@ class PluginTest(testtools.TestCase):
         self.instance = objects.instance_info.InstanceInfo(
             name='demo',
             uuid='f0000000-0000-0000-0000-000000000001')
+
+    def test__get_vif_datapath_type(self):
+        plugin = ovs.OvsPlugin.load('ovs')
+        dp_type = plugin._get_vif_datapath_type(
+            self.vif_ovs, datapath=constants.OVS_DATAPATH_SYSTEM)
+        self.assertEqual(self.profile_ovs.datapath_type, dp_type)
+
+        dp_type = plugin._get_vif_datapath_type(
+            self.vif_ovs_hybrid, datapath=constants.OVS_DATAPATH_SYSTEM)
+        self.assertEqual(constants.OVS_DATAPATH_SYSTEM, dp_type)
 
     @mock.patch.object(linux_net, 'create_ovs_vif_port')
     def test_create_vif_port(self, mock_create_ovs_vif_port):
@@ -139,9 +154,9 @@ class PluginTest(testtools.TestCase):
         plugin = ovs.OvsPlugin.load("ovs")
         plugin._plug_bridge = plug_bridge_mock
         plugin.plug(self.vif_ovs, self.instance)
-        plug_bridge_mock.assert_not_called()
-        ensure_ovs_bridge.assert_called_once_with(
-            self.vif_ovs.network.bridge, constants.OVS_DATAPATH_SYSTEM)
+        dp_type = ovs.OvsPlugin._get_vif_datapath_type(self.vif_ovs)
+        ensure_ovs_bridge.assert_called_once_with(self.vif_ovs.network.bridge,
+                                                  dp_type)
 
     @mock.patch.object(linux_net, 'set_interface_state')
     @mock.patch.object(linux_net, 'ensure_ovs_bridge')
@@ -158,6 +173,7 @@ class PluginTest(testtools.TestCase):
                              add_bridge_port, _create_vif_port,
                              _update_vif_port, ensure_ovs_bridge,
                              set_interface_state):
+        dp_type = ovs.OvsPlugin._get_vif_datapath_type(self.vif_ovs_hybrid)
         calls = {
             'device_exists': [mock.call('qvob679325f-ca')],
             'create_veth_pair': [mock.call('qvbb679325f-ca',
@@ -176,8 +192,7 @@ class PluginTest(testtools.TestCase):
             '_create_vif_port': [mock.call(self.vif_ovs_hybrid,
                                            'qvob679325f-ca',
                                            self.instance)],
-            'ensure_ovs_bridge': [mock.call('br0',
-                                            constants.OVS_DATAPATH_SYSTEM)]
+            'ensure_ovs_bridge': [mock.call('br0', dp_type)]
         }
 
         # plugging new devices should result in devices being created
@@ -216,11 +231,11 @@ class PluginTest(testtools.TestCase):
     @mock.patch.object(ovs, 'sys')
     def _check_plug_ovs_windows(self, vif, mock_sys, device_exists,
                                 _create_vif_port, ensure_ovs_bridge):
+        dp_type = ovs.OvsPlugin._get_vif_datapath_type(vif)
         calls = {
             'device_exists': [mock.call(vif.id)],
             '_create_vif_port': [mock.call(vif, vif.id, self.instance)],
-            'ensure_ovs_bridge': [mock.call('br0',
-                                            constants.OVS_DATAPATH_SYSTEM)]
+            'ensure_ovs_bridge': [mock.call('br0', dp_type)]
         }
 
         mock_sys.platform = constants.PLATFORM_WIN32
@@ -276,14 +291,14 @@ class PluginTest(testtools.TestCase):
     @mock.patch.object(linux_net, 'ensure_ovs_bridge')
     @mock.patch.object(ovs.OvsPlugin, '_create_vif_port')
     def test_plug_ovs_vhostuser(self, _create_vif_port, ensure_ovs_bridge):
+        dp_type = ovs.OvsPlugin._get_vif_datapath_type(self.vif_vhostuser)
         calls = {
 
             '_create_vif_port': [mock.call(
                                  self.vif_vhostuser, 'vhub679325f-ca',
                                  self.instance,
                                  interface_type='dpdkvhostuser')],
-            'ensure_ovs_bridge': [mock.call('br0',
-                                            constants.OVS_DATAPATH_NETDEV)]
+            'ensure_ovs_bridge': [mock.call('br0', dp_type)]
         }
 
         plugin = ovs.OvsPlugin.load("ovs")
@@ -295,6 +310,8 @@ class PluginTest(testtools.TestCase):
     @mock.patch.object(linux_net, 'create_ovs_vif_port')
     def test_plug_ovs_vhostuser_client(self, create_ovs_vif_port,
                                        ensure_ovs_bridge):
+        dp_type = ovs.OvsPlugin._get_vif_datapath_type(
+            self.vif_vhostuser_client)
         calls = {
             'create_ovs_vif_port': [
                  mock.call(
@@ -305,8 +322,7 @@ class PluginTest(testtools.TestCase):
                      1500, interface_type='dpdkvhostuserclient',
                      vhost_server_path='/var/run/openvswitch/vhub679325f-ca',
                      timeout=120)],
-            'ensure_ovs_bridge': [mock.call('br0',
-                                            constants.OVS_DATAPATH_NETDEV)]
+            'ensure_ovs_bridge': [mock.call('br0', dp_type)]
         }
 
         plugin = ovs.OvsPlugin.load("ovs")

@@ -70,16 +70,16 @@ class ListOfIPAddressField(fields.AutoTypedField):
     AUTO_TYPE = fields.List(fields.IPAddress())
 
 
-class VIFVIFHostDeviceDevType(fields.Enum):
+class VIFHostDeviceDevType(fields.Enum):
     ETHERNET = 'ethernet'
     GENERIC = 'generic'
 
     ALL = (ETHERNET, GENERIC)
 
     def __init__(self):
-        super(VIFVIFHostDeviceDevType, self).__init__(
-            valid_values=VIFVIFHostDeviceDevType.ALL)
+        super(VIFHostDeviceDevType, self).__init__(
+            valid_values=VIFHostDeviceDevType.ALL)
 
 
-class VIFVIFHostDeviceDevTypeField(fields.BaseEnumField):
-    AUTO_TYPE = VIFVIFHostDeviceDevType()
+class VIFHostDeviceDevTypeField(fields.BaseEnumField):
+    AUTO_TYPE = VIFHostDeviceDevType()

@@ -125,7 +125,7 @@ class TestVIFS(base.TestCase):
     def test_vif_host_dev_plain(self):
         self._test_vif(
             objects.vif.VIFHostDevice,
-            dev_type=objects.fields.VIFVIFHostDeviceDevType.ETHERNET,
+            dev_type=objects.fields.VIFHostDeviceDevType.ETHERNET,
             dev_address="0002:24:12.3")
 
     def test_vif_host_dev_vepa_qbh(self):
@@ -151,7 +151,7 @@ object_data = {
     'VIFBridge': '1.0-e78d355f3505361fafbf0797ffad484a',
     'VIFDirect': '1.0-05c939280f4025fd1f7efb921a835c57',
     'VIFGeneric': '1.0-c72e637ed620f0135ea50a9409a3f389',
-    'VIFHostDevice': '1.0-b3516f5af46ecb9432650e4938ac2643',
+    'VIFHostDevice': '1.0-bb090f1869c3b4df36efda216ab97a61',
     'VIFOpenVSwitch': '1.0-e78d355f3505361fafbf0797ffad484a',
     'VIFPortProfile8021Qbg': '1.0-167f305f6e982b9368cc38763815d429',
     'VIFPortProfile8021Qbh': '1.0-4b945f07d2666ab00a48d1dc225669b1',

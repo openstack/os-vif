@@ -12,27 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import re
-
 from oslo_versionedobjects import fields
-import six
-
-
-class PCIAddress(fields.FieldType):
-
-    _REGEX = re.compile(r'^[0-9a-f]{4}:[0-9a-f]{2}:[0-1][0-9a-f].[0-7]$')
-
-    @staticmethod
-    def coerce(obj, attr, value):
-        if isinstance(value, six.string_types):
-            newvalue = value.lower()
-            if PCIAddress._REGEX.match(newvalue):
-                return newvalue
-        raise ValueError("Malformed PCI address %s", value)
-
-
-class PCIAddressField(fields.AutoTypedField):
-    AUTO_TYPE = PCIAddress()
 
 
 class VIFDirectMode(fields.Enum):

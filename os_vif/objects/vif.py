@@ -107,7 +107,7 @@ class VIFDirect(VIFBase):
         'vif_name': fields.StringField(),
 
         # The PCI address of the host device
-        'dev_address': osv_fields.PCIAddressField(),
+        'dev_address': fields.PCIAddressField(),
 
         # Port connection mode
         'mode': osv_fields.VIFDirectModeField(),
@@ -157,7 +157,7 @@ class VIFHostDevice(VIFBase):
         'dev_type': osv_fields.VIFHostDeviceDevTypeField(),
 
         # The PCI address of the host device
-        'dev_address': osv_fields.PCIAddressField(),
+        'dev_address': fields.PCIAddressField(),
     }
 
 

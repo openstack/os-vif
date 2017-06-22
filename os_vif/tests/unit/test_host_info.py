@@ -12,7 +12,7 @@
 
 from os_vif import exception
 from os_vif import objects
-from os_vif.tests import base
+from os_vif.tests.unit import base
 
 
 class TestHostInfo(base.TestCase):

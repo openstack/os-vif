@@ -18,7 +18,7 @@ import os_vif
 from os_vif import exception
 from os_vif import objects
 from os_vif import plugin
-from os_vif.tests import base
+from os_vif.tests.unit import base
 
 
 class DemoPlugin(plugin.PluginBase):

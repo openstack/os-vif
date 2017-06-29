@@ -88,10 +88,11 @@ def update_ovs_vif_port(dev, mtu=None, interface_type=None, timeout=None):
 
 
 @privsep.vif_plug.entrypoint
-def delete_ovs_vif_port(bridge, dev, timeout=None):
+def delete_ovs_vif_port(bridge, dev, timeout=None, delete_netdev=True):
     _ovs_vsctl(['--', '--if-exists', 'del-port', bridge, dev],
                timeout=timeout)
-    _delete_net_dev(dev)
+    if delete_netdev:
+        _delete_net_dev(dev)
 
 
 def device_exists(device):

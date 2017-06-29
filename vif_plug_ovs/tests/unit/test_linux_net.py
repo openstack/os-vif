@@ -274,6 +274,30 @@ class LinuxNetTest(testtools.TestCase):
                 'mtu_request=%s' % mtu]
         mock_vsctl.assert_called_with(args, timeout=timeout)
 
+    @mock.patch.object(linux_net, '_delete_net_dev')
+    @mock.patch.object(linux_net, '_ovs_vsctl')
+    def test_delete_ovs_vif_port_delete_netdev(
+            self, mock_vsctl, mock_delete_net_dev):
+        bridge = 'fake-bridge'
+        dev = 'fake-dev'
+        timeout = 120
+        linux_net.delete_ovs_vif_port(bridge, dev, timeout=timeout)
+        args = ['--', '--if-exists', 'del-port', bridge, dev]
+        mock_vsctl.assert_called_with(args, timeout=timeout)
+        mock_delete_net_dev.assert_called()
+
+    @mock.patch.object(linux_net, '_delete_net_dev')
+    @mock.patch.object(linux_net, '_ovs_vsctl')
+    def test_delete_ovs_vif_port(self, mock_vsctl, mock_delete_net_dev):
+        bridge = 'fake-bridge'
+        dev = 'fake-dev'
+        timeout = 120
+        linux_net.delete_ovs_vif_port(
+            bridge, dev, timeout=timeout, delete_netdev=False)
+        args = ['--', '--if-exists', 'del-port', bridge, dev]
+        mock_vsctl.assert_called_with(args, timeout=timeout)
+        mock_delete_net_dev.assert_not_called()
+
     @mock.patch.object(linux_net, '_ovs_vsctl')
     def test_ovs_supports_mtu_requests(self, mock_vsctl):
         args = ['--columns=mtu_request', 'list', 'interface']

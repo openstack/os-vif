@@ -224,7 +224,11 @@ class OvsPlugin(plugin.PluginBase):
             pf_interface=True)
         vf_num = linux_net.get_vf_num_by_pci_address(pci_slot)
         representor = linux_net.get_representor_port(pf_ifname, vf_num)
-        linux_net.delete_ovs_vif_port(vif.network.bridge, representor)
+        # The representor interface can't be deleted because it bind the
+        # SR-IOV VF, therefore we just need to remove it from the ovs bridge
+        # and set the status to down
+        linux_net.delete_ovs_vif_port(
+            vif.network.bridge, representor, delete_netdev=False)
         linux_net.set_interface_state(representor, 'down')
 
     def unplug(self, vif, instance_info):

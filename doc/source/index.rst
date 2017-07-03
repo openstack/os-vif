@@ -2,16 +2,6 @@
 os-vif
 ======
 
-.. toctree::
-   :maxdepth: 2
-
-   vif_types
-   host_info
-   usage
-   plugins/ovs
-   plugins/linux-bridge
-   glossary
-
 `os-vif` is a library for plugging and unplugging virtual interfaces (VIFs) in
 OpenStack. It provides:
 
@@ -25,3 +15,23 @@ OpenStack. It provides:
 `os-vif` is intended to define a common model for representing VIF types in
 OpenStack. With the exception of the two included plugins, all plugins for
 other networking backends are maintained in separate code repositories.
+
+Usage Guide
+-----------
+
+.. toctree::
+   :maxdepth: 2
+
+   user/usage
+   user/vif-types
+   user/host-info
+   user/plugins/ovs
+   user/plugins/linux-bridge
+
+Reference
+---------
+
+.. toctree::
+   :maxdepth: 2
+
+   reference/glossary

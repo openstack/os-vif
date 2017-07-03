@@ -56,7 +56,7 @@ The Open vSwitch plugin provides support for the following VIF types:
 
   .. versionadded:: 1.5.0
 
-For information on the VIF type objects, refer to :doc:`../vif_types`. Note
+For information on the VIF type objects, refer to :doc:`/user/vif-types`. Note
 that only the above VIF types are supported by this plugin.
 
 __ http://docs.openvswitch.org/en/latest/howto/dpdk/

@@ -18,9 +18,15 @@
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = [
     'sphinx.ext.autodoc',
-    'oslosphinx',
+    'openstackdocstheme',
     'reno.sphinxext',
 ]
+
+# openstackdocstheme options
+repository_name = 'openstack/os-vif'
+bug_project = 'os-vif'
+bug_tag = ''
+html_last_updated_fmt = '%Y-%m-%d %H:%M'
 
 # The suffix of source filenames.
 source_suffix = '.rst'
@@ -41,3 +47,9 @@ add_module_names = True
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
+
+# -- Options for HTML output ----------------------------------------------
+
+# The theme to use for HTML and HTML Help pages.  See the documentation for
+# a list of builtin themes.
+html_theme = 'openstackdocs'

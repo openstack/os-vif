@@ -269,7 +269,7 @@ def get_representor_port(pf_ifname, vf_num):
             continue
 
         try:
-            with open(device_sw_id_file, 'r') as fd:
+            with open(device_port_name_file, 'r') as fd:
                 representor_num = fd.readline().rstrip()
         except (OSError, IOError):
             continue

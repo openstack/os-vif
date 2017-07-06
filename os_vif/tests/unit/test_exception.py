@@ -13,7 +13,7 @@
 import six
 
 from os_vif import exception
-from os_vif.tests import base
+from os_vif.tests.unit import base
 
 """Mostly inspired by os-brick's tests."""
 

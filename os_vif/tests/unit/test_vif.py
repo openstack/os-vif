@@ -15,7 +15,7 @@ from oslo_versionedobjects import fixture
 
 import os_vif
 from os_vif import objects
-from os_vif.tests import base
+from os_vif.tests.unit import base
 
 
 class TestVIFS(base.TestCase):

@@ -64,7 +64,7 @@ class LinuxNetTest(testtools.TestCase):
                            check_exit_code=[0, 2, 254]),
                  mock.call('ip', 'link', 'set', 'vlan123', 'up',
                            check_exit_code=[0, 2, 254])]
-        self.assertEqual(calls, mock_exec.mock_calls)
+        mock_exec.assert_has_calls(calls)
         mock_set_mtu.assert_called_once_with('vlan123', 1500)
 
     @mock.patch.object(processutils, "execute")
@@ -81,7 +81,7 @@ class LinuxNetTest(testtools.TestCase):
     def test_ensure_bridge_exists(self, mock_dev_exists, mock_exec):
         linux_net.ensure_bridge("br0", None, filtering=False)
 
-        self.assertEqual([], mock_exec.mock_calls)
+        mock_exec.assert_not_called()
         mock_dev_exists.assert_called_once_with("br0")
 
     @mock.patch.object(processutils, "execute")
@@ -101,7 +101,7 @@ class LinuxNetTest(testtools.TestCase):
                  mock.call('brctl', 'setfd', 'br0', 0),
                  mock.call('brctl', 'stp', 'br0', "off"),
                  mock.call('ip', 'link', 'set', 'br0', "up")]
-        self.assertEqual(calls, mock_exec.mock_calls)
+        mock_exec.assert_has_calls(calls)
         mock_dev_exists.assert_has_calls([mock.call("br0"), mock.call("br0")])
 
     @mock.patch.object(os.path, "exists", return_value=False)
@@ -115,7 +115,7 @@ class LinuxNetTest(testtools.TestCase):
                  mock.call('brctl', 'setfd', 'br0', 0),
                  mock.call('brctl', 'stp', 'br0', "off"),
                  mock.call('ip', 'link', 'set', 'br0', "up")]
-        self.assertEqual(calls, mock_exec.mock_calls)
+        mock_exec.assert_has_calls(calls)
         mock_dev_exists.assert_called_once_with("br0")
 
     @mock.patch.object(os.path, "exists", return_value=True)
@@ -131,5 +131,5 @@ class LinuxNetTest(testtools.TestCase):
                  mock.call('tee', '/proc/sys/net/ipv6/conf/br0/disable_ipv6',
                            check_exit_code=[0, 1], process_input='1'),
                  mock.call('ip', 'link', 'set', 'br0', "up")]
-        self.assertEqual(calls, mock_exec.mock_calls)
+        mock_exec.assert_has_calls(calls)
         mock_dev_exists.assert_called_once_with("br0")

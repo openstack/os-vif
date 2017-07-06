@@ -35,13 +35,10 @@ class LinuxNetTest(testtools.TestCase):
     def test_ensure_bridge_exists(self, mock_dev_exists, mock_execute):
         linux_net.ensure_bridge("br0")
 
-        self.assertEqual(mock_execute.mock_calls, [
+        mock_execute.assert_has_calls([
             mock.call('ip', 'link', 'set', 'br0', 'up',
-                      check_exit_code=[0, 2, 254]),
-        ])
-        self.assertEqual(mock_dev_exists.mock_calls, [
-            mock.call("br0"),
-        ])
+                      check_exit_code=[0, 2, 254])])
+        mock_dev_exists.assert_has_calls([mock.call("br0")])
 
     @mock.patch.object(os.path, "exists", return_value=False)
     @mock.patch.object(processutils, "execute")
@@ -50,18 +47,17 @@ class LinuxNetTest(testtools.TestCase):
                                     mock_path_exists):
         linux_net.ensure_bridge("br0")
 
-        self.assertEqual(mock_execute.mock_calls, [
+        calls = [
             mock.call('brctl', 'addbr', 'br0'),
             mock.call('brctl', 'setfd', 'br0', 0),
             mock.call('brctl', 'stp', 'br0', "off"),
             mock.call('tee', '/sys/class/net/br0/bridge/multicast_snooping',
                       check_exit_code=[0, 1], process_input='0'),
             mock.call('ip', 'link', 'set', 'br0', 'up',
-                      check_exit_code=[0, 2, 254]),
-        ])
-        self.assertEqual(mock_dev_exists.mock_calls, [
-            mock.call("br0")
-        ])
+                      check_exit_code=[0, 2, 254])
+        ]
+        mock_execute.assert_has_calls(calls)
+        mock_dev_exists.assert_has_calls([mock.call("br0")])
 
     @mock.patch.object(os.path, "exists", return_value=True)
     @mock.patch.object(processutils, "execute")
@@ -70,7 +66,7 @@ class LinuxNetTest(testtools.TestCase):
                                     mock_path_exists):
         linux_net.ensure_bridge("br0")
 
-        self.assertEqual(mock_execute.mock_calls, [
+        calls = [
             mock.call('brctl', 'addbr', 'br0'),
             mock.call('brctl', 'setfd', 'br0', 0),
             mock.call('brctl', 'stp', 'br0', "off"),
@@ -79,43 +75,37 @@ class LinuxNetTest(testtools.TestCase):
             mock.call('tee', '/proc/sys/net/ipv6/conf/br0/disable_ipv6',
                       check_exit_code=[0, 1], process_input='1'),
             mock.call('ip', 'link', 'set', 'br0', 'up',
-                      check_exit_code=[0, 2, 254]),
-        ])
-        self.assertEqual(mock_dev_exists.mock_calls, [
-            mock.call("br0")
-        ])
+                      check_exit_code=[0, 2, 254])
+        ]
+        mock_execute.assert_has_calls(calls)
+        mock_dev_exists.assert_has_calls([mock.call("br0")])
 
     @mock.patch.object(processutils, "execute")
     @mock.patch.object(linux_net, "device_exists", return_value=False)
     def test_delete_bridge_none(self, mock_dev_exists, mock_execute):
         linux_net.delete_bridge("br0", "vnet1")
 
-        self.assertEqual(mock_execute.mock_calls, [])
-        self.assertEqual(mock_dev_exists.mock_calls, [
-            mock.call("br0")
-        ])
+        mock_execute.assert_not_called()
+        mock_dev_exists.assert_has_calls([mock.call("br0")])
 
     @mock.patch.object(processutils, "execute")
     @mock.patch.object(linux_net, "device_exists", return_value=True)
     def test_delete_bridge_exists(self, mock_dev_exists, mock_execute):
         linux_net.delete_bridge("br0", "vnet1")
 
-        self.assertEqual(mock_execute.mock_calls, [
+        calls = [
             mock.call('brctl', 'delif', 'br0', 'vnet1'),
             mock.call('ip', 'link', 'set', 'br0', 'down'),
-            mock.call('brctl', 'delbr', 'br0'),
-        ])
-        self.assertEqual(mock_dev_exists.mock_calls, [
-            mock.call("br0")
-        ])
+            mock.call('brctl', 'delbr', 'br0')]
+        mock_execute.assert_has_calls(calls)
+        mock_dev_exists.assert_has_calls([mock.call("br0")])
 
     @mock.patch.object(processutils, "execute")
     def test_add_bridge_port(self, mock_execute):
         linux_net.add_bridge_port("br0", "vnet1")
 
-        self.assertEqual(mock_execute.mock_calls, [
-            mock.call('brctl', 'addif', 'br0', 'vnet1'),
-        ])
+        mock_execute.assert_has_calls([
+            mock.call('brctl', 'addif', 'br0', 'vnet1')])
 
     def test_ovs_vif_port_cmd(self):
         expected = ['--', '--if-exists',
@@ -270,10 +260,9 @@ class LinuxNetTest(testtools.TestCase):
         timeout = 42
         linux_net._ovs_vsctl(args)
         linux_net._ovs_vsctl(args, timeout=timeout)
-        self.assertEqual(
-            [mock.call('ovs-vsctl', *args),
-             mock.call('ovs-vsctl', '--timeout=%s' % timeout, *args)],
-            mock_execute.mock_calls)
+        mock_execute.assert_has_calls([
+            mock.call('ovs-vsctl', *args),
+            mock.call('ovs-vsctl', '--timeout=%s' % timeout, *args)])
 
     @mock.patch.object(linux_net, '_ovs_vsctl')
     def test_set_mtu_request(self, mock_vsctl):

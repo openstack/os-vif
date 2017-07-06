@@ -48,8 +48,8 @@ class PluginTest(testtools.TestCase):
         plugin = linux_bridge.LinuxBridgePlugin.load("linux_bridge")
         plugin.plug(vif, self.instance)
 
-        self.assertEqual(len(mock_ensure_bridge.calls), 0)
-        self.assertEqual(len(mock_ensure_vlan_bridge.calls), 0)
+        mock_ensure_bridge.assert_not_called()
+        mock_ensure_vlan_bridge.assert_not_called()
 
     @mock.patch.object(linux_net, 'ensure_vlan_bridge')
     @mock.patch.object(linux_net, 'ensure_bridge')
@@ -73,7 +73,7 @@ class PluginTest(testtools.TestCase):
         plugin.plug(vif, self.instance)
 
         mock_ensure_bridge.assert_called_with("br0", "eth0", filtering=False)
-        self.assertEqual(len(mock_ensure_vlan_bridge.calls), 0)
+        mock_ensure_vlan_bridge.assert_not_called()
 
         mock_ensure_bridge.reset_mock()
         vif.has_traffic_filtering = False
@@ -110,6 +110,6 @@ class PluginTest(testtools.TestCase):
         plugin = linux_bridge.LinuxBridgePlugin.load("linux_bridge")
         plugin.plug(vif, self.instance)
 
-        self.assertEqual(len(mock_ensure_bridge.calls), 0)
+        mock_ensure_bridge.assert_not_called()
         mock_ensure_vlan_bridge.assert_called_with(
             99, "br0", "eth0", mtu=mtu or 1500)

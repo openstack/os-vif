@@ -139,7 +139,7 @@ class PluginTest(testtools.TestCase):
         plugin = ovs.OvsPlugin.load("ovs")
         plugin._plug_bridge = plug_bridge_mock
         plugin.plug(self.vif_ovs, self.instance)
-        self.assertFalse(plug_bridge_mock.called)
+        plug_bridge_mock.assert_not_called()
         ensure_ovs_bridge.assert_called_once_with(
             self.vif_ovs.network.bridge, constants.OVS_DATAPATH_SYSTEM)
 
@@ -189,8 +189,8 @@ class PluginTest(testtools.TestCase):
         ensure_bridge.assert_has_calls(calls['ensure_bridge'])
         device_exists.assert_has_calls(calls['device_exists'])
         create_veth_pair.assert_has_calls(calls['create_veth_pair'])
-        self.assertFalse(update_veth_pair.called)
-        self.assertFalse(_update_vif_port.called)
+        update_veth_pair.assert_not_called()
+        _update_vif_port.assert_not_called()
         add_bridge_port.assert_has_calls(calls['add_bridge_port'])
         _create_vif_port.assert_has_calls(calls['_create_vif_port'])
         ensure_ovs_bridge.assert_has_calls(calls['ensure_ovs_bridge'])
@@ -205,8 +205,8 @@ class PluginTest(testtools.TestCase):
         device_exists.return_value = True
         self.assertTrue(linux_net.device_exists('test'))
         plugin.plug(self.vif_ovs_hybrid, self.instance)
-        self.assertFalse(create_veth_pair.called)
-        self.assertFalse(_create_vif_port.called)
+        create_veth_pair.assert_not_called()
+        _create_vif_port.assert_not_called()
         update_veth_pair.assert_has_calls(calls['update_veth_pair'])
         _update_vif_port.assert_has_calls(calls['_update_vif_port'])
 
@@ -241,7 +241,7 @@ class PluginTest(testtools.TestCase):
         plugin = ovs.OvsPlugin.load("ovs")
         plugin._unplug_bridge = unplug_bridge_mock
         plugin.unplug(self.vif_ovs, self.instance)
-        self.assertFalse(unplug_bridge_mock.called)
+        unplug_bridge_mock.assert_not_called()
 
     @mock.patch.object(linux_net, 'delete_ovs_vif_port')
     @mock.patch.object(linux_net, 'delete_bridge')

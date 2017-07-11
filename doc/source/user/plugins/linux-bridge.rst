@@ -18,5 +18,5 @@ The Linux Bridge plugin provides support for the following VIF types:
 
   Refer to :ref:`vif-bridge` for more information.
 
-For information on the VIF type objects, refer to :doc:`../vif_types`. Note
+For information on the VIF type objects, refer to :doc:`/user/vif-types`. Note
 that only the above VIF types are supported by this plugin.

@@ -95,9 +95,9 @@ class LinuxBridgePlugin(plugin.PluginBase):
         network = vif.network
         bridge_name = vif.bridge_name
         if not network.multi_host and network.should_provide_bridge:
+            mtu = network.mtu or self.config.network_device_mtu
             if network.should_provide_vlan:
                 iface = self.config.vlan_interface or network.bridge_interface
-                mtu = network.mtu or self.config.network_device_mtu
                 linux_net.ensure_vlan_bridge(network.vlan,
                                              bridge_name, iface, mtu=mtu)
             else:
@@ -105,7 +105,7 @@ class LinuxBridgePlugin(plugin.PluginBase):
                 # only put in iptables rules if Neutron not filtering
                 install_filters = not vif.has_traffic_filtering
                 linux_net.ensure_bridge(bridge_name, iface,
-                                        filtering=install_filters)
+                                        filtering=install_filters, mtu=mtu)
 
     def unplug(self, vif, instance_info):
         # Nothing required to unplug a port for a VIF using standard

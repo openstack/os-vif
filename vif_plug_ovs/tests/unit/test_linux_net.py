@@ -303,7 +303,24 @@ class LinuxNetTest(testtools.TestCase):
         readline_mock = mock_open.return_value.readline
         readline_mock.side_effect = (
             ['pf_sw_id', 'pf_sw_id', '1', 'pf_sw_id', '2'])
+        open_calls = (
+            [mock.call('/sys/class/net/pf_ifname/phys_switch_id', 'r'),
+             mock.call().readline(),
+             mock.call().__exit__(None, None, None),
+             mock.call('/sys/class/net/rep_vf_1/phys_switch_id', 'r'),
+             mock.call().readline(),
+             mock.call().__exit__(None, None, None),
+             mock.call('/sys/class/net/rep_vf_1/phys_port_name', 'r'),
+             mock.call().readline(),
+             mock.call().__exit__(None, None, None),
+             mock.call('/sys/class/net/rep_vf_2/phys_switch_id', 'r'),
+             mock.call().readline(),
+             mock.call().__exit__(None, None, None),
+             mock.call('/sys/class/net/rep_vf_2/phys_port_name', 'r'),
+             mock.call().readline(),
+             mock.call().__exit__(None, None, None)])
         ifname = linux_net.get_representor_port('pf_ifname', '2')
+        mock_open.assert_has_calls(open_calls)
         self.assertEqual('rep_vf_2', ifname)
 
     @mock.patch('six.moves.builtins.open')

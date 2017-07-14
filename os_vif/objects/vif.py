@@ -196,6 +196,21 @@ class VIFPortProfileFPOpenVSwitch(VIFPortProfileOpenVSwitch):
 
 
 @base.VersionedObjectRegistry.register
+class VIFPortProfileOVSRepresentor(VIFPortProfileOpenVSwitch):
+    # Port profile info for OpenVSwitch networks using a representor
+
+    VERSION = '1.0'
+
+    fields = {
+        # Name to set on the representor (if set)
+        'representor_name': fields.StringField(nullable=True),
+
+        # The PCI address of the Virtual Function
+        'representor_address': fields.PCIAddressField(nullable=True),
+    }
+
+
+@base.VersionedObjectRegistry.register
 class VIFPortProfileFPBridge(VIFPortProfileBase):
     # Port profile info for LinuxBridge networks using fastpath
 

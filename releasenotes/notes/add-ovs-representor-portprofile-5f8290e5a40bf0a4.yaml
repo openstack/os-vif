@@ -1,0 +1,6 @@
+---
+features:
+  - A new port profile has been added to describe VF representors on OVS-based
+    switches, as featured in Linux kernel 4.8 and later. This port profile can
+    currently be used with Agilio OVS networks. It is intended to be flexible
+    enough to be used by multiple vendors.

@@ -160,7 +160,7 @@ class OvsPlugin(plugin.PluginBase):
             vif.network.bridge, constants.OVS_DATAPATH_SYSTEM)
         pci_slot = vif.dev_address
         pf_ifname = linux_net.get_ifname_by_pci_address(
-            pci_slot, pf_interface=True)
+            pci_slot, pf_interface=True, switchdev=True)
         vf_num = linux_net.get_vf_num_by_pci_address(pci_slot)
         representor = linux_net.get_representor_port(pf_ifname, vf_num)
         linux_net.set_interface_state(representor, 'up')
@@ -221,7 +221,7 @@ class OvsPlugin(plugin.PluginBase):
         """Remove port from OVS."""
         pci_slot = vif.dev_address
         pf_ifname = linux_net.get_ifname_by_pci_address(pci_slot,
-            pf_interface=True)
+            pf_interface=True, switchdev=True)
         vf_num = linux_net.get_vf_num_by_pci_address(pci_slot)
         representor = linux_net.get_representor_port(pf_ifname, vf_num)
         linux_net.delete_ovs_vif_port(vif.network.bridge, representor)

@@ -345,7 +345,8 @@ class PluginTest(testtools.TestCase):
             'ensure_ovs_bridge': [mock.call('br0',
                                   constants.OVS_DATAPATH_SYSTEM)],
             'get_ifname_by_pci_address': [mock.call('0002:24:12.3',
-                                          pf_interface=True)],
+                                          pf_interface=True,
+                                          switchdev=True)],
             'get_vf_num_by_pci_address': [mock.call('0002:24:12.3')],
             'get_representor_port': [mock.call('eth0', '2')],
             'set_interface_state': [mock.call('eth0_2', 'up')],
@@ -379,7 +380,8 @@ class PluginTest(testtools.TestCase):
         calls = {
 
             'get_ifname_by_pci_address': [mock.call('0002:24:12.3',
-                                          pf_interface=True)],
+                                          pf_interface=True,
+                                          switchdev=True)],
             'get_vf_num_by_pci_address': [mock.call('0002:24:12.3')],
             'get_representor_port': [mock.call('eth0', '2')],
             'set_interface_state': [mock.call('eth0_2', 'down')],

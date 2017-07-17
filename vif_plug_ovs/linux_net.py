@@ -24,6 +24,7 @@ import os
 import re
 import sys
 
+from os_vif.internal.command import ip as ip_lib
 from oslo_concurrency import processutils
 from oslo_log import log as logging
 from oslo_utils import excutils
@@ -117,8 +118,7 @@ def _delete_net_dev(dev):
     """Delete a network device only if it exists."""
     if device_exists(dev):
         try:
-            processutils.execute('ip', 'link', 'delete', dev,
-                                 check_exit_code=[0, 2, 254])
+            ip_lib.delete(dev, check_exit_code=[0, 2, 254])
             LOG.debug("Net device removed: '%s'", dev)
         except processutils.ProcessExecutionError:
             with excutils.save_and_reraise_exception():
@@ -133,11 +133,10 @@ def create_veth_pair(dev1_name, dev2_name, mtu):
     for dev in [dev1_name, dev2_name]:
         _delete_net_dev(dev)
 
-    processutils.execute('ip', 'link', 'add', dev1_name,
-                         'type', 'veth', 'peer', 'name', dev2_name)
+    ip_lib.add(dev1_name, 'veth', peer=dev2_name)
     for dev in [dev1_name, dev2_name]:
-        processutils.execute('ip', 'link', 'set', dev, 'up')
-        processutils.execute('ip', 'link', 'set', dev, 'promisc', 'on')
+        ip_lib.set(dev, state='up')
+        ip_lib.set(dev, promisc='on')
         _update_device_mtu(dev, mtu)
 
 
@@ -180,7 +179,8 @@ def delete_bridge(bridge, dev):
     if device_exists(bridge):
         if interface_in_bridge(bridge, dev):
             processutils.execute('brctl', 'delif', bridge, dev)
-        processutils.execute('ip', 'link', 'set', bridge, 'down')
+
+        ip_lib.set(bridge, state='down')
         processutils.execute('brctl', 'delbr', bridge)
 
 
@@ -213,14 +213,12 @@ def _update_device_mtu(dev, mtu, interface_type=None, timeout=120):
 @privsep.vif_plug.entrypoint
 def _set_device_mtu(dev, mtu):
     """Set the device MTU."""
-    processutils.execute('ip', 'link', 'set', dev, 'mtu', mtu,
-                         check_exit_code=[0, 2, 254])
+    ip_lib.set(dev, mtu=mtu, check_exit_code=[0, 2, 254])
 
 
 @privsep.vif_plug.entrypoint
 def set_interface_state(interface_name, port_state):
-    processutils.execute('ip', 'link', 'set', interface_name, port_state,
-                         check_exit_code=[0, 2, 254])
+    ip_lib.set(interface_name, state=port_state, check_exit_code=[0, 2, 254])
 
 
 @privsep.vif_plug.entrypoint

@@ -21,12 +21,14 @@
 
 import os
 
+from os_vif.internal.command import ip as ip_lib
 from oslo_concurrency import lockutils
 from oslo_concurrency import processutils
 from oslo_log import log as logging
 from oslo_utils import excutils
 
 from vif_plug_linux_bridge import privsep
+
 
 LOG = logging.getLogger(__name__)
 _IPTABLES_MANAGER = None
@@ -40,8 +42,7 @@ def device_exists(device):
 def _set_device_mtu(dev, mtu):
     """Set the device MTU."""
     if mtu:
-        processutils.execute('ip', 'link', 'set', dev, 'mtu', mtu,
-                             check_exit_code=[0, 2, 254])
+        ip_lib.set(dev, mtu=mtu, check_exit_code=[0, 2, 254])
     else:
         LOG.debug("MTU not set on %(interface_name)s interface",
                   {'interface_name': dev})
@@ -77,18 +78,14 @@ def _ensure_vlan_privileged(vlan_num, bridge_interface, mac_address, mtu):
     interface = 'vlan%s' % vlan_num
     if not device_exists(interface):
         LOG.debug('Starting VLAN interface %s', interface)
-        processutils.execute('ip', 'link', 'add', 'link',
-                             bridge_interface, 'name', interface, 'type',
-                             'vlan', 'id', vlan_num,
-                             check_exit_code=[0, 2, 254])
+        ip_lib.add(interface, 'vlan', link=bridge_interface,
+                   vlan_id=vlan_num, check_exit_code=[0, 2, 254])
         # (danwent) the bridge will inherit this address, so we want to
         # make sure it is the value set from the NetworkManager
         if mac_address:
-            processutils.execute('ip', 'link', 'set', interface,
-                                 'address', mac_address,
-                                 check_exit_code=[0, 2, 254])
-        processutils.execute('ip', 'link', 'set', interface, 'up',
-                             check_exit_code=[0, 2, 254])
+            ip_lib.set(interface, address=mac_address,
+                       check_exit_code=[0, 2, 254])
+        ip_lib.set(interface, state='up', check_exit_code=[0, 2, 254])
         # NOTE(vish): set mtu every time to ensure that changes to mtu get
         #             propogated
         _set_device_mtu(interface, mtu)
@@ -144,7 +141,7 @@ def _ensure_bridge_privileged(bridge, interface, net_attrs, gateway,
         # instead it inherits the MAC address of the first device on the
         # bridge, which will either be the vlan interface, or a
         # physical NIC.
-        processutils.execute('ip', 'link', 'set', bridge, 'up')
+        ip_lib.set(bridge, state='up')
 
     if interface:
         LOG.debug('Adding interface %(interface)s to bridge %(bridge)s',
@@ -156,8 +153,7 @@ def _ensure_bridge_privileged(bridge, interface, net_attrs, gateway,
             msg = _('Failed to add interface: %s') % err
             raise Exception(msg)
 
-        out, err = processutils.execute('ip', 'link', 'set',
-                                        interface, 'up', check_exit_code=False)
+        ip_lib.set(interface, state='up')
 
         _set_device_mtu(interface, mtu)
 

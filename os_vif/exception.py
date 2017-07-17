@@ -80,3 +80,17 @@ class UnplugException(ExceptionBase):
 
 class NetworkMissingPhysicalNetwork(ExceptionBase):
     msg_fmt = _("Physical network is missing for network %(network_uuid)s")
+
+
+class NetworkInterfaceNotFound(ExceptionBase):
+    msg_fmt = _("Network interface %(interface)s not found")
+
+
+class NetworkInterfaceTypeNotDefined(ExceptionBase):
+    msg_fmt = _("Network interface type %(type)s not defined")
+
+
+class ExternalImport(ExceptionBase):
+    msg_fmt = _("Use of this module outside of os_vif is not allowed. It must "
+                "not be imported in os-vif plugins that are out of tree as it "
+                "is not a public interface of os-vif.")

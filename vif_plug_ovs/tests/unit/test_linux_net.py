@@ -15,6 +15,7 @@ import mock
 import os.path
 import testtools
 
+from os_vif.internal.command import ip as ip_lib
 from oslo_concurrency import processutils
 
 from vif_plug_ovs import constants
@@ -30,21 +31,21 @@ class LinuxNetTest(testtools.TestCase):
 
         privsep.vif_plug.set_client_mode(False)
 
-    @mock.patch.object(processutils, "execute")
+    @mock.patch.object(ip_lib, "set")
     @mock.patch.object(linux_net, "device_exists", return_value=True)
-    def test_ensure_bridge_exists(self, mock_dev_exists, mock_execute):
+    def test_ensure_bridge_exists(self, mock_dev_exists, mock_ip_set):
         linux_net.ensure_bridge("br0")
 
-        mock_execute.assert_has_calls([
-            mock.call('ip', 'link', 'set', 'br0', 'up',
-                      check_exit_code=[0, 2, 254])])
+        mock_ip_set.assert_called_once_with('br0', state='up',
+                                            check_exit_code=[0, 2, 254])
         mock_dev_exists.assert_has_calls([mock.call("br0")])
 
+    @mock.patch.object(ip_lib, "set")
     @mock.patch.object(os.path, "exists", return_value=False)
     @mock.patch.object(processutils, "execute")
     @mock.patch.object(linux_net, "device_exists", return_value=False)
     def test_ensure_bridge_new_ipv4(self, mock_dev_exists, mock_execute,
-                                    mock_path_exists):
+                                    mock_path_exists, mock_ip_set):
         linux_net.ensure_bridge("br0")
 
         calls = [
@@ -54,17 +55,18 @@ class LinuxNetTest(testtools.TestCase):
             mock.call('brctl', 'setageing', 'br0', 0),
             mock.call('tee', '/sys/class/net/br0/bridge/multicast_snooping',
                       check_exit_code=[0, 1], process_input='0'),
-            mock.call('ip', 'link', 'set', 'br0', 'up',
-                      check_exit_code=[0, 2, 254])
         ]
         mock_execute.assert_has_calls(calls)
         mock_dev_exists.assert_has_calls([mock.call("br0")])
+        mock_ip_set.assert_called_once_with('br0', state='up',
+                                            check_exit_code=[0, 2, 254])
 
+    @mock.patch.object(ip_lib, "set")
     @mock.patch.object(os.path, "exists", return_value=True)
     @mock.patch.object(processutils, "execute")
     @mock.patch.object(linux_net, "device_exists", return_value=False)
     def test_ensure_bridge_new_ipv6(self, mock_dev_exists, mock_execute,
-                                    mock_path_exists):
+                                    mock_path_exists, mock_ip_set):
         linux_net.ensure_bridge("br0")
 
         calls = [
@@ -76,11 +78,11 @@ class LinuxNetTest(testtools.TestCase):
                       check_exit_code=[0, 1], process_input='0'),
             mock.call('tee', '/proc/sys/net/ipv6/conf/br0/disable_ipv6',
                       check_exit_code=[0, 1], process_input='1'),
-            mock.call('ip', 'link', 'set', 'br0', 'up',
-                      check_exit_code=[0, 2, 254])
         ]
         mock_execute.assert_has_calls(calls)
         mock_dev_exists.assert_has_calls([mock.call("br0")])
+        mock_ip_set.assert_called_once_with('br0', state='up',
+                                            check_exit_code=[0, 2, 254])
 
     @mock.patch.object(processutils, "execute")
     @mock.patch.object(linux_net, "device_exists", return_value=False)
@@ -93,34 +95,34 @@ class LinuxNetTest(testtools.TestCase):
         mock_dev_exists.assert_has_calls([mock.call("br0")])
         mock_interface_br.assert_not_called()
 
+    @mock.patch.object(ip_lib, "set")
     @mock.patch.object(processutils, "execute")
     @mock.patch.object(linux_net, "device_exists", return_value=True)
     @mock.patch.object(linux_net, "interface_in_bridge", return_value=True)
     def test_delete_bridge_exists(self, mock_interface_br, mock_dev_exists,
-                                  mock_execute):
+                                  mock_execute, mock_ip_set):
         linux_net.delete_bridge("br0", "vnet1")
 
         calls = [
             mock.call('brctl', 'delif', 'br0', 'vnet1'),
-            mock.call('ip', 'link', 'set', 'br0', 'down'),
             mock.call('brctl', 'delbr', 'br0')]
         mock_execute.assert_has_calls(calls)
         mock_dev_exists.assert_has_calls([mock.call("br0")])
         mock_interface_br.assert_called_once_with("br0", "vnet1")
+        mock_ip_set.assert_called_once_with('br0', state='down')
 
+    @mock.patch.object(ip_lib, "set")
     @mock.patch.object(processutils, "execute")
     @mock.patch.object(linux_net, "device_exists", return_value=True)
     @mock.patch.object(linux_net, "interface_in_bridge", return_value=False)
-    def test_delete_interface_not_present(self, mock_interface_br,
-                                          mock_dev_exists, mock_execute):
+    def test_delete_interface_not_present(self,
+            mock_interface_br, mock_dev_exists, mock_execute, mock_ip_set):
         linux_net.delete_bridge("br0", "vnet1")
 
-        calls = [
-            mock.call('ip', 'link', 'set', 'br0', 'down'),
-            mock.call('brctl', 'delbr', 'br0')]
-        mock_execute.assert_has_calls(calls)
+        mock_execute.assert_called_once_with('brctl', 'delbr', 'br0')
         mock_dev_exists.assert_has_calls([mock.call("br0")])
         mock_interface_br.assert_called_once_with("br0", "vnet1")
+        mock_ip_set.assert_called_once_with('br0', state='down')
 
     @mock.patch.object(processutils, "execute")
     def test_add_bridge_port(self, mock_execute):

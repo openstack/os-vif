@@ -383,7 +383,8 @@ class PluginTest(testtools.TestCase):
             'get_vf_num_by_pci_address': [mock.call('0002:24:12.3')],
             'get_representor_port': [mock.call('eth0', '2')],
             'set_interface_state': [mock.call('eth0_2', 'down')],
-            'delete_ovs_vif_port': [mock.call('br0', 'eth0_2')]
+            'delete_ovs_vif_port': [mock.call('br0', 'eth0_2',
+                                    delete_netdev=False)]
         }
 
         get_ifname_by_pci_address.return_value = 'eth0'

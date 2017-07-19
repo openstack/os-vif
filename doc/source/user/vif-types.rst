@@ -109,6 +109,14 @@ VIFPortProfileFPOpenVSwitch
 This profile provides the metadata required to associate a fast path :term:`vhost-user`
 VIF with an :term:`Open vSwitch` port.
 
+VIFPortProfileOVSRepresentor
+----------------------------
+
+This profile provides the metadata required to associate a VIF with a
+:term:`VF` representor and :term:`Open vSwitch` port. If `representor_name` is
+specified, it indicates a desire to rename the representor to the given name
+on plugging.
+
 VIFPortProfileFPBridge
 ----------------------
 

@@ -106,6 +106,18 @@ class TestVIFS(base.TestCase):
                        vif_name="tap123",
                        port_profile=prof)
 
+    def test_vif_vhost_user_ovs_representor(self):
+        prof = objects.vif.VIFPortProfileOVSRepresentor(
+            interface_id="07bd6cea-fb37-4594-b769-90fc51854ee8",
+            profile_id="fishfood",
+            representor_name="tap123",
+            representor_address="0002:24:12.3")
+        self._test_vif(objects.vif.VIFVHostUser,
+                       path="/some/socket.path",
+                       mode=objects.fields.VIFVHostUserMode.CLIENT,
+                       vif_name="tap123",
+                       port_profile=prof)
+
     def test_vif_vhost_user_fp_lb(self):
         prof = objects.vif.VIFPortProfileFPBridge(bridge_name="brq456")
         self._test_vif(objects.vif.VIFVHostUser,
@@ -161,6 +173,7 @@ object_data = {
     'VIFPortProfileFPBridge': '1.0-d50872b3cddd245ffebef6053dfbe27a',
     'VIFPortProfileFPTap': '1.0-11670d8dbabd772ff0da26961adadc5a',
     'VIFVHostUser': '1.1-1f95b43be1f884f090ca1f4d79adfd35',
+    'VIFPortProfileOVSRepresentor': '1.0-d1b67d954bcab8378c8064771d62ecd5',
 }
 
 

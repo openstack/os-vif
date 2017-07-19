@@ -36,6 +36,13 @@ LOG = logging.getLogger(__name__)
 
 VIRTFN_RE = re.compile("virtfn(\d+)")
 
+# phys_port_name only contains the VF number
+INT_RE = re.compile("^(\d+)$")
+# phys_port_name contains VF## or vf##
+VF_RE = re.compile("vf(\d+)", re.IGNORECASE)
+# phys_port_name contains PF## or pf##
+PF_RE = re.compile("pf(\d+)", re.IGNORECASE)
+
 
 def _ovs_vsctl(args, timeout=None):
     full_args = ['ovs-vsctl']
@@ -225,6 +232,35 @@ def _ovs_supports_mtu_requests(timeout=None):
     return True
 
 
+def _parse_vf_number(phys_port_name):
+    """Parses phys_port_name and returns VF number or None.
+
+    To determine the VF number of a representor, parse phys_port_name
+    in the following sequence and return the first valid match. If none
+    match, then the representor is not for a VF.
+    """
+    match = INT_RE.search(phys_port_name)
+    if match:
+        return match.group(1)
+    match = VF_RE.search(phys_port_name)
+    if match:
+        return match.group(1)
+    return None
+
+
+def _parse_pf_number(phys_port_name):
+    """Parses phys_port_name and returns PF number or None.
+
+    To determine the PF number of a representor, parse phys_port_name in
+    the following sequence and return the first valid match. If none
+    match, then the representor is not for a PF.
+    """
+    match = PF_RE.search(phys_port_name)
+    if match:
+        return match.group(1)
+    return None
+
+
 def get_representor_port(pf_ifname, vf_num):
     """Get the representor netdevice which is corresponding to the VF.
 
@@ -271,10 +307,16 @@ def get_representor_port(pf_ifname, vf_num):
 
         try:
             with open(device_port_name_file, 'r') as fd:
-                representor_num = fd.readline().rstrip()
+                phys_port_name = fd.readline().rstrip()
         except (OSError, IOError):
             continue
 
+        representor_num = _parse_vf_number(phys_port_name)
+        # Note: representor_num can be 0, referring to VF0
+        if representor_num is None:
+            continue
+
+        # At this point we're confident we have a representor.
         try:
             if int(representor_num) == int(vf_num):
                 return device

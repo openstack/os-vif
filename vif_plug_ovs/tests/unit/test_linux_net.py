@@ -358,6 +358,22 @@ class LinuxNetTest(testtools.TestCase):
         mock_open.assert_has_calls(open_calls)
         self.assertEqual(test_switchdev, True)
 
+    def test_parse_vf_number(self):
+        self.assertEqual(linux_net._parse_vf_number("0"), "0")
+        self.assertEqual(linux_net._parse_vf_number("pf13vf42"), "42")
+        self.assertEqual(linux_net._parse_vf_number("VF19@PF13"), "19")
+        self.assertEqual(linux_net._parse_vf_number("p7"), None)
+        self.assertEqual(linux_net._parse_vf_number("pf31"), None)
+        self.assertEqual(linux_net._parse_vf_number("g4rbl3d"), None)
+
+    def test_parse_pf_number(self):
+        self.assertEqual(linux_net._parse_pf_number("0"), None)
+        self.assertEqual(linux_net._parse_pf_number("pf13vf42"), "13")
+        self.assertEqual(linux_net._parse_pf_number("VF19@PF13"), "13")
+        self.assertEqual(linux_net._parse_pf_number("p7"), None)
+        self.assertEqual(linux_net._parse_pf_number("pf31"), "31")
+        self.assertEqual(linux_net._parse_pf_number("g4rbl3d"), None)
+
     @mock.patch('six.moves.builtins.open')
     @mock.patch.object(os.path, 'isfile')
     @mock.patch.object(os, 'listdir')
@@ -369,7 +385,7 @@ class LinuxNetTest(testtools.TestCase):
         mock_open.return_value.__enter__ = lambda s: s
         readline_mock = mock_open.return_value.readline
         readline_mock.side_effect = (
-            ['pf_sw_id', 'pf_sw_id', '1', 'pf_sw_id', '2'])
+            ['pf_sw_id', 'pf_sw_id', '1', 'pf_sw_id', 'pf0vf2'])
         open_calls = (
             [mock.call('/sys/class/net/pf_ifname/phys_switch_id', 'r'),
              mock.call().readline(),

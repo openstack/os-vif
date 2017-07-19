@@ -294,18 +294,41 @@ def _get_sysfs_netdev_path(pci_addr, pf_interface):
     return "/sys/bus/pci/devices/%s/net" % (pci_addr)
 
 
-def get_ifname_by_pci_address(pci_addr, pf_interface=False):
+def _is_switchdev(netdev):
+    """Returns True if a netdev has a readable phys_switch_id"""
+    try:
+        sw_id_file = "/sys/class/net/%s/phys_switch_id" % netdev
+        with open(sw_id_file, 'r') as fd:
+            phys_switch_id = fd.readline().rstrip()
+        if phys_switch_id != "" and phys_switch_id is not None:
+            return True
+    except (OSError, IOError):
+        return False
+    return False
+
+
+def get_ifname_by_pci_address(pci_addr, pf_interface=False, switchdev=False):
     """Get the interface name based on a VF's pci address
+
+    :param pci_addr: the PCI address of the VF
+    :param pf_interface: if True, look for the netdev of the parent PF
+    :param switchdev: if True, ensure that phys_switch_id is valid
+
+    :returns: netdev interface name
 
     The returned interface name is either the parent PF or that of the VF
     itself based on the argument of pf_interface.
     """
     dev_path = _get_sysfs_netdev_path(pci_addr, pf_interface)
+    # make the if statement later more readable
+    ignore_switchdev = not switchdev
     try:
-        dev_info = os.listdir(dev_path)
-        return dev_info.pop()
+        for netdev in os.listdir(dev_path):
+            if ignore_switchdev or _is_switchdev(netdev):
+                return netdev
     except Exception:
         raise exception.PciDeviceNotFoundById(id=pci_addr)
+    raise exception.PciDeviceNotFoundById(id=pci_addr)
 
 
 def get_vf_num_by_pci_address(pci_addr):

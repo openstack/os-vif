@@ -317,6 +317,49 @@ class LinuxNetTest(testtools.TestCase):
 
     @mock.patch('six.moves.builtins.open')
     @mock.patch.object(os.path, 'isfile')
+    def test_is_switchdev_ioerror(self, mock_isfile, mock_open):
+        mock_isfile.side_effect = [True]
+        mock_open.return_value.__enter__ = lambda s: s
+        readline_mock = mock_open.return_value.readline
+        readline_mock.side_effect = (
+            [IOError()])
+        test_switchdev = linux_net._is_switchdev('pf_ifname')
+        self.assertEqual(test_switchdev, False)
+
+    @mock.patch('six.moves.builtins.open')
+    @mock.patch.object(os.path, 'isfile')
+    def test_is_switchdev_empty(self, mock_isfile, mock_open):
+        mock_isfile.side_effect = [True]
+        mock_open.return_value.__enter__ = lambda s: s
+        readline_mock = mock_open.return_value.readline
+        readline_mock.side_effect = (
+            [''])
+        open_calls = (
+            [mock.call('/sys/class/net/pf_ifname/phys_switch_id', 'r'),
+             mock.call().readline(),
+             mock.call().__exit__(None, None, None)])
+        test_switchdev = linux_net._is_switchdev('pf_ifname')
+        mock_open.assert_has_calls(open_calls)
+        self.assertEqual(test_switchdev, False)
+
+    @mock.patch('six.moves.builtins.open')
+    @mock.patch.object(os.path, 'isfile')
+    def test_is_switchdev_positive(self, mock_isfile, mock_open):
+        mock_isfile.side_effect = [True]
+        mock_open.return_value.__enter__ = lambda s: s
+        readline_mock = mock_open.return_value.readline
+        readline_mock.side_effect = (
+            ['pf_sw_id'])
+        open_calls = (
+            [mock.call('/sys/class/net/pf_ifname/phys_switch_id', 'r'),
+             mock.call().readline(),
+             mock.call().__exit__(None, None, None)])
+        test_switchdev = linux_net._is_switchdev('pf_ifname')
+        mock_open.assert_has_calls(open_calls)
+        self.assertEqual(test_switchdev, True)
+
+    @mock.patch('six.moves.builtins.open')
+    @mock.patch.object(os.path, 'isfile')
     @mock.patch.object(os, 'listdir')
     def test_get_representor_port(self, mock_listdir, mock_isfile, mock_open):
         mock_listdir.return_value = [
@@ -418,18 +461,34 @@ class LinuxNetTest(testtools.TestCase):
             linux_net.get_representor_port,
             'pf_ifname', '3')
 
+    @mock.patch('six.moves.builtins.open')
+    @mock.patch.object(os.path, 'isfile')
     @mock.patch.object(os, 'listdir')
-    def test_physical_function_inferface_name(self, mock_listdir):
+    def test_physical_function_inferface_name(
+            self, mock_listdir, mock_isfile, mock_open):
         mock_listdir.return_value = ['foo', 'bar']
+        mock_isfile.side_effect = [True, True]
+        mock_open.return_value.__enter__ = lambda s: s
+        readline_mock = mock_open.return_value.readline
+        readline_mock.side_effect = (
+            ['', 'valid_switch'])
         ifname = linux_net.get_ifname_by_pci_address(
-            '0000:00:00.1', pf_interface=True)
-        self.assertEqual(ifname, 'bar')
+            '0000:00:00.1', pf_interface=True, switchdev=False)
+        self.assertEqual(ifname, 'foo')
 
+    @mock.patch('six.moves.builtins.open')
+    @mock.patch.object(os.path, 'isfile')
     @mock.patch.object(os, 'listdir')
-    def test_virtual_function_inferface_name(self, mock_listdir):
+    def test_physical_function_inferface_name_with_switchdev(
+            self, mock_listdir, mock_isfile, mock_open):
         mock_listdir.return_value = ['foo', 'bar']
+        mock_isfile.side_effect = [True, True]
+        mock_open.return_value.__enter__ = lambda s: s
+        readline_mock = mock_open.return_value.readline
+        readline_mock.side_effect = (
+            ['', 'valid_switch'])
         ifname = linux_net.get_ifname_by_pci_address(
-            '0000:00:00.1', pf_interface=False)
+            '0000:00:00.1', pf_interface=True, switchdev=True)
         self.assertEqual(ifname, 'bar')
 
     @mock.patch.object(os, 'listdir')

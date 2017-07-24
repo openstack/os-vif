@@ -22,6 +22,6 @@ os-vif
 A library for plugging and unplugging virtual interfaces in OpenStack.
 
 * License: Apache License, Version 2.0
-* Documentation: https://docs.openstack.org/developer/os-vif
+* Documentation: https://docs.openstack.org/os-vif/latest/
 * Source: https://git.openstack.org/cgit/openstack/os-vif
 * Bugs: https://bugs.launchpad.net/os-vif

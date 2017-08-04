@@ -65,25 +65,41 @@ class OvsPlugin(plugin.PluginBase):
                 OvsPlugin.gen_port_name("qvo", vif.id))
 
     def describe(self):
+        pp_ovs = objects.host_info.HostPortProfileInfo(
+            profile_object_name=
+            objects.vif.VIFPortProfileOpenVSwitch.__name__,
+            min_version="1.0",
+            max_version="1.0",
+        )
+        pp_ovs_representor = objects.host_info.HostPortProfileInfo(
+            profile_object_name=
+            objects.vif.VIFPortProfileOVSRepresentor.__name__,
+            min_version="1.0",
+            max_version="1.0",
+        )
         return objects.host_info.HostPluginInfo(
             plugin_name=constants.PLUGIN_NAME,
             vif_info=[
                 objects.host_info.HostVIFInfo(
                     vif_object_name=objects.vif.VIFBridge.__name__,
                     min_version="1.0",
-                    max_version="1.0"),
+                    max_version="1.0",
+                    supported_port_profiles=[pp_ovs]),
                 objects.host_info.HostVIFInfo(
                     vif_object_name=objects.vif.VIFOpenVSwitch.__name__,
                     min_version="1.0",
-                    max_version="1.0"),
+                    max_version="1.0",
+                    supported_port_profiles=[pp_ovs]),
                 objects.host_info.HostVIFInfo(
                     vif_object_name=objects.vif.VIFVHostUser.__name__,
                     min_version="1.0",
-                    max_version="1.0"),
+                    max_version="1.0",
+                    supported_port_profiles=[pp_ovs, pp_ovs_representor]),
                 objects.host_info.HostVIFInfo(
                     vif_object_name=objects.vif.VIFHostDevice.__name__,
                     min_version="1.0",
-                    max_version="1.0"),
+                    max_version="1.0",
+                    supported_port_profiles=[pp_ovs, pp_ovs_representor]),
             ])
 
     def _get_mtu(self, vif):

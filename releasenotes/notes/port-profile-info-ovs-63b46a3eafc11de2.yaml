@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    In ``vif_plug_ovs``, a new field called ``supported_port_profiles`` is
+    added to ``HostVIFInfo`` objects. This field is a list of
+    ``HostPortProfileInfo`` objects describing the supported port profiles for
+    each specific VIF type.
+    Currently two port profiles are supported: ``VIFPortProfileOpenVSwitch``
+    and ``VIFPortProfileOVSRepresentor``.

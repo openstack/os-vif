@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    In ``vif_plug_linux_bridge``, a new field called
+    ``supported_port_profiles`` is added to ``HostVIFInfo`` objects. This
+    field is a list of ``HostPortProfileInfo`` objects describing the
+    supported port profiles for each specific VIF type.
+    Currently this field is only being used in ``vif_plug_ovs``.

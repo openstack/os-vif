@@ -88,7 +88,10 @@ class LinuxBridgePlugin(plugin.PluginBase):
                 objects.host_info.HostVIFInfo(
                     vif_object_name=objects.vif.VIFBridge.__name__,
                     min_version="1.0",
-                    max_version="1.0")
+                    max_version="1.0",
+                    # NOTE(ralonsoh): currently 'supported_port_profiles' is
+                    # only being used with OVS HostVIFInfo objects.
+                    supported_port_profiles=[]),
             ])
 
     def plug(self, vif, instance_info):

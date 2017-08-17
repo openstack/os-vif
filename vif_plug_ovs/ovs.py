@@ -106,9 +106,17 @@ class OvsPlugin(plugin.PluginBase):
         mtu = self._get_mtu(vif)
         linux_net.update_ovs_vif_port(vif_name, mtu)
 
+    @staticmethod
+    def _get_vif_datapath_type(vif, datapath=constants.OVS_DATAPATH_SYSTEM):
+        profile = vif.port_profile
+        if 'datapath_type' not in profile or not profile.datapath_type:
+            return datapath
+        return profile.datapath_type
+
     def _plug_vhostuser(self, vif, instance_info):
-        linux_net.ensure_ovs_bridge(vif.network.bridge,
-                                    constants.OVS_DATAPATH_NETDEV)
+        linux_net.ensure_ovs_bridge(
+            vif.network.bridge, self._get_vif_datapath_type(
+                vif, datapath=constants.OVS_DATAPATH_NETDEV))
         vif_name = OvsPlugin.gen_port_name(
             constants.OVS_VHOSTUSER_PREFIX, vif.id)
         args = {}
@@ -141,7 +149,7 @@ class OvsPlugin(plugin.PluginBase):
             linux_net.create_veth_pair(v1_name, v2_name, mtu)
             linux_net.add_bridge_port(vif.bridge_name, v1_name)
             linux_net.ensure_ovs_bridge(vif.network.bridge,
-                                        constants.OVS_DATAPATH_SYSTEM)
+                                        self._get_vif_datapath_type(vif))
             self._create_vif_port(vif, v2_name, instance_info)
         else:
             linux_net.update_veth_pair(v1_name, v2_name, mtu)
@@ -152,7 +160,7 @@ class OvsPlugin(plugin.PluginBase):
 
         if not linux_net.device_exists(vif.id):
             linux_net.ensure_ovs_bridge(vif.network.bridge,
-                                            constants.OVS_DATAPATH_SYSTEM)
+                                        self._get_vif_datapath_type(vif))
             self._create_vif_port(vif, vif.id, instance_info)
 
     def _plug_vf_passthrough(self, vif, instance_info):
@@ -177,7 +185,7 @@ class OvsPlugin(plugin.PluginBase):
         if isinstance(vif, objects.vif.VIFOpenVSwitch):
             if sys.platform != constants.PLATFORM_WIN32:
                 linux_net.ensure_ovs_bridge(vif.network.bridge,
-                                            constants.OVS_DATAPATH_SYSTEM)
+                                            self._get_vif_datapath_type(vif))
             else:
                 self._plug_vif_windows(vif, instance_info)
         elif isinstance(vif, objects.vif.VIFBridge):

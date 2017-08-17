@@ -58,11 +58,25 @@ class TestVIFS(base.TestCase):
     def test_vif_bridge_ovs(self):
         prof = objects.vif.VIFPortProfileOpenVSwitch(
             interface_id="07bd6cea-fb37-4594-b769-90fc51854ee9",
-            profile_id="fishfood")
+            profile_id="fishfood",
+            datapath_type='netdev')
         self._test_vif(objects.vif.VIFOpenVSwitch,
                        vif_name="vif123",
                        bridge_name="br0",
                        port_profile=prof)
+
+    def test_vif_bridge_ovs_backport_1_0(self):
+        obj = objects.vif.VIFPortProfileOpenVSwitch(
+            interface_id="07bd6cea-fb37-4594-b769-90fc51854ee9",
+            profile_id="fishfood",
+            datapath_type='netdev')
+        primitive = obj.obj_to_primitive(target_version='1.0')
+        self.assertEqual('1.0', primitive['versioned_object.version'])
+        data = primitive['versioned_object.data']
+        self.assertEqual('07bd6cea-fb37-4594-b769-90fc51854ee9',
+                         data['interface_id'])
+        self.assertEqual('fishfood', data['profile_id'])
+        self.assertNotIn('datapath_type', data)
 
     def test_vif_direct_plain(self):
         self._test_vif(objects.vif.VIFDirect,
@@ -98,6 +112,7 @@ class TestVIFS(base.TestCase):
         prof = objects.vif.VIFPortProfileFPOpenVSwitch(
             interface_id="07bd6cea-fb37-4594-b769-90fc51854ee8",
             profile_id="fishfood",
+            datapath_type='netdev',
             bridge_name="br-int",
             hybrid_plug=False)
         self._test_vif(objects.vif.VIFVHostUser,
@@ -106,10 +121,28 @@ class TestVIFS(base.TestCase):
                        vif_name="tap123",
                        port_profile=prof)
 
+    def test_vif_vhost_user_fp_ovs_backport_1_0(self):
+        obj = objects.vif.VIFPortProfileFPOpenVSwitch(
+            interface_id="07bd6cea-fb37-4594-b769-90fc51854ee9",
+            profile_id="fishfood",
+            datapath_type='netdev',
+            bridge_name="br-int",
+            hybrid_plug=False)
+        primitive = obj.obj_to_primitive(target_version='1.0')
+        self.assertEqual('1.0', primitive['versioned_object.version'])
+        data = primitive['versioned_object.data']
+        self.assertEqual('07bd6cea-fb37-4594-b769-90fc51854ee9',
+                         data['interface_id'])
+        self.assertEqual('fishfood', data['profile_id'])
+        self.assertEqual('br-int', data['bridge_name'])
+        self.assertEqual(False, data['hybrid_plug'])
+        self.assertNotIn('datapath_type', data)
+
     def test_vif_vhost_user_ovs_representor(self):
         prof = objects.vif.VIFPortProfileOVSRepresentor(
             interface_id="07bd6cea-fb37-4594-b769-90fc51854ee8",
             profile_id="fishfood",
+            datapath_type='netdev',
             representor_name="tap123",
             representor_address="0002:24:12.3")
         self._test_vif(objects.vif.VIFVHostUser,
@@ -117,6 +150,23 @@ class TestVIFS(base.TestCase):
                        mode=objects.fields.VIFVHostUserMode.CLIENT,
                        vif_name="tap123",
                        port_profile=prof)
+
+    def test_vif_vhost_user_ovs_representor_backport_1_0(self):
+        obj = objects.vif.VIFPortProfileOVSRepresentor(
+            interface_id="07bd6cea-fb37-4594-b769-90fc51854ee9",
+            profile_id="fishfood",
+            datapath_type='netdev',
+            representor_name="tap123",
+            representor_address="0002:24:12.3")
+        primitive = obj.obj_to_primitive(target_version='1.0')
+        self.assertEqual('1.0', primitive['versioned_object.version'])
+        data = primitive['versioned_object.data']
+        self.assertEqual('07bd6cea-fb37-4594-b769-90fc51854ee9',
+                         data['interface_id'])
+        self.assertEqual('fishfood', data['profile_id'])
+        self.assertEqual('tap123', data['representor_name'])
+        self.assertEqual("0002:24:12.3", data['representor_address'])
+        self.assertNotIn('datapath_type', data)
 
     def test_vif_vhost_user_fp_lb(self):
         prof = objects.vif.VIFPortProfileFPBridge(bridge_name="brq456")
@@ -168,12 +218,12 @@ object_data = {
     'VIFPortProfile8021Qbg': '1.0-167f305f6e982b9368cc38763815d429',
     'VIFPortProfile8021Qbh': '1.0-4b945f07d2666ab00a48d1dc225669b1',
     'VIFPortProfileBase': '1.0-77509ea1ea0dd750d5864b9bd87d3f9d',
-    'VIFPortProfileOpenVSwitch': '1.0-533126c2a16b1a40ddf38c33e7b1f1c5',
-    'VIFPortProfileFPOpenVSwitch': '1.0-9fc1799cb0adcd469481653b0420dc5e',
+    'VIFPortProfileOpenVSwitch': '1.1-70d36e09c8d800345ce71177265212df',
+    'VIFPortProfileFPOpenVSwitch': '1.1-74e77f46aa5806930df6f37a0b76ff8b',
     'VIFPortProfileFPBridge': '1.0-d50872b3cddd245ffebef6053dfbe27a',
     'VIFPortProfileFPTap': '1.0-11670d8dbabd772ff0da26961adadc5a',
     'VIFVHostUser': '1.1-1f95b43be1f884f090ca1f4d79adfd35',
-    'VIFPortProfileOVSRepresentor': '1.0-d1b67d954bcab8378c8064771d62ecd5',
+    'VIFPortProfileOVSRepresentor': '1.1-30e555981003a109b133da5b43ded5df',
 }
 
 

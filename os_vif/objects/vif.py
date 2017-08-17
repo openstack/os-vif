@@ -171,20 +171,32 @@ class VIFPortProfileBase(osv_base.VersionedObject,
 @base.VersionedObjectRegistry.register
 class VIFPortProfileOpenVSwitch(VIFPortProfileBase):
     # Port profile info for OpenVSwitch networks
-
-    VERSION = '1.0'
+    # Version 1.0: Initial release
+    # Version 1.1: Added 'datapath_type'
+    VERSION = '1.1'
 
     fields = {
         'interface_id': fields.UUIDField(),
         'profile_id': fields.StringField(),
+
+        # Datapath type of the bridge
+        'datapath_type': fields.StringField(nullable=True),
     }
+
+    def obj_make_compatible(self, primitive, target_version):
+        super(VIFPortProfileOpenVSwitch, self).obj_make_compatible(
+            primitive, target_version)
+        target_version = versionutils.convert_version_to_tuple(target_version)
+        if target_version < (1, 1) and 'datapath_type' in primitive:
+            del primitive['datapath_type']
 
 
 @base.VersionedObjectRegistry.register
 class VIFPortProfileFPOpenVSwitch(VIFPortProfileOpenVSwitch):
     # Port profile info for OpenVSwitch networks using fastpath
-
-    VERSION = '1.0'
+    # Version 1.0: Initial release
+    # Version 1.1: VIFPortProfileOpenVSwitch updated to 1.1
+    VERSION = '1.1'
 
     fields = {
         # Name of the bridge (managed by fast path) to connect to
@@ -194,12 +206,19 @@ class VIFPortProfileFPOpenVSwitch(VIFPortProfileOpenVSwitch):
         'hybrid_plug': fields.BooleanField(default=False),
     }
 
+    def obj_make_compatible(self, primitive, target_version):
+        target_version = versionutils.convert_version_to_tuple(target_version)
+        if target_version < (1, 1):
+            super(VIFPortProfileFPOpenVSwitch, self).obj_make_compatible(
+                primitive, "1.0")
+
 
 @base.VersionedObjectRegistry.register
 class VIFPortProfileOVSRepresentor(VIFPortProfileOpenVSwitch):
     # Port profile info for OpenVSwitch networks using a representor
-
-    VERSION = '1.0'
+    # Version 1.0: Initial release
+    # Version 1.1: VIFPortProfileOpenVSwitch updated to 1.1
+    VERSION = '1.1'
 
     fields = {
         # Name to set on the representor (if set)
@@ -208,6 +227,12 @@ class VIFPortProfileOVSRepresentor(VIFPortProfileOpenVSwitch):
         # The PCI address of the Virtual Function
         'representor_address': fields.PCIAddressField(nullable=True),
     }
+
+    def obj_make_compatible(self, primitive, target_version):
+        target_version = versionutils.convert_version_to_tuple(target_version)
+        if target_version < (1, 1):
+            super(VIFPortProfileOVSRepresentor, self).obj_make_compatible(
+                primitive, "1.0")
 
 
 @base.VersionedObjectRegistry.register

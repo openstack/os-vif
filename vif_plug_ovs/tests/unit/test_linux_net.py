@@ -362,17 +362,17 @@ class LinuxNetTest(testtools.TestCase):
         self.assertEqual(linux_net._parse_vf_number("0"), "0")
         self.assertEqual(linux_net._parse_vf_number("pf13vf42"), "42")
         self.assertEqual(linux_net._parse_vf_number("VF19@PF13"), "19")
-        self.assertEqual(linux_net._parse_vf_number("p7"), None)
-        self.assertEqual(linux_net._parse_vf_number("pf31"), None)
-        self.assertEqual(linux_net._parse_vf_number("g4rbl3d"), None)
+        self.assertIsNone(linux_net._parse_vf_number("p7"))
+        self.assertIsNone(linux_net._parse_vf_number("pf31"))
+        self.assertIsNone(linux_net._parse_vf_number("g4rbl3d"))
 
     def test_parse_pf_number(self):
-        self.assertEqual(linux_net._parse_pf_number("0"), None)
+        self.assertIsNone(linux_net._parse_pf_number("0"))
         self.assertEqual(linux_net._parse_pf_number("pf13vf42"), "13")
         self.assertEqual(linux_net._parse_pf_number("VF19@PF13"), "13")
-        self.assertEqual(linux_net._parse_pf_number("p7"), None)
+        self.assertIsNone(linux_net._parse_pf_number("p7"))
         self.assertEqual(linux_net._parse_pf_number("pf31"), "31")
-        self.assertEqual(linux_net._parse_pf_number("g4rbl3d"), None)
+        self.assertIsNone(linux_net._parse_pf_number("g4rbl3d"))
 
     @mock.patch('six.moves.builtins.open')
     @mock.patch.object(os.path, 'isfile')

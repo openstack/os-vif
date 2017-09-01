@@ -10,6 +10,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from vif_plug_linux_bridge import constants as lb_constants
+from vif_plug_ovs import constants as ovs_constants
+
 from os_vif import exception
 from os_vif import objects
 from os_vif.tests.unit import base
@@ -20,10 +23,12 @@ class TestHostInfo(base.TestCase):
     def setUp(self):
         super(TestHostInfo, self).setUp()
 
+        objects.register_all()
+
         self.host_info = objects.host_info.HostInfo(
             plugin_info=[
                 objects.host_info.HostPluginInfo(
-                    plugin_name="linux_brige",
+                    plugin_name=lb_constants.PLUGIN_NAME,
                     vif_info=[
                         objects.host_info.HostVIFInfo(
                             vif_object_name="VIFBridge",
@@ -32,7 +37,7 @@ class TestHostInfo(base.TestCase):
                         ),
                     ]),
                 objects.host_info.HostPluginInfo(
-                    plugin_name="ovs",
+                    plugin_name=ovs_constants.PLUGIN_NAME,
                     vif_info=[
                         objects.host_info.HostVIFInfo(
                             vif_object_name="VIFBridge",
@@ -60,24 +65,24 @@ class TestHostInfo(base.TestCase):
         self.assertEqual(self.host_info, host_info)
 
     def test_plugin_existance(self):
-        self.assertTrue(self.host_info.has_plugin("ovs"))
+        self.assertTrue(self.host_info.has_plugin(ovs_constants.PLUGIN_NAME))
         self.assertFalse(self.host_info.has_plugin("fishfood"))
 
     def test_plugin_fetch(self):
-        plugin = self.host_info.get_plugin("ovs")
-        self.assertEqual("ovs", plugin.plugin_name)
+        plugin = self.host_info.get_plugin(ovs_constants.PLUGIN_NAME)
+        self.assertEqual(ovs_constants.PLUGIN_NAME, plugin.plugin_name)
 
         self.assertRaises(exception.NoMatchingPlugin,
                           self.host_info.get_plugin,
                           "fishfood")
 
     def test_vif_existance(self):
-        plugin = self.host_info.get_plugin("ovs")
+        plugin = self.host_info.get_plugin(ovs_constants.PLUGIN_NAME)
         self.assertTrue(plugin.has_vif("VIFOpenVSwitch"))
         self.assertFalse(plugin.has_vif("VIFFishFood"))
 
     def test_vif_fetch(self):
-        plugin = self.host_info.get_plugin("ovs")
+        plugin = self.host_info.get_plugin(ovs_constants.PLUGIN_NAME)
 
         vif = plugin.get_vif("VIFOpenVSwitch")
         self.assertEqual("VIFOpenVSwitch", vif.vif_object_name)
@@ -118,7 +123,7 @@ class TestHostInfo(base.TestCase):
         host_info = objects.host_info.HostInfo(
             plugin_info=[
                 objects.host_info.HostPluginInfo(
-                    plugin_name="linux_brige",
+                    plugin_name=lb_constants.PLUGIN_NAME,
                     vif_info=[
                         objects.host_info.HostVIFInfo(
                             vif_object_name="VIFBridge",
@@ -127,7 +132,7 @@ class TestHostInfo(base.TestCase):
                         ),
                     ]),
                 objects.host_info.HostPluginInfo(
-                    plugin_name="ovs",
+                    plugin_name=ovs_constants.PLUGIN_NAME,
                     vif_info=[
                         objects.host_info.HostVIFInfo(
                             vif_object_name="VIFBridge",

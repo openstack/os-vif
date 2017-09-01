@@ -10,13 +10,4 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-PLUGIN_NAME = 'ovs'
-
-OVS_VHOSTUSER_INTERFACE_TYPE = 'dpdkvhostuser'
-OVS_VHOSTUSER_CLIENT_INTERFACE_TYPE = 'dpdkvhostuserclient'
-OVS_VHOSTUSER_PREFIX = 'vhu'
-
-OVS_DATAPATH_SYSTEM = 'system'
-OVS_DATAPATH_NETDEV = 'netdev'
-
-PLATFORM_WIN32 = 'win32'
+PLUGIN_NAME = 'linux_bridge'

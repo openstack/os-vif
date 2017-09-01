@@ -14,6 +14,8 @@ import mock
 from oslo_config import cfg
 from stevedore import extension
 
+from vif_plug_linux_bridge import constants as lb_constants
+
 import os_vif
 from os_vif import exception
 from os_vif import objects
@@ -139,7 +141,8 @@ class TestOSVIF(base.TestCase):
 
         self.assertEqual(len(info.plugin_info), 2)
 
-        self.assertEqual(info.plugin_info[0].plugin_name, "linux_bridge")
+        self.assertEqual(info.plugin_info[0].plugin_name,
+                         lb_constants.PLUGIN_NAME)
         vif_info = info.plugin_info[0].vif_info
         self.assertEqual(len(vif_info), 1)
         self.assertEqual(vif_info[0].vif_object_name, "VIFBridge")

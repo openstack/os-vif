@@ -21,6 +21,7 @@ from os_vif import objects
 from os_vif import plugin
 from oslo_config import cfg
 
+from vif_plug_linux_bridge import constants
 from vif_plug_linux_bridge import iptables
 from vif_plug_linux_bridge import linux_net
 
@@ -82,7 +83,7 @@ class LinuxBridgePlugin(plugin.PluginBase):
 
     def describe(self):
         return objects.host_info.HostPluginInfo(
-            plugin_name="linux_bridge",
+            plugin_name=constants.PLUGIN_NAME,
             vif_info=[
                 objects.host_info.HostVIFInfo(
                     vif_object_name=objects.vif.VIFBridge.__name__,

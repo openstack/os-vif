@@ -108,7 +108,7 @@ class PluginTest(testtools.TestCase):
             uuid='f0000000-0000-0000-0000-000000000001')
 
     def test__get_vif_datapath_type(self):
-        plugin = ovs.OvsPlugin.load('ovs')
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
         dp_type = plugin._get_vif_datapath_type(
             self.vif_ovs, datapath=constants.OVS_DATAPATH_SYSTEM)
         self.assertEqual(self.profile_ovs.datapath_type, dp_type)
@@ -119,7 +119,7 @@ class PluginTest(testtools.TestCase):
 
     @mock.patch.object(linux_net, 'create_ovs_vif_port')
     def test_create_vif_port(self, mock_create_ovs_vif_port):
-        plugin = ovs.OvsPlugin.load('ovs')
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
         plugin._create_vif_port(
             self.vif_ovs, mock.sentinel.vif_name, self.instance,
             interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE)
@@ -134,7 +134,7 @@ class PluginTest(testtools.TestCase):
     @mock.patch.object(linux_net, 'create_ovs_vif_port')
     def test_create_vif_port_mtu_in_model(self, mock_create_ovs_vif_port):
         self.vif_ovs.network = self.network_ovs_mtu
-        plugin = ovs.OvsPlugin.load('ovs')
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
         plugin._create_vif_port(
             self.vif_ovs, mock.sentinel.vif_name, self.instance,
             interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE)
@@ -151,7 +151,7 @@ class PluginTest(testtools.TestCase):
     def test_plug_ovs(self, ensure_ovs_bridge, mock_sys):
         mock_sys.platform = 'linux'
         plug_bridge_mock = mock.Mock()
-        plugin = ovs.OvsPlugin.load("ovs")
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
         plugin._plug_bridge = plug_bridge_mock
         plugin.plug(self.vif_ovs, self.instance)
         dp_type = ovs.OvsPlugin._get_vif_datapath_type(self.vif_ovs)
@@ -199,7 +199,7 @@ class PluginTest(testtools.TestCase):
 
         device_exists.return_value = False
         mock_sys.platform = 'linux'
-        plugin = ovs.OvsPlugin.load('ovs')
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
         plugin.plug(self.vif_ovs_hybrid, self.instance)
         ensure_bridge.assert_has_calls(calls['ensure_bridge'])
         device_exists.assert_has_calls(calls['device_exists'])
@@ -239,7 +239,7 @@ class PluginTest(testtools.TestCase):
         }
 
         mock_sys.platform = constants.PLATFORM_WIN32
-        plugin = ovs.OvsPlugin.load("ovs")
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
         plugin.plug(vif, self.instance)
         device_exists.assert_has_calls(calls['device_exists'])
         _create_vif_port.assert_has_calls(calls['_create_vif_port'])
@@ -253,7 +253,7 @@ class PluginTest(testtools.TestCase):
 
     def test_unplug_ovs(self):
         unplug_bridge_mock = mock.Mock()
-        plugin = ovs.OvsPlugin.load("ovs")
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
         plugin._unplug_bridge = unplug_bridge_mock
         plugin.unplug(self.vif_ovs, self.instance)
         unplug_bridge_mock.assert_not_called()
@@ -269,7 +269,7 @@ class PluginTest(testtools.TestCase):
                                     timeout=120)]
         }
         mock_sys.platform = 'linux'
-        plugin = ovs.OvsPlugin.load("ovs")
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
         plugin.unplug(self.vif_ovs_hybrid, self.instance)
         delete_bridge.assert_has_calls(calls['delete_bridge'])
         delete_ovs_vif_port.assert_has_calls(calls['delete_ovs_vif_port'])
@@ -278,7 +278,7 @@ class PluginTest(testtools.TestCase):
     @mock.patch.object(ovs, 'sys')
     def _check_unplug_ovs_windows(self, vif, mock_sys, delete_ovs_vif_port):
         mock_sys.platform = constants.PLATFORM_WIN32
-        plugin = ovs.OvsPlugin.load("ovs")
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
         plugin.unplug(vif, self.instance)
         delete_ovs_vif_port.assert_called_once_with('br0', vif.id, timeout=120)
 
@@ -301,7 +301,7 @@ class PluginTest(testtools.TestCase):
             'ensure_ovs_bridge': [mock.call('br0', dp_type)]
         }
 
-        plugin = ovs.OvsPlugin.load("ovs")
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
         plugin.plug(self.vif_vhostuser, self.instance)
         _create_vif_port.assert_has_calls(calls['_create_vif_port'])
         ensure_ovs_bridge.assert_has_calls(calls['ensure_ovs_bridge'])
@@ -325,7 +325,7 @@ class PluginTest(testtools.TestCase):
             'ensure_ovs_bridge': [mock.call('br0', dp_type)]
         }
 
-        plugin = ovs.OvsPlugin.load("ovs")
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
         plugin.plug(self.vif_vhostuser_client, self.instance)
         create_ovs_vif_port.assert_has_calls(calls['create_ovs_vif_port'])
         ensure_ovs_bridge.assert_has_calls(calls['ensure_ovs_bridge'])
@@ -336,7 +336,7 @@ class PluginTest(testtools.TestCase):
             'delete_ovs_vif_port': [mock.call('br0', 'vhub679325f-ca',
                                     timeout=120)]
         }
-        plugin = ovs.OvsPlugin.load("ovs")
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
         plugin.unplug(self.vif_vhostuser, self.instance)
         delete_ovs_vif_port.assert_has_calls(calls['delete_ovs_vif_port'])
 
@@ -371,7 +371,7 @@ class PluginTest(testtools.TestCase):
                                  self.instance)]
         }
 
-        plugin = ovs.OvsPlugin.load("ovs")
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
         plugin.plug(self.vif_ovs_vf_passthrough, self.instance)
         ensure_ovs_bridge.assert_has_calls(calls['ensure_ovs_bridge'])
         get_ifname_by_pci_address.assert_has_calls(
@@ -408,7 +408,7 @@ class PluginTest(testtools.TestCase):
         get_ifname_by_pci_address.return_value = 'eth0'
         get_vf_num_by_pci_address.return_value = '2'
         get_representor_port.return_value = 'eth0_2'
-        plugin = ovs.OvsPlugin.load("ovs")
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
         plugin.unplug(self.vif_ovs_vf_passthrough, self.instance)
         get_ifname_by_pci_address.assert_has_calls(
             calls['get_ifname_by_pci_address'])

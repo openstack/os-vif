@@ -15,6 +15,7 @@ import testtools
 
 from os_vif import objects
 
+from vif_plug_linux_bridge import constants
 from vif_plug_linux_bridge import linux_bridge
 from vif_plug_linux_bridge import linux_net
 
@@ -45,7 +46,7 @@ class PluginTest(testtools.TestCase):
             dev_name='tap-xxx-yyy-zzz',
             bridge_name="br0")
 
-        plugin = linux_bridge.LinuxBridgePlugin.load("linux_bridge")
+        plugin = linux_bridge.LinuxBridgePlugin.load(constants.PLUGIN_NAME)
         plugin.plug(vif, self.instance)
 
         mock_ensure_bridge.assert_not_called()
@@ -77,7 +78,7 @@ class PluginTest(testtools.TestCase):
             has_traffic_filtering=True,
             bridge_name="br0")
 
-        plugin = linux_bridge.LinuxBridgePlugin.load("linux_bridge")
+        plugin = linux_bridge.LinuxBridgePlugin.load(constants.PLUGIN_NAME)
         plugin.plug(vif, self.instance)
 
         mock_ensure_bridge.assert_called_with("br0", "eth0",
@@ -119,7 +120,7 @@ class PluginTest(testtools.TestCase):
             dev_name='tap-xxx-yyy-zzz',
             bridge_name="br0")
 
-        plugin = linux_bridge.LinuxBridgePlugin.load("linux_bridge")
+        plugin = linux_bridge.LinuxBridgePlugin.load(constants.PLUGIN_NAME)
         plugin.plug(vif, self.instance)
 
         mock_ensure_bridge.assert_not_called()

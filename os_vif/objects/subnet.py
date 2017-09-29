@@ -21,13 +21,13 @@ from os_vif.objects import fields as osv_fields
 class Subnet(osv_base.VersionedObject):
     """Represents a subnet."""
     # Version 1.0: Initial version
-    VERSION = '1.0'
+    # Version 1.1: Removed "ips" field
+    VERSION = '1.1'
 
     fields = {
         'cidr': fields.IPNetworkField(),
         'dns': osv_fields.ListOfIPAddressField(),
         'gateway': fields.IPAddressField(),
-        'ips': fields.ObjectField("FixedIPList"),
         'routes': fields.ObjectField("RouteList"),
         'dhcp_server': fields.IPAddressField(),
     }

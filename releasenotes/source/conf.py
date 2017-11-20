@@ -13,8 +13,6 @@
 #
 # os-vif Release Notes documentation build configuration file
 
-from os_vif.version import version_info
-
 # -- General configuration ------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
@@ -35,15 +33,12 @@ master_doc = 'index'
 project = u'os-vif release Notes'
 copyright = u'2017, OpenStack Foundation'
 
-# The version info for the project you're documenting, acts as replacement for
-# |version| and |release|, also used in various other places throughout the
-# built documents.
-#
-# The short X.Y version.
+# Release notes do not need a version in the title, they span
+# multiple versions.
 # The full version, including alpha/beta/rc tags.
-release = version_info.version_string_with_vcs()
+release = ''
 # The short X.Y version.
-version = version_info.canonical_version_string()
+version = ''
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'

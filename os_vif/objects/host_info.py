@@ -44,7 +44,8 @@ def _get_common_version(object_name, max_version, min_version, exc_notmatch,
 
 @base.VersionedObjectRegistry.register
 class HostPortProfileInfo(osv_base.VersionedObject,
-                          base.ComparableVersionedObject):
+                          base.ComparableVersionedObject,
+                          osv_base.VersionedObjectPrintableMixin):
     """
     Class describing a PortProfile class and its supported versions
     """
@@ -73,7 +74,8 @@ class HostPortProfileInfo(osv_base.VersionedObject,
 
 
 @base.VersionedObjectRegistry.register
-class HostVIFInfo(osv_base.VersionedObject, base.ComparableVersionedObject):
+class HostVIFInfo(osv_base.VersionedObject, base.ComparableVersionedObject,
+                  osv_base.VersionedObjectPrintableMixin):
     """
     Class describing a VIF class and its supported versions
     """
@@ -114,8 +116,8 @@ class HostVIFInfo(osv_base.VersionedObject, base.ComparableVersionedObject):
 
 
 @base.VersionedObjectRegistry.register
-class HostPluginInfo(osv_base.VersionedObject,
-                        base.ComparableVersionedObject):
+class HostPluginInfo(osv_base.VersionedObject, base.ComparableVersionedObject,
+                     osv_base.VersionedObjectPrintableMixin):
     """
     Class describing a plugin and its supported VIF classes
     """
@@ -152,7 +154,8 @@ class HostPluginInfo(osv_base.VersionedObject,
 
 
 @base.VersionedObjectRegistry.register
-class HostInfo(osv_base.VersionedObject, base.ComparableVersionedObject):
+class HostInfo(osv_base.VersionedObject, base.ComparableVersionedObject,
+               osv_base.VersionedObjectPrintableMixin):
     """
     Class describing a host host and its supported plugin classes
     """

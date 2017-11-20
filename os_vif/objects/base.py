@@ -16,3 +16,16 @@ from oslo_versionedobjects import base as ovo_base
 class VersionedObject(ovo_base.VersionedObject):
 
     OBJ_PROJECT_NAMESPACE = 'os_vif'
+
+
+class VersionedObjectPrintableMixin(object):
+    """Mix-in to implement __str__ method for a versioned object
+
+    If a versioned object needs to be printable in a easy-reading format,
+    inherit from this class.
+    """
+
+    def __str__(self):
+        if callable(getattr(self, 'obj_to_primitive', None)):
+            return str(self.obj_to_primitive())
+        return super(VersionedObjectPrintableMixin, self).__str__()

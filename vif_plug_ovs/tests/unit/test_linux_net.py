@@ -84,15 +84,20 @@ class LinuxNetTest(testtools.TestCase):
 
     @mock.patch.object(processutils, "execute")
     @mock.patch.object(linux_net, "device_exists", return_value=False)
-    def test_delete_bridge_none(self, mock_dev_exists, mock_execute):
+    @mock.patch.object(linux_net, "interface_in_bridge", return_value=False)
+    def test_delete_bridge_none(self, mock_interface_br, mock_dev_exists,
+                                mock_execute,):
         linux_net.delete_bridge("br0", "vnet1")
 
         mock_execute.assert_not_called()
         mock_dev_exists.assert_has_calls([mock.call("br0")])
+        mock_interface_br.assert_not_called()
 
     @mock.patch.object(processutils, "execute")
     @mock.patch.object(linux_net, "device_exists", return_value=True)
-    def test_delete_bridge_exists(self, mock_dev_exists, mock_execute):
+    @mock.patch.object(linux_net, "interface_in_bridge", return_value=True)
+    def test_delete_bridge_exists(self, mock_interface_br, mock_dev_exists,
+                                  mock_execute):
         linux_net.delete_bridge("br0", "vnet1")
 
         calls = [
@@ -101,6 +106,21 @@ class LinuxNetTest(testtools.TestCase):
             mock.call('brctl', 'delbr', 'br0')]
         mock_execute.assert_has_calls(calls)
         mock_dev_exists.assert_has_calls([mock.call("br0")])
+        mock_interface_br.assert_called_once_with("br0", "vnet1")
+
+    @mock.patch.object(processutils, "execute")
+    @mock.patch.object(linux_net, "device_exists", return_value=True)
+    @mock.patch.object(linux_net, "interface_in_bridge", return_value=False)
+    def test_delete_interface_not_present(self, mock_interface_br,
+                                          mock_dev_exists, mock_execute):
+        linux_net.delete_bridge("br0", "vnet1")
+
+        calls = [
+            mock.call('ip', 'link', 'set', 'br0', 'down'),
+            mock.call('brctl', 'delbr', 'br0')]
+        mock_execute.assert_has_calls(calls)
+        mock_dev_exists.assert_has_calls([mock.call("br0")])
+        mock_interface_br.assert_called_once_with("br0", "vnet1")
 
     @mock.patch.object(processutils, "execute")
     def test_add_bridge_port(self, mock_execute):

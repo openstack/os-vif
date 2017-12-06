@@ -107,6 +107,12 @@ def device_exists(device):
     return os.path.exists('/sys/class/net/%s' % device)
 
 
+def interface_in_bridge(bridge, device):
+    """Check if an ethernet device belongs to a Linux Bridge."""
+    return os.path.exists('/sys/class/net/%(bridge)s/brif/%(device)s' %
+                          {'bridge': bridge, 'device': device})
+
+
 def _delete_net_dev(dev):
     """Delete a network device only if it exists."""
     if device_exists(dev):
@@ -172,7 +178,8 @@ def ensure_bridge(bridge):
 @privsep.vif_plug.entrypoint
 def delete_bridge(bridge, dev):
     if device_exists(bridge):
-        processutils.execute('brctl', 'delif', bridge, dev)
+        if interface_in_bridge(bridge, dev):
+            processutils.execute('brctl', 'delif', bridge, dev)
         processutils.execute('ip', 'link', 'set', bridge, 'down')
         processutils.execute('brctl', 'delbr', bridge)
 

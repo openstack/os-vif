@@ -94,3 +94,7 @@ class ExternalImport(ExceptionBase):
     msg_fmt = _("Use of this module outside of os_vif is not allowed. It must "
                 "not be imported in os-vif plugins that are out of tree as it "
                 "is not a public interface of os-vif.")
+
+
+class NotImplementedForOS(ExceptionBase):
+    msg_fmt = _("Function %(function)s for %(os)s operating system")

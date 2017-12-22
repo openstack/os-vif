@@ -13,6 +13,7 @@
 import mock
 import testtools
 
+from os_vif.internal.command import ip as ip_lib
 from os_vif import objects
 from os_vif.objects import fields
 
@@ -167,7 +168,7 @@ class PluginTest(testtools.TestCase):
     @mock.patch.object(linux_net, 'add_bridge_port')
     @mock.patch.object(linux_net, 'update_veth_pair')
     @mock.patch.object(linux_net, 'create_veth_pair')
-    @mock.patch.object(linux_net, 'device_exists')
+    @mock.patch.object(ip_lib, 'exists')
     @mock.patch.object(linux_net, 'ensure_bridge')
     @mock.patch.object(ovs, 'sys')
     def test_plug_ovs_bridge(self, mock_sys, ensure_bridge, device_exists,
@@ -222,7 +223,6 @@ class PluginTest(testtools.TestCase):
         # plugging existing devices should result in devices being updated
 
         device_exists.return_value = True
-        self.assertTrue(linux_net.device_exists('test'))
         plugin.plug(self.vif_ovs_hybrid, self.instance)
         create_veth_pair.assert_not_called()
         _create_vif_port.assert_not_called()
@@ -231,13 +231,13 @@ class PluginTest(testtools.TestCase):
 
     @mock.patch.object(linux_net, 'ensure_ovs_bridge')
     @mock.patch.object(ovs.OvsPlugin, '_create_vif_port')
-    @mock.patch.object(linux_net, 'device_exists', return_value=False)
+    @mock.patch.object(ip_lib, 'exists', return_value=False)
     @mock.patch.object(ovs, 'sys')
-    def _check_plug_ovs_windows(self, vif, mock_sys, device_exists,
+    def _check_plug_ovs_windows(self, vif, mock_sys, mock_exists,
                                 _create_vif_port, ensure_ovs_bridge):
         dp_type = ovs.OvsPlugin._get_vif_datapath_type(vif)
         calls = {
-            'device_exists': [mock.call(vif.id)],
+            'exists': [mock.call(vif.id)],
             '_create_vif_port': [mock.call(vif, vif.id, self.instance)],
             'ensure_ovs_bridge': [mock.call('br0', dp_type)]
         }
@@ -245,7 +245,7 @@ class PluginTest(testtools.TestCase):
         mock_sys.platform = constants.PLATFORM_WIN32
         plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
         plugin.plug(vif, self.instance)
-        device_exists.assert_has_calls(calls['device_exists'])
+        mock_exists.assert_has_calls(calls['exists'])
         _create_vif_port.assert_has_calls(calls['_create_vif_port'])
         ensure_ovs_bridge.assert_has_calls(calls['ensure_ovs_bridge'])
 

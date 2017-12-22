@@ -92,3 +92,9 @@ class PyRoute2(api.IpCommand):
         idx = idx[0]
 
         return self._ip_link(ip, 'del', check_exit_code, **{'index': idx})
+
+    def exists(self, device):
+        """Return True if the device exists."""
+        ip = iproute.IPRoute()
+        idx = ip.link_lookup(ifname=device)
+        return True if idx else False

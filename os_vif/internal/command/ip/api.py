@@ -11,10 +11,13 @@
 #    under the License.
 
 import abc
+import os
 import six
 
 from oslo_log import log as logging
 from oslo_utils import importutils
+
+from os_vif.internal.command.ip.windows import impl_netifaces as win_ip_lib
 
 
 LOG = logging.getLogger(__name__)
@@ -27,12 +30,16 @@ impl_map = {
 
 
 def _get_impl():
-    # NOTE(sean-k-mooney): currently pyroute2 has a file handle leak. An
-    # iptools driver has been added as a workaround but No config options are
-    # exposed to the user. The iptools driver is considered deprecated and
-    # will be removed when a new release of pyroute2 is available.
-    driver = 'IPTools'
-    return importutils.import_object(impl_map[driver])
+    if os.name == 'nt':
+        return win_ip_lib
+    else:
+        # NOTE(sean-k-mooney): currently pyroute2 has a file handle leak. An
+        # iptools driver has been added as a workaround but No config options
+        # are # exposed to the user. The iptools driver is considered
+        # deprecated and # will be removed when a new release of pyroute2 is
+        # available.
+        driver = 'IPTools'
+        return importutils.import_object(impl_map[driver])
 
 
 @six.add_metaclass(abc.ABCMeta)

@@ -32,3 +32,8 @@ def add(device, dev_type, check_exit_code=None, peer=None, link=None,
 def delete(device, check_exit_code=None):
     """Method to delete an interface."""
     return api._get_impl().delete(device, check_exit_code=check_exit_code)
+
+
+def exists(device):
+    """Method to check if an interface exists."""
+    return api._get_impl().exists(device)

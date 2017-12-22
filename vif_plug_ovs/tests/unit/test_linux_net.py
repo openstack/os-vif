@@ -32,7 +32,7 @@ class LinuxNetTest(testtools.TestCase):
         privsep.vif_plug.set_client_mode(False)
 
     @mock.patch.object(ip_lib, "set")
-    @mock.patch.object(linux_net, "device_exists", return_value=True)
+    @mock.patch.object(ip_lib, "exists", return_value=True)
     def test_ensure_bridge_exists(self, mock_dev_exists, mock_ip_set):
         linux_net.ensure_bridge("br0")
 
@@ -43,7 +43,7 @@ class LinuxNetTest(testtools.TestCase):
     @mock.patch.object(ip_lib, "set")
     @mock.patch.object(os.path, "exists", return_value=False)
     @mock.patch.object(processutils, "execute")
-    @mock.patch.object(linux_net, "device_exists", return_value=False)
+    @mock.patch.object(ip_lib, "exists", return_value=False)
     def test_ensure_bridge_new_ipv4(self, mock_dev_exists, mock_execute,
                                     mock_path_exists, mock_ip_set):
         linux_net.ensure_bridge("br0")
@@ -62,11 +62,11 @@ class LinuxNetTest(testtools.TestCase):
                                             check_exit_code=[0, 2, 254])
 
     @mock.patch.object(ip_lib, "set")
+    @mock.patch.object(ip_lib, "exists", return_value=False)
     @mock.patch.object(os.path, "exists", return_value=True)
     @mock.patch.object(processutils, "execute")
-    @mock.patch.object(linux_net, "device_exists", return_value=False)
-    def test_ensure_bridge_new_ipv6(self, mock_dev_exists, mock_execute,
-                                    mock_path_exists, mock_ip_set):
+    def test_ensure_bridge_new_ipv6(self, mock_execute, mock_path_exists,
+                                    mock_dev_exists, mock_ip_set):
         linux_net.ensure_bridge("br0")
 
         calls = [
@@ -85,7 +85,7 @@ class LinuxNetTest(testtools.TestCase):
                                             check_exit_code=[0, 2, 254])
 
     @mock.patch.object(processutils, "execute")
-    @mock.patch.object(linux_net, "device_exists", return_value=False)
+    @mock.patch.object(ip_lib, "exists", return_value=False)
     @mock.patch.object(linux_net, "interface_in_bridge", return_value=False)
     def test_delete_bridge_none(self, mock_interface_br, mock_dev_exists,
                                 mock_execute,):
@@ -97,7 +97,7 @@ class LinuxNetTest(testtools.TestCase):
 
     @mock.patch.object(ip_lib, "set")
     @mock.patch.object(processutils, "execute")
-    @mock.patch.object(linux_net, "device_exists", return_value=True)
+    @mock.patch.object(ip_lib, "exists", return_value=True)
     @mock.patch.object(linux_net, "interface_in_bridge", return_value=True)
     def test_delete_bridge_exists(self, mock_interface_br, mock_dev_exists,
                                   mock_execute, mock_ip_set):
@@ -113,7 +113,7 @@ class LinuxNetTest(testtools.TestCase):
 
     @mock.patch.object(ip_lib, "set")
     @mock.patch.object(processutils, "execute")
-    @mock.patch.object(linux_net, "device_exists", return_value=True)
+    @mock.patch.object(ip_lib, "exists", return_value=True)
     @mock.patch.object(linux_net, "interface_in_bridge", return_value=False)
     def test_delete_interface_not_present(self,
             mock_interface_br, mock_dev_exists, mock_execute, mock_ip_set):

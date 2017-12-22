@@ -54,7 +54,7 @@ class LinuxNetTest(testtools.TestCase):
 
     @mock.patch.object(ip_lib, "add")
     @mock.patch.object(ip_lib, "set")
-    @mock.patch.object(linux_net, "device_exists", return_value=False)
+    @mock.patch.object(ip_lib, "exists", return_value=False)
     @mock.patch.object(linux_net, "_set_device_mtu")
     def test_ensure_vlan(self, mock_set_mtu, mock_dev_exists, mock_ip_set,
                          mock_ip_add):
@@ -73,23 +73,23 @@ class LinuxNetTest(testtools.TestCase):
         mock_set_mtu.assert_called_once_with('vlan123', 1500)
 
     @mock.patch.object(processutils, "execute")
-    @mock.patch.object(linux_net, "device_exists", return_value=True)
+    @mock.patch.object(ip_lib, "exists", return_value=True)
     def test_ensure_bridge_exists(self, mock_dev_exists, mock_exec):
         linux_net.ensure_bridge("br0", None, filtering=False)
 
         mock_exec.assert_not_called()
         mock_dev_exists.assert_called_once_with("br0")
 
+    @mock.patch.object(ip_lib, "exists", return_value=False)
     @mock.patch.object(processutils, "execute")
-    @mock.patch.object(linux_net, "device_exists", return_value=False)
-    def test_ensure_bridge_addbr_exception(self, mock_dev_exists, mock_exec):
+    def test_ensure_bridge_addbr_exception(self, mock_exec, mock_dev_exists):
         mock_exec.side_effect = ValueError()
         with testtools.ExpectedException(ValueError):
             linux_net.ensure_bridge("br0", None, filtering=False)
 
     @mock.patch.object(ip_lib, "set")
     @mock.patch.object(processutils, "execute")
-    @mock.patch.object(linux_net, "device_exists", side_effect=[False, True])
+    @mock.patch.object(ip_lib, "exists", side_effect=[False, True])
     def test_ensure_bridge_concurrent_add(self, mock_dev_exists, mock_exec,
                                           mock_ip_set):
         mock_exec.side_effect = [ValueError(), 0, 0, 0]
@@ -106,7 +106,7 @@ class LinuxNetTest(testtools.TestCase):
     @mock.patch.object(linux_net, "_set_device_mtu")
     @mock.patch.object(os.path, "exists", return_value=False)
     @mock.patch.object(processutils, "execute")
-    @mock.patch.object(linux_net, "device_exists", return_value=False)
+    @mock.patch.object(ip_lib, "exists", return_value=False)
     def test_ensure_bridge_mtu_not_called(self, mock_dev_exists, mock_exec,
             mock_path_exists, mock_set_mtu, mock_ip_set):
         """This test validates that mtus are updated only if an interface
@@ -121,7 +121,7 @@ class LinuxNetTest(testtools.TestCase):
     @mock.patch.object(linux_net, "_set_device_mtu")
     @mock.patch.object(os.path, "exists", return_value=False)
     @mock.patch.object(processutils, "execute", return_value=("", ""))
-    @mock.patch.object(linux_net, "device_exists", return_value=False)
+    @mock.patch.object(ip_lib, "exists", return_value=False)
     def test_ensure_bridge_mtu_order(self, mock_dev_exists, mock_exec,
             mock_path_exists, mock_set_mtu, mock_ip_set):
         """This test validates that when adding an interface
@@ -141,7 +141,7 @@ class LinuxNetTest(testtools.TestCase):
     @mock.patch.object(ip_lib, "set")
     @mock.patch.object(os.path, "exists", return_value=False)
     @mock.patch.object(processutils, "execute")
-    @mock.patch.object(linux_net, "device_exists", return_value=False)
+    @mock.patch.object(ip_lib, "exists", return_value=False)
     def test_ensure_bridge_new_ipv4(self, mock_dev_exists, mock_exec,
                                     mock_path_exists, mock_ip_set):
         linux_net.ensure_bridge("br0", None, filtering=False)
@@ -156,7 +156,7 @@ class LinuxNetTest(testtools.TestCase):
     @mock.patch.object(ip_lib, "set")
     @mock.patch.object(os.path, "exists", return_value=True)
     @mock.patch.object(processutils, "execute")
-    @mock.patch.object(linux_net, "device_exists", return_value=False)
+    @mock.patch.object(ip_lib, "exists", return_value=False)
     def test_ensure_bridge_new_ipv6(self, mock_dev_exists, mock_exec,
                                     mock_path_exists, mock_ip_set):
         linux_net.ensure_bridge("br0", None, filtering=False)

@@ -34,11 +34,6 @@ LOG = logging.getLogger(__name__)
 _IPTABLES_MANAGER = None
 
 
-def device_exists(device):
-    """Check if ethernet device exists."""
-    return os.path.exists('/sys/class/net/%s' % device)
-
-
 def _set_device_mtu(dev, mtu):
     """Set the device MTU."""
     if mtu:
@@ -76,7 +71,7 @@ def _ensure_vlan_privileged(vlan_num, bridge_interface, mac_address, mtu):
     with elevated privileges.
     """
     interface = 'vlan%s' % vlan_num
-    if not device_exists(interface):
+    if not ip_lib.exists(interface):
         LOG.debug('Starting VLAN interface %s', interface)
         ip_lib.add(interface, 'vlan', link=bridge_interface,
                    vlan_id=vlan_num, check_exit_code=[0, 2, 254])
@@ -121,13 +116,13 @@ def _ensure_bridge_privileged(bridge, interface, net_attrs, gateway,
     interface onto the bridge and reset the default gateway if necessary.
 
     """
-    if not device_exists(bridge):
+    if not ip_lib.exists(bridge):
         LOG.debug('Starting Bridge %s', bridge)
         try:
             processutils.execute('brctl', 'addbr', bridge)
         except Exception:
             with excutils.save_and_reraise_exception() as ectx:
-                ectx.reraise = not device_exists(bridge)
+                ectx.reraise = not ip_lib.exists(bridge)
         processutils.execute('brctl', 'setfd', bridge, 0)
         # processutils.execute('brctl setageing %s 10' % bridge)
         processutils.execute('brctl', 'stp', bridge, 'off')

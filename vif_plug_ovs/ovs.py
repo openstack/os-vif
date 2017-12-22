@@ -19,6 +19,7 @@
 
 import sys
 
+from os_vif.internal.command import ip as ip_lib
 from os_vif import objects
 from os_vif import plugin
 from oslo_config import cfg
@@ -172,7 +173,7 @@ class OvsPlugin(plugin.PluginBase):
         linux_net.ensure_bridge(vif.bridge_name)
 
         mtu = self._get_mtu(vif)
-        if not linux_net.device_exists(v2_name):
+        if not ip_lib.exists(v2_name):
             linux_net.create_veth_pair(v1_name, v2_name, mtu)
             linux_net.add_bridge_port(vif.bridge_name, v1_name)
             linux_net.ensure_ovs_bridge(vif.network.bridge,
@@ -187,7 +188,7 @@ class OvsPlugin(plugin.PluginBase):
     def _plug_vif_windows(self, vif, instance_info):
         """Create a per-VIF OVS port."""
 
-        if not linux_net.device_exists(vif.id):
+        if not ip_lib.exists(vif.id):
             linux_net.ensure_ovs_bridge(vif.network.bridge,
                                         self._get_vif_datapath_type(vif))
             self._create_vif_port(vif, vif.id, instance_info)

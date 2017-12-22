@@ -15,7 +15,7 @@ import re
 from oslo_concurrency import processutils
 from oslo_utils import excutils
 
-from os_vif.internal.command.ip import impl_pyroute2
+from os_vif.internal.command.ip.linux import impl_pyroute2
 from os_vif.tests.functional import base
 from os_vif.tests.functional import privsep
 

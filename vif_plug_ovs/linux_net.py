@@ -113,11 +113,6 @@ def delete_ovs_vif_port(bridge, dev, timeout=None,
         _delete_net_dev(dev)
 
 
-def device_exists(device):
-    """Check if ethernet device exists."""
-    return os.path.exists('/sys/class/net/%s' % device)
-
-
 def interface_in_bridge(bridge, device):
     """Check if an ethernet device belongs to a Linux Bridge."""
     return os.path.exists('/sys/class/net/%(bridge)s/brif/%(device)s' %
@@ -126,7 +121,7 @@ def interface_in_bridge(bridge, device):
 
 def _delete_net_dev(dev):
     """Delete a network device only if it exists."""
-    if device_exists(dev):
+    if ip_lib.exists(dev):
         try:
             ip_lib.delete(dev, check_exit_code=[0, 2, 254])
             LOG.debug("Net device removed: '%s'", dev)
@@ -166,7 +161,7 @@ def ensure_ovs_bridge(bridge, datapath_type, timeout=None,
 
 @privsep.vif_plug.entrypoint
 def ensure_bridge(bridge):
-    if not device_exists(bridge):
+    if not ip_lib.exists(bridge):
         processutils.execute('brctl', 'addbr', bridge)
         processutils.execute('brctl', 'setfd', bridge, 0)
         processutils.execute('brctl', 'stp', bridge, 'off')
@@ -188,7 +183,7 @@ def ensure_bridge(bridge):
 
 @privsep.vif_plug.entrypoint
 def delete_bridge(bridge, dev):
-    if device_exists(bridge):
+    if ip_lib.exists(bridge):
         if interface_in_bridge(bridge, dev):
             processutils.execute('brctl', 'delif', bridge, dev)
 

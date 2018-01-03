@@ -1,0 +1,7 @@
+- project:
+    check:
+      jobs:
+        - openstack-tox-functional-with-sudo
+    gate:
+      jobs:
+        - openstack-tox-functional-with-sudo

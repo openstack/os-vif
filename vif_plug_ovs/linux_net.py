@@ -43,6 +43,10 @@ INT_RE = re.compile("^(\d+)$")
 VF_RE = re.compile("vf(\d+)", re.IGNORECASE)
 # phys_port_name contains PF## or pf##
 PF_RE = re.compile("pf(\d+)", re.IGNORECASE)
+# bus_info (bdf) contains <bus>:<dev>.<func>
+PF_FUNC_RE = re.compile("\.(\d+)", 0)
+
+_SRIOV_TOTALVFS = "sriov_totalvfs"
 
 
 def _ovs_vsctl(args, timeout=None):
@@ -267,6 +271,40 @@ def _parse_pf_number(phys_port_name):
     return None
 
 
+# This function is taken from nova/pci/utils.py
+def get_function_by_ifname(ifname):
+    """Given the device name, returns the PCI address of a device
+    and returns True if the address is in a physical function.
+    """
+    dev_path = "/sys/class/net/%s/device" % ifname
+    sriov_totalvfs = 0
+    if os.path.isdir(dev_path):
+        try:
+            # sriov_totalvfs contains the maximum possible VFs for this PF
+            dev_path_file = os.path.join(dev_path, _SRIOV_TOTALVFS)
+            with open(dev_path_file, 'r') as fd:
+                sriov_totalvfs = int(fd.readline().rstrip())
+                return (os.readlink(dev_path).strip("./"),
+                        sriov_totalvfs > 0)
+        except (IOError, ValueError):
+            return os.readlink(dev_path).strip("./"), False
+    return None, False
+
+
+def _get_pf_func(pf_ifname):
+    """Gets PF function number using pf_ifname and returns function
+    number or None.
+    """
+
+    address_str, pf = get_function_by_ifname(pf_ifname)
+    if not address_str:
+        return None
+    match = PF_FUNC_RE.search(address_str)
+    if match:
+        return match.group(1)
+    return None
+
+
 def get_representor_port(pf_ifname, vf_num):
     """Get the representor netdevice which is corresponding to the VF.
 
@@ -292,7 +330,8 @@ def get_representor_port(pf_ifname, vf_num):
         raise exception.RepresentorNotFound(ifname=pf_ifname, vf_num=vf_num)
 
     for device in devices:
-        if device == pf_ifname:
+        address_str, pf = get_function_by_ifname(device)
+        if pf:
             continue
 
         device_path = "/sys/class/net/%s" % device
@@ -316,6 +355,17 @@ def get_representor_port(pf_ifname, vf_num):
                 phys_port_name = fd.readline().rstrip()
         except (OSError, IOError):
             continue
+
+        # If the phys_port_name of the VF-rep is of the format pfXvfY
+        # (or vfY@pfX), then match "X" (parent PF's func number) with
+        # the PCI func number of pf_ifname.
+        rep_parent_pf_func = _parse_pf_number(phys_port_name)
+        if rep_parent_pf_func is not None:
+                ifname_pf_func = _get_pf_func(pf_ifname)
+                if ifname_pf_func is None:
+                    continue
+                if int(rep_parent_pf_func) != int(ifname_pf_func):
+                    continue
 
         representor_num = _parse_vf_number(phys_port_name)
         # Note: representor_num can be 0, referring to VF0

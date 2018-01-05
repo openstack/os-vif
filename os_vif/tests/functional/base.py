@@ -94,6 +94,11 @@ class BaseFunctionalTestCase(base.BaseTestCase):
         log_file = sanitize_log_path(
             os.path.join(DEFAULT_LOG_DIR, "%s.txt" % self.id()))
         self.config(log_file=log_file)
+        privsep_helper = os.path.join(
+            os.getenv('VIRTUAL_ENV'), 'bin', 'privsep-helper')
+        self.config(
+            helper_command=' '.join(['sudo', '-E', privsep_helper]),
+            group='os_vif_privileged')
 
     def config(self, **kw):
         """Override some configuration values.

@@ -21,15 +21,18 @@ LOG = logging.getLogger(__name__)
 
 
 impl_map = {
-    'pyroute2': 'os_vif.internal.command.ip.impl_pyroute2',
+    'pyroute2': 'os_vif.internal.command.ip.impl_pyroute2.PyRoute2',
+    'IPTools': 'os_vif.internal.command.ip.impl_shell.IPTools',
 }
 
 
 def _get_impl():
-    # NOTE(ralonsoh): currently there is only one implementation. No config
-    # options are exposed to the user.
-    pyroute2 = importutils.import_module(impl_map['pyroute2'])
-    return pyroute2.PyRoute2()
+    # NOTE(sean-k-mooney): currently pyroute2 has a file handle leak. An
+    # iptools driver has been added as a workaround but No config options are
+    # exposed to the user. The iptools driver is considered deprecated and
+    # will be removed when a new release of pyroute2 is available.
+    driver = 'IPTools'
+    return importutils.import_object(impl_map[driver])
 
 
 @six.add_metaclass(abc.ABCMeta)

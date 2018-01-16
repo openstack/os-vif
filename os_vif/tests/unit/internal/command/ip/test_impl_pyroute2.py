@@ -16,7 +16,7 @@ from pyroute2.netlink import exceptions as ipexc
 from pyroute2.netlink.rtnl import ifinfmsg
 
 from os_vif import exception
-from os_vif.internal.command.ip import api as ip_api
+from os_vif.internal.command.ip import impl_pyroute2
 from os_vif.tests.unit import base
 
 
@@ -35,7 +35,7 @@ class TestIpCommand(base.TestCase):
 
     def setUp(self):
         super(TestIpCommand, self).setUp()
-        self.ip = ip_api._get_impl()
+        self.ip = impl_pyroute2.PyRoute2()
         self.ip_link_p = mock.patch.object(iproute.IPRoute, 'link')
         self.ip_link = self.ip_link_p.start()
 

@@ -22,8 +22,7 @@ from os_vif.objects import fields as osv_fields
 class VIFBase(osv_base.VersionedObject, base.ComparableVersionedObject):
     """Represents a virtual network interface."""
     # Version 1.0: Initial version
-    # Version 1.1: Added "fixed_ips" field
-    VERSION = '1.1'
+    VERSION = '1.0'
 
     fields = {
         # Unique identifier of the VIF port
@@ -49,10 +48,7 @@ class VIFBase(osv_base.VersionedObject, base.ComparableVersionedObject):
 
         # The virtual port profile metadata
         'port_profile': fields.ObjectField('VIFPortProfileBase',
-                                           subclasses=True),
-
-        # The list of allocated IPs for this port.
-        'fixed_ips': fields.ObjectField("FixedIPList")
+                                           subclasses=True)
     }
 
 

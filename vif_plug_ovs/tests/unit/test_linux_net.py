@@ -108,8 +108,7 @@ class LinuxNetTest(testtools.TestCase):
             mock.call('brctl', 'addif', 'br0', 'vnet1')])
 
     def test_ovs_vif_port_cmd(self):
-        expected = ['--', '--if-exists',
-                    'del-port', 'fake-dev', '--', 'add-port',
+        expected = ['--', '--may-exist', 'add-port',
                     'fake-bridge', 'fake-dev',
                     '--', 'set', 'Interface', 'fake-dev',
                     'external-ids:iface-id=fake-iface-id',

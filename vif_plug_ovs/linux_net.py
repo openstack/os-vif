@@ -60,8 +60,7 @@ def _ovs_vsctl(args, timeout=None):
 def _create_ovs_vif_cmd(bridge, dev, iface_id, mac,
                         instance_id, interface_type=None,
                         vhost_server_path=None):
-    cmd = ['--', '--if-exists', 'del-port', dev, '--',
-            'add-port', bridge, dev,
+    cmd = ['--', '--may-exist', 'add-port', bridge, dev,
             '--', 'set', 'Interface', dev,
             'external-ids:iface-id=%s' % iface_id,
             'external-ids:iface-status=active',

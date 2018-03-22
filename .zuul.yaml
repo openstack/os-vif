@@ -3,7 +3,9 @@
       jobs:
         - openstack-tox-functional-with-sudo
         - kuryr-kubernetes-tempest-daemon-octavia
+        - openstack-tox-lower-constraints
     gate:
       jobs:
         - openstack-tox-functional-with-sudo
         - kuryr-kubernetes-tempest-daemon-octavia
+        - openstack-tox-lower-constraints

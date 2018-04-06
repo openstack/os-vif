@@ -1,11 +1,25 @@
+- job:
+    name: os-vif-ovs
+    parent: legacy-dsvm-base
+    run: playbooks/os-vif-ovs/run.yaml
+    post-run: playbooks/os-vif-ovs/post.yaml
+    timeout: 7800
+    required-projects:
+      - openstack-infra/devstack-gate
+      - openstack/nova
+      - openstack/os-vif
+      - openstack/tempest
+
 - project:
     check:
       jobs:
         - openstack-tox-functional-with-sudo
         - kuryr-kubernetes-tempest-daemon-octavia
         - openstack-tox-lower-constraints
+        - os-vif-ovs
     gate:
       jobs:
         - openstack-tox-functional-with-sudo
         - kuryr-kubernetes-tempest-daemon-octavia
         - openstack-tox-lower-constraints
+        - os-vif-ovs

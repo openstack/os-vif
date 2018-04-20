@@ -12,11 +12,11 @@ os-vif
 ======
 
 .. image:: https://img.shields.io/pypi/v/os-vif.svg
-    :target: https://pypi.python.org/pypi/os-vif/
+    :target: https://pypi.org/project/os-vif/
     :alt: Latest Version
 
 .. image:: https://img.shields.io/pypi/dm/os-vif.svg
-    :target: https://pypi.python.org/pypi/os-vif/
+    :target: https://pypi.org/project/os-vif/
     :alt: Downloads
 
 A library for plugging and unplugging virtual interfaces in OpenStack.

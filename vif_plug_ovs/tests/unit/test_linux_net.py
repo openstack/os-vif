@@ -400,7 +400,9 @@ class LinuxNetTest(testtools.TestCase):
     @mock.patch('six.moves.builtins.open')
     @mock.patch.object(os.path, 'isfile')
     @mock.patch.object(os, 'listdir')
-    def test_get_representor_port(self, mock_listdir, mock_isfile, mock_open):
+    @mock.patch.object(linux_net, "get_function_by_ifname")
+    def test_get_representor_port(self, mock_get_function_by_ifname,
+                                  mock_listdir, mock_isfile, mock_open):
         mock_listdir.return_value = [
             'pf_ifname', 'rep_vf_1', 'rep_vf_2'
         ]
@@ -408,7 +410,14 @@ class LinuxNetTest(testtools.TestCase):
         mock_open.return_value.__enter__ = lambda s: s
         readline_mock = mock_open.return_value.readline
         readline_mock.side_effect = (
-            ['pf_sw_id', 'pf_sw_id', '1', 'pf_sw_id', 'pf0vf2'])
+              ['pf_sw_id', 'pf_sw_id', '1', 'pf_sw_id', 'pf0vf2'])
+        # PCI IDs mocked:
+        # PF0:    0000:0a:00.0
+        # PF0VF1: 0000:0a:02.1    PF0VF2: 0000:0a:02.2
+        mock_get_function_by_ifname.side_effect = (
+            [("0000:0a:00.0", True),
+             ("0000:0a:02.1", False),
+             ("0000:0a:02.2", False), ("0000:0a:00.0", True)])
         open_calls = (
             [mock.call('/sys/class/net/pf_ifname/phys_switch_id', 'r'),
              mock.call().readline(),
@@ -432,8 +441,10 @@ class LinuxNetTest(testtools.TestCase):
     @mock.patch('six.moves.builtins.open')
     @mock.patch.object(os.path, 'isfile')
     @mock.patch.object(os, 'listdir')
+    @mock.patch.object(linux_net, "get_function_by_ifname")
     def test_get_representor_port_2_pfs(
-            self, mock_listdir, mock_isfile, mock_open):
+            self, mock_get_function_by_ifname, mock_listdir, mock_isfile,
+            mock_open):
         mock_listdir.return_value = [
             'pf_ifname1', 'pf_ifname2', 'rep_pf1_vf_1', 'rep_pf1_vf_2',
             'rep_pf2_vf_1', 'rep_pf2_vf_2',
@@ -442,15 +453,29 @@ class LinuxNetTest(testtools.TestCase):
         mock_open.return_value.__enter__ = lambda s: s
         readline_mock = mock_open.return_value.readline
         readline_mock.side_effect = (
-            ['pf1_sw_id', 'pf1_sw_id', 'pf2_sw_id', '1', 'pf1_sw_id', '2'])
-        ifname = linux_net.get_representor_port('pf_ifname1', '2')
-        self.assertEqual('rep_pf1_vf_2', ifname)
+            ['pf_sw_id',
+             'pf_sw_id', 'VF1@PF1', 'pf_sw_id', 'vf2@pf1',
+             'pf_sw_id', 'pf2vf1', 'pf_sw_id', 'pf2vf2'])
+        # PCI IDs mocked:
+        # PF1:    0000:0a:00.1    PF2:    0000:0a:00.2
+        # PF1VF1: 0000:0a:02.1    PF1VF2: 0000:0a:02.2
+        # PF2VF1: 0000:0a:04.1    PF2VF2: 0000:0a:04.2
+        mock_get_function_by_ifname.side_effect = (
+            [("0000:0a:00.1", True), ("0000:0a:00.2", True),
+             ("0000:0a:02.1", False), ("0000:0a:00.2", True),
+             ("0000:0a:02.2", False), ("0000:0a:00.2", True),
+             ("0000:0a:04.1", False), ("0000:0a:00.2", True),
+             ("0000:0a:04.2", False), ("0000:0a:00.2", True)])
+        ifname = linux_net.get_representor_port('pf_ifname2', '2')
+        self.assertEqual('rep_pf2_vf_2', ifname)
 
     @mock.patch('six.moves.builtins.open')
     @mock.patch.object(os.path, 'isfile')
     @mock.patch.object(os, 'listdir')
+    @mock.patch.object(linux_net, "get_function_by_ifname")
     def test_get_representor_port_not_found(
-            self, mock_listdir, mock_isfile, mock_open):
+            self, mock_get_function_by_ifname, mock_listdir, mock_isfile,
+            mock_open):
         mock_listdir.return_value = [
             'pf_ifname', 'rep_vf_1', 'rep_vf_2'
         ]
@@ -459,6 +484,13 @@ class LinuxNetTest(testtools.TestCase):
         readline_mock = mock_open.return_value.readline
         readline_mock.side_effect = (
             ['pf_sw_id', 'pf_sw_id', '1', 'pf_sw_id', '2'])
+        # PCI IDs mocked:
+        # PF0:    0000:0a:00.0
+        # PF0VF1: 0000:0a:02.1    PF0VF2: 0000:0a:02.2
+        mock_get_function_by_ifname.side_effect = (
+            [("0000:0a:00.0", True),
+             ("0000:0a:02.1", False),
+             ("0000:0a:02.2", False)])
         self.assertRaises(
             exception.RepresentorNotFound,
             linux_net.get_representor_port,
@@ -467,8 +499,10 @@ class LinuxNetTest(testtools.TestCase):
     @mock.patch('six.moves.builtins.open')
     @mock.patch.object(os.path, 'isfile')
     @mock.patch.object(os, 'listdir')
+    @mock.patch.object(linux_net, "get_function_by_ifname")
     def test_get_representor_port_exception_io_error(
-            self, mock_listdir, mock_isfile, mock_open):
+            self, mock_get_function_by_ifname, mock_listdir, mock_isfile,
+            mock_open):
         mock_listdir.return_value = [
             'pf_ifname', 'rep_vf_1', 'rep_vf_2'
         ]
@@ -477,6 +511,13 @@ class LinuxNetTest(testtools.TestCase):
         readline_mock = mock_open.return_value.readline
         readline_mock.side_effect = (
             ['pf_sw_id', 'pf_sw_id', IOError(), 'pf_sw_id', '2'])
+        # PCI IDs mocked:
+        # PF0:    0000:0a:00.0
+        # PF0VF1: 0000:0a:02.1    PF0VF2: 0000:0a:02.2
+        mock_get_function_by_ifname.side_effect = (
+            [("0000:0a:00.0", True),
+             ("0000:0a:02.1", False),
+             ("0000:0a:02.2", False), ("0000:0a:00.0", True)])
         self.assertRaises(
             exception.RepresentorNotFound,
             linux_net.get_representor_port,
@@ -485,8 +526,10 @@ class LinuxNetTest(testtools.TestCase):
     @mock.patch('six.moves.builtins.open')
     @mock.patch.object(os.path, 'isfile')
     @mock.patch.object(os, 'listdir')
+    @mock.patch.object(linux_net, "get_function_by_ifname")
     def test_get_representor_port_exception_value_error(
-            self, mock_listdir, mock_isfile, mock_open):
+            self, mock_get_function_by_ifname, mock_listdir, mock_isfile,
+            mock_open):
         mock_listdir.return_value = [
             'pf_ifname', 'rep_vf_1', 'rep_vf_2'
         ]
@@ -495,6 +538,13 @@ class LinuxNetTest(testtools.TestCase):
         readline_mock = mock_open.return_value.readline
         readline_mock.side_effect = (
             ['pf_sw_id', 'pf_sw_id', '1', 'pf_sw_id', 'a'])
+        # PCI IDs mocked:
+        # PF0:    0000:0a:00.0
+        # PF0VF1: 0000:0a:02.1    PF0VF2: 0000:0a:02.2
+        mock_get_function_by_ifname.side_effect = (
+            [("0000:0a:00.0", True),
+             ("0000:0a:02.1", False),
+             ("0000:0a:02.2", False)])
         self.assertRaises(
             exception.RepresentorNotFound,
             linux_net.get_representor_port,

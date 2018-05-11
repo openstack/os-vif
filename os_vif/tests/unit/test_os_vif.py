@@ -14,8 +14,6 @@ import mock
 from oslo_config import cfg
 from stevedore import extension
 
-from vif_plug_linux_bridge import constants as lb_constants
-
 import os_vif
 from os_vif import exception
 from os_vif import objects
@@ -138,22 +136,28 @@ class TestOSVIF(base.TestCase):
     def test_host_info_all(self):
         os_vif.initialize()
         info = os_vif.host_info()
+        # NOTE(sean-k-mooney): as out of tree plugins could be
+        # visable in path assert only at at least all the in
+        # intree plugins are loaded instead of an exact match.
+        self.assertTrue(len(info.plugin_info) >= 3)
 
-        self.assertEqual(len(info.plugin_info), 2)
+        plugins = {p.plugin_name: p for p in info.plugin_info}
+        in_tree_plugin_names = ("linux_bridge", "ovs", "noop")
+        self.assertTrue(all(name in plugins for name in in_tree_plugin_names))
+        lb = plugins["linux_bridge"]
+        self.assertTrue(any("VIFBridge" == vif.vif_object_name
+                            for vif in lb.vif_info))
 
-        self.assertEqual(info.plugin_info[0].plugin_name,
-                         lb_constants.PLUGIN_NAME)
-        vif_info = info.plugin_info[0].vif_info
-        self.assertEqual(len(vif_info), 1)
-        self.assertEqual(vif_info[0].vif_object_name, "VIFBridge")
+        ovs = plugins["ovs"]
+        self.assertTrue(len(ovs.vif_info) >= 4)
+        vif_names = (vif.vif_object_name for vif in ovs.vif_info)
+        ovs_vifs = ("VIFBridge", "VIFOpenVSwitch",
+                    "VIFVHostUser", "VIFHostDevice")
+        self.assertTrue(all(name in ovs_vifs for name in vif_names))
 
-        self.assertEqual(info.plugin_info[1].plugin_name, "ovs")
-        vif_info = info.plugin_info[1].vif_info
-        self.assertEqual(len(vif_info), 4)
-        self.assertEqual(vif_info[0].vif_object_name, "VIFBridge")
-        self.assertEqual(vif_info[1].vif_object_name, "VIFOpenVSwitch")
-        self.assertEqual(vif_info[2].vif_object_name, "VIFVHostUser")
-        self.assertEqual(vif_info[3].vif_object_name, "VIFHostDevice")
+        noop = plugins["noop"]
+        self.assertTrue(any("VIFVHostUser" == vif.vif_object_name
+                            for vif in noop.vif_info))
 
     def test_host_info_filtered(self):
         os_vif.initialize()

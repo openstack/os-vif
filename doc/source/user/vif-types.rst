@@ -128,6 +128,12 @@ This profile provides the metadata required to associate a VIF with a
 specified, it indicates a desire to rename the representor to the given name
 on plugging.
 
+.. note:: This port profile is provided for backwards compatibility only.
+
+This interface has been superceded by the one provided by the
+`DatapathOffloadRepresentor` class, which is now a field element of the
+`VIFPortProfileBase` class.
+
 VIFPortProfileFPBridge
 ----------------------
 
@@ -145,6 +151,23 @@ VIFPortProfileK8sDPDK
 
 This profile provides the metadata required to associate nested DPDK VIF with
 a Kubernetes pod.
+
+Datapath Offload type object
+============================
+
+Port profiles can be associated with a `datapath_offload` object. This
+provides a set of metadata attributes that serve to identify the datapath
+offload parameters of a VIF. Each different type of datapath offload is
+associated with a versioned object, subclassing `DatapathOffloadBase`.
+
+DatapathOffloadRepresentor
+--------------------------
+
+This object provides the metadata required to associate a VIF with a
+:term:`VF` representor conforming to the
+`switchdev <https://netdevconf.org/1.2/session.html?or-gerlitz>`_ kernel model.
+If `representor_name` is specified, it indicates a desire to rename the
+representor to the given name on plugging.
 
 VIF network objects
 ===================

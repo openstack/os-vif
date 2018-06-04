@@ -1,0 +1,11 @@
+---
+features:
+  - A new set of attributes to port profiles has been introduced, namely
+    ``Datapath Offload Types``, with ``DatapathOffloadRepresentor`` allowing
+    os-vif to pass the required metadata for representors conforming to the
+    kernel switchdev representor model.
+deprecations:
+  - The API for ``VIFPortProfileOVSRepresentor`` has been frozen pending
+    deprecation of the class. Users should transition to setting the
+    ``datapath_offload`` of ``VIFPortProfileOpenVSwitch`` to a
+    ``DatapathOffloadRepresentor`` object to pass representor information.

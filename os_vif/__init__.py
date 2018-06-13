@@ -53,14 +53,14 @@ def plug(vif, instance_info):
     """
     Given a model of a VIF, perform operations to plug the VIF properly.
 
-    :param vif: `os_vif.objects.VIF` object.
-    :param instance_info: `os_vif.objects.InstanceInfo` object.
-    :raises `exception.LibraryNotInitialized` if the user of the library
-            did not call os_vif.initialize(**config) before trying to
+    :param vif: Instance of a subclass of ``os_vif.objects.vif.VIFBase``.
+    :param instance_info: ``os_vif.objects.instance_info.InstanceInfo`` object.
+    :raises ``exception.LibraryNotInitialized`` if the user of the library
+            did not call ``os_vif.initialize(**config)`` before trying to
             plug a VIF.
-    :raises `exception.NoMatchingPlugin` if there is no plugin for the
+    :raises ``exception.NoMatchingPlugin`` if there is no plugin for the
             type of VIF supplied.
-    :raises `exception.PlugException` if anything fails during unplug
+    :raises ``exception.PlugException`` if anything fails during unplug
             operations.
     """
     if _EXT_MANAGER is None:
@@ -86,8 +86,8 @@ def unplug(vif, instance_info):
     """
     Given a model of a VIF, perform operations to unplug the VIF properly.
 
-    :param vif: `os_vif.objects.VIF` object.
-    :param instance_info: `os_vif.objects.InstanceInfo` object.
+    :param vif: Instance of a subclass of `os_vif.objects.vif.VIFBase`.
+    :param instance_info: `os_vif.objects.instance_info.InstanceInfo` object.
     :raises `exception.LibraryNotInitialized` if the user of the library
             did not call os_vif.initialize(**config) before trying to
             plug a VIF.

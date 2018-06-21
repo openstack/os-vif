@@ -51,7 +51,7 @@ class PluginBase(object):
         :param vif: `os_vif.objects.vif.VIFBase` object.
         :param instance_info: `os_vif.objects.instance_info.InstanceInfo`
             object.
-        :raises `processutils.ProcessExecutionError`. Plugins implementing
+        :raises: `processutils.ProcessExecutionError`. Plugins implementing
                 this method should let `processutils.ProcessExecutionError`
                 bubble up.
         """
@@ -64,7 +64,7 @@ class PluginBase(object):
         :param vif: `os_vif.objects.vif.VIFBase` object.
         :param instance_info: `os_vif.objects.instance_info.InstanceInfo`
             object.
-        :raises `processutils.ProcessExecutionError`. Plugins implementing
+        :raises: `processutils.ProcessExecutionError`. Plugins implementing
                 this method should let `processutils.ProcessExecutionError`
                 bubble up.
         """

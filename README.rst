@@ -25,3 +25,4 @@ A library for plugging and unplugging virtual interfaces in OpenStack.
 * Documentation: https://docs.openstack.org/os-vif/latest/
 * Source: https://git.openstack.org/cgit/openstack/os-vif
 * Bugs: https://bugs.launchpad.net/os-vif
+* Release Notes: https://docs.openstack.org/releasenotes/os-vif

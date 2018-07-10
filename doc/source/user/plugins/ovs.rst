@@ -2,38 +2,34 @@
 Open vSwitch
 ============
 
-The Open vSwitch plugin, `vif_plug_ovs`, is an `os-vif` VIF plugin for the Open
-vSwitch network backend. It is one of three plugins provided as part of `os-vif`
-itself, the others being :doc:`linux-bridge` and :doc:`noop`.
+The Open vSwitch plugin, ``vif_plug_ovs``, is an *os-vif* VIF plugin for the
+Open vSwitch network backend. It is one of three plugins provided as part of
+*os-vif* itself, the others being :doc:`linux-bridge` and :doc:`noop`.
 
 Supported VIF Types
 -------------------
 
 The Open vSwitch plugin provides support for the following VIF types:
 
-`VIFOpenVSwitch`
-
+``VIFOpenVSwitch``
   Configuration where a guest is directly connected an Open vSwitch bridge.
 
   Refer to :ref:`vif-openvswitch` for more information.
 
-`VIFBridge`
-
+``VIFBridge``
   Configuration where a guest is connected to a Linux bridge via a TAP device,
   and that bridge is connected to the Open vSwitch bridge. This allows for the
   use of ``iptables`` rules for filtering traffic.
 
   Refer to :ref:`vif-bridge` for more information.
 
-`VIFVHostUser`
-
+``VIFVHostUser``
   Configuration where a guest exposes a UNIX socket for its control plane. This
   configuration is used with the `DPDK datapath of Open vSwitch`__.
 
   Refer to :ref:`vif-vhostuser` for more information.
 
-`VIFHostDevice`
-
+``VIFHostDevice``
   Configuration where an :term:`SR-IOV` PCI device :term:`VF` is passed through
   to a guest. The ``hw-tc-offload`` feature should be enabled on the SR-IOV
   :term:`PF` using ``ethtool``:

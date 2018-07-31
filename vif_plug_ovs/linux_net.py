@@ -49,10 +49,12 @@ PF_FUNC_RE = re.compile("\.(\d+)", 0)
 _SRIOV_TOTALVFS = "sriov_totalvfs"
 
 
-def _ovs_vsctl(args, timeout=None):
+def _ovs_vsctl(args, timeout=None, ovsdb_connection=None):
     full_args = ['ovs-vsctl']
     if timeout is not None:
         full_args += ['--timeout=%s' % timeout]
+    if ovsdb_connection is not None:
+        full_args += ['--db=%s' % ovsdb_connection]
     full_args += args
     try:
         return processutils.execute(*full_args)
@@ -86,22 +88,27 @@ def _create_ovs_bridge_cmd(bridge, datapath_type):
 @privsep.vif_plug.entrypoint
 def create_ovs_vif_port(bridge, dev, iface_id, mac, instance_id,
                         mtu=None, interface_type=None, timeout=None,
-                        vhost_server_path=None):
+                        vhost_server_path=None, ovsdb_connection=None):
     _ovs_vsctl(_create_ovs_vif_cmd(bridge, dev, iface_id,
                                    mac, instance_id, interface_type,
-                                   vhost_server_path), timeout=timeout)
-    _update_device_mtu(dev, mtu, interface_type, timeout=timeout)
+                                   vhost_server_path), timeout=timeout,
+                                   ovsdb_connection=ovsdb_connection)
+    _update_device_mtu(dev, mtu, interface_type, timeout=timeout,
+                       ovsdb_connection=ovsdb_connection)
 
 
 @privsep.vif_plug.entrypoint
-def update_ovs_vif_port(dev, mtu=None, interface_type=None, timeout=None):
-    _update_device_mtu(dev, mtu, interface_type, timeout=timeout)
+def update_ovs_vif_port(dev, mtu=None, interface_type=None, timeout=None,
+                        ovsdb_connection=None):
+    _update_device_mtu(dev, mtu, interface_type, timeout=timeout,
+                       ovsdb_connection=ovsdb_connection)
 
 
 @privsep.vif_plug.entrypoint
-def delete_ovs_vif_port(bridge, dev, timeout=None, delete_netdev=True):
+def delete_ovs_vif_port(bridge, dev, timeout=None,
+                        ovsdb_connection=None, delete_netdev=True):
     _ovs_vsctl(['--', '--if-exists', 'del-port', bridge, dev],
-               timeout=timeout)
+               timeout=timeout, ovsdb_connection=ovsdb_connection)
     if delete_netdev:
         _delete_net_dev(dev)
 
@@ -151,8 +158,10 @@ def update_veth_pair(dev1_name, dev2_name, mtu):
 
 
 @privsep.vif_plug.entrypoint
-def ensure_ovs_bridge(bridge, datapath_type):
-    _ovs_vsctl(_create_ovs_bridge_cmd(bridge, datapath_type))
+def ensure_ovs_bridge(bridge, datapath_type, timeout=None,
+                      ovsdb_connection=None):
+    _ovs_vsctl(_create_ovs_bridge_cmd(bridge, datapath_type), timeout=timeout,
+               ovsdb_connection=ovsdb_connection)
 
 
 @privsep.vif_plug.entrypoint
@@ -192,7 +201,8 @@ def add_bridge_port(bridge, dev):
     processutils.execute('brctl', 'addif', bridge, dev)
 
 
-def _update_device_mtu(dev, mtu, interface_type=None, timeout=120):
+def _update_device_mtu(dev, mtu, interface_type=None, timeout=120,
+                       ovsdb_connection=None):
     if not mtu:
         return
     if interface_type not in [
@@ -204,8 +214,10 @@ def _update_device_mtu(dev, mtu, interface_type=None, timeout=120):
             # When plugging an interface on Windows, we therefore skip
             # programming the MTU and fallback to DHCP advertisement.
             _set_device_mtu(dev, mtu)
-    elif _ovs_supports_mtu_requests(timeout=timeout):
-        _set_mtu_request(dev, mtu, timeout=timeout)
+    elif _ovs_supports_mtu_requests(timeout=timeout,
+                                    ovsdb_connection=ovsdb_connection):
+        _set_mtu_request(dev, mtu, timeout=timeout,
+                         ovsdb_connection=ovsdb_connection)
     else:
         LOG.debug("MTU not set on %(interface_name)s interface "
                   "of type %(interface_type)s.",
@@ -225,16 +237,17 @@ def set_interface_state(interface_name, port_state):
 
 
 @privsep.vif_plug.entrypoint
-def _set_mtu_request(dev, mtu, timeout=None):
+def _set_mtu_request(dev, mtu, timeout=None, ovsdb_connection=None):
     args = ['--', 'set', 'interface', dev,
             'mtu_request=%s' % mtu]
-    _ovs_vsctl(args, timeout=timeout)
+    _ovs_vsctl(args, timeout=timeout, ovsdb_connection=ovsdb_connection)
 
 
 @privsep.vif_plug.entrypoint
-def _ovs_supports_mtu_requests(timeout=None):
+def _ovs_supports_mtu_requests(timeout=None, ovsdb_connection=None):
     args = ['--columns=mtu_request', 'list', 'interface']
-    _, error = _ovs_vsctl(args, timeout=timeout)
+    _, error = _ovs_vsctl(args, timeout=timeout,
+                          ovsdb_connection=ovsdb_connection)
     if (error == 'ovs-vsctl: Interface does not contain' +
               ' a column whose name matches "mtu_request"'):
             return False

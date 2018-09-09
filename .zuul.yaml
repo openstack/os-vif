@@ -11,6 +11,12 @@
       - openstack/tempest
 
 - project:
+    templates:
+      - openstack-python-jobs
+      - publish-openstack-sphinx-docs
+      - check-requirements
+      - openstack-python35-jobs
+      - release-notes-jobs
     check:
       jobs:
         - openstack-tox-functional-with-sudo

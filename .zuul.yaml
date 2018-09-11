@@ -12,21 +12,20 @@
 
 - project:
     templates:
-      - openstack-python-jobs
-      - publish-openstack-docs-pti
       - check-requirements
+      - openstack-lower-constraints-jobs
+      - openstack-python-jobs
       - openstack-python35-jobs
       - openstack-python36-jobs
+      - publish-openstack-docs-pti
       - release-notes-jobs-python3
     check:
       jobs:
-        - openstack-tox-functional-with-sudo
         - kuryr-kubernetes-tempest-daemon-octavia
-        - openstack-tox-lower-constraints
+        - openstack-tox-functional-with-sudo
         - os-vif-ovs
     gate:
       jobs:
-        - openstack-tox-functional-with-sudo
         - kuryr-kubernetes-tempest-daemon-octavia
-        - openstack-tox-lower-constraints
+        - openstack-tox-functional-with-sudo
         - os-vif-ovs

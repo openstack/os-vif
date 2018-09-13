@@ -197,6 +197,12 @@ class OvsPlugin(plugin.PluginBase):
                                          self._get_vif_datapath_type(vif))
             self._create_vif_port(vif, vif.id, instance_info)
 
+    def _plug_vif_generic(self, vif, instance_info):
+        """Create a per-VIF OVS port."""
+        self.ovsdb.ensure_ovs_bridge(vif.network.bridge,
+                                     self._get_vif_datapath_type(vif))
+        self._create_vif_port(vif, vif.vif_name, instance_info)
+
     def _plug_vf_passthrough(self, vif, instance_info):
         self.ovsdb.ensure_ovs_bridge(
             vif.network.bridge, constants.OVS_DATAPATH_SYSTEM)
@@ -218,8 +224,7 @@ class OvsPlugin(plugin.PluginBase):
 
         if isinstance(vif, objects.vif.VIFOpenVSwitch):
             if sys.platform != constants.PLATFORM_WIN32:
-                self.ovsdb.ensure_ovs_bridge(vif.network.bridge,
-                    self._get_vif_datapath_type(vif))
+                self._plug_vif_generic(vif, instance_info)
             else:
                 self._plug_vif_windows(vif, instance_info)
         elif isinstance(vif, objects.vif.VIFBridge):
@@ -255,6 +260,10 @@ class OvsPlugin(plugin.PluginBase):
         """Remove port from OVS."""
         self.ovsdb.delete_ovs_vif_port(vif.network.bridge, vif.id)
 
+    def _unplug_vif_generic(self, vif, instance_info):
+        """Remove port from OVS."""
+        self.ovsdb.delete_ovs_vif_port(vif.network.bridge, vif.vif_name)
+
     def _unplug_vf_passthrough(self, vif, instance_info):
         """Remove port from OVS."""
         pci_slot = vif.dev_address
@@ -278,7 +287,9 @@ class OvsPlugin(plugin.PluginBase):
                 profile=vif.port_profile.__class__.__name__)
 
         if isinstance(vif, objects.vif.VIFOpenVSwitch):
-            if sys.platform == constants.PLATFORM_WIN32:
+            if sys.platform != constants.PLATFORM_WIN32:
+                self._unplug_vif_generic(vif, instance_info)
+            else:
                 self._unplug_vif_windows(vif, instance_info)
         elif isinstance(vif, objects.vif.VIFBridge):
             if sys.platform != constants.PLATFORM_WIN32:

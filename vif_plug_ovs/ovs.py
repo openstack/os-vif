@@ -27,6 +27,8 @@ from oslo_config import cfg
 from vif_plug_ovs import constants
 from vif_plug_ovs import exception
 from vif_plug_ovs import linux_net
+from vif_plug_ovs.ovsdb import api as ovsdb_api
+from vif_plug_ovs.ovsdb import ovsdb_lib
 
 
 class OvsPlugin(plugin.PluginBase):
@@ -62,7 +64,15 @@ class OvsPlugin(plugin.PluginBase):
                    'tcp:127.0.0.1:6640, ovs-vsctl commands will use the '
                    'tcp:IP:PORT parameter for communicating with OVSDB over '
                    'a TCP socket.'),
+        cfg.StrOpt('ovsdb_interface',
+                   choices=list(ovsdb_api.interface_map),
+                   default='vsctl',
+                   help='The interface for interacting with the OVSDB'),
     )
+
+    def __init__(self, config):
+        super(OvsPlugin, self).__init__(config)
+        self.ovsdb = ovsdb_lib.BaseOVS(self.config)
 
     @staticmethod
     def gen_port_name(prefix, id):
@@ -118,21 +128,17 @@ class OvsPlugin(plugin.PluginBase):
 
     def _create_vif_port(self, vif, vif_name, instance_info, **kwargs):
         mtu = self._get_mtu(vif)
-        linux_net.create_ovs_vif_port(
+        self.ovsdb.create_ovs_vif_port(
             vif.network.bridge,
             vif_name,
             vif.port_profile.interface_id,
             vif.address, instance_info.uuid,
             mtu,
-            timeout=self.config.ovs_vsctl_timeout,
-            ovsdb_connection=self.config.ovsdb_connection,
             **kwargs)
 
     def _update_vif_port(self, vif, vif_name):
         mtu = self._get_mtu(vif)
-        linux_net.update_ovs_vif_port(vif_name, mtu,
-            timeout=self.config.ovs_vsctl_timeout,
-            ovsdb_connection=self.config.ovsdb_connection)
+        self.ovsdb.update_ovs_vif_port(vif_name, mtu)
 
     @staticmethod
     def _get_vif_datapath_type(vif, datapath=constants.OVS_DATAPATH_SYSTEM):
@@ -142,7 +148,7 @@ class OvsPlugin(plugin.PluginBase):
         return profile.datapath_type
 
     def _plug_vhostuser(self, vif, instance_info):
-        linux_net.ensure_ovs_bridge(
+        self.ovsdb.ensure_ovs_bridge(
             vif.network.bridge, self._get_vif_datapath_type(
                 vif, datapath=constants.OVS_DATAPATH_NETDEV))
         vif_name = OvsPlugin.gen_port_name(
@@ -176,10 +182,8 @@ class OvsPlugin(plugin.PluginBase):
         if not ip_lib.exists(v2_name):
             linux_net.create_veth_pair(v1_name, v2_name, mtu)
             linux_net.add_bridge_port(vif.bridge_name, v1_name)
-            linux_net.ensure_ovs_bridge(vif.network.bridge,
-                self._get_vif_datapath_type(vif),
-                timeout=self.config.ovs_vsctl_timeout,
-                ovsdb_connection=self.config.ovsdb_connection)
+            self.ovsdb.ensure_ovs_bridge(vif.network.bridge,
+                self._get_vif_datapath_type(vif))
             self._create_vif_port(vif, v2_name, instance_info)
         else:
             linux_net.update_veth_pair(v1_name, v2_name, mtu)
@@ -189,15 +193,13 @@ class OvsPlugin(plugin.PluginBase):
         """Create a per-VIF OVS port."""
 
         if not ip_lib.exists(vif.id):
-            linux_net.ensure_ovs_bridge(vif.network.bridge,
-                                        self._get_vif_datapath_type(vif))
+            self.ovsdb.ensure_ovs_bridge(vif.network.bridge,
+                                         self._get_vif_datapath_type(vif))
             self._create_vif_port(vif, vif.id, instance_info)
 
     def _plug_vf_passthrough(self, vif, instance_info):
-        linux_net.ensure_ovs_bridge(
-            vif.network.bridge, constants.OVS_DATAPATH_SYSTEM,
-            timeout=self.config.ovs_vsctl_timeout,
-            ovsdb_connection=self.config.ovsdb_connection)
+        self.ovsdb.ensure_ovs_bridge(
+            vif.network.bridge, constants.OVS_DATAPATH_SYSTEM)
         pci_slot = vif.dev_address
         pf_ifname = linux_net.get_ifname_by_pci_address(
             pci_slot, pf_interface=True, switchdev=True)
@@ -216,10 +218,8 @@ class OvsPlugin(plugin.PluginBase):
 
         if isinstance(vif, objects.vif.VIFOpenVSwitch):
             if sys.platform != constants.PLATFORM_WIN32:
-                linux_net.ensure_ovs_bridge(vif.network.bridge,
-                    self._get_vif_datapath_type(vif),
-                    timeout=self.config.ovs_vsctl_timeout,
-                    ovsdb_connection=self.config.ovsdb_connection)
+                self.ovsdb.ensure_ovs_bridge(vif.network.bridge,
+                    self._get_vif_datapath_type(vif))
             else:
                 self._plug_vif_windows(vif, instance_info)
         elif isinstance(vif, objects.vif.VIFBridge):
@@ -233,12 +233,10 @@ class OvsPlugin(plugin.PluginBase):
             self._plug_vf_passthrough(vif, instance_info)
 
     def _unplug_vhostuser(self, vif, instance_info):
-        linux_net.delete_ovs_vif_port(vif.network.bridge,
+        self.ovsdb.delete_ovs_vif_port(vif.network.bridge,
             OvsPlugin.gen_port_name(
                 constants.OVS_VHOSTUSER_PREFIX,
-                vif.id),
-            timeout=self.config.ovs_vsctl_timeout,
-            ovsdb_connection=self.config.ovsdb_connection)
+                vif.id))
 
     def _unplug_bridge(self, vif, instance_info):
         """UnPlug using hybrid strategy
@@ -251,16 +249,11 @@ class OvsPlugin(plugin.PluginBase):
 
         linux_net.delete_bridge(vif.bridge_name, v1_name)
 
-        linux_net.delete_ovs_vif_port(vif.network.bridge, v2_name,
-            timeout=self.config.ovs_vsctl_timeout,
-            ovsdb_connection=self.config.ovsdb_connection)
+        self.ovsdb.delete_ovs_vif_port(vif.network.bridge, v2_name)
 
     def _unplug_vif_windows(self, vif, instance_info):
         """Remove port from OVS."""
-
-        linux_net.delete_ovs_vif_port(vif.network.bridge, vif.id,
-            timeout=self.config.ovs_vsctl_timeout,
-            ovsdb_connection=self.config.ovsdb_connection)
+        self.ovsdb.delete_ovs_vif_port(vif.network.bridge, vif.id)
 
     def _unplug_vf_passthrough(self, vif, instance_info):
         """Remove port from OVS."""
@@ -272,11 +265,8 @@ class OvsPlugin(plugin.PluginBase):
         # The representor interface can't be deleted because it bind the
         # SR-IOV VF, therefore we just need to remove it from the ovs bridge
         # and set the status to down
-        linux_net.delete_ovs_vif_port(
-            vif.network.bridge, representor,
-            timeout=self.config.ovs_vsctl_timeout,
-            ovsdb_connection=self.config.ovsdb_connection,
-            delete_netdev=False)
+        self.ovsdb.delete_ovs_vif_port(
+            vif.network.bridge, representor, delete_netdev=False)
         linux_net.set_interface_state(representor, 'down')
 
     def unplug(self, vif, instance_info):

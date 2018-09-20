@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Added an abstract OVSDB API in ``vif_plug_ovs``. All calls to OVS database
+    will de done using this unique API.
+    Command line implementation using ``ovs-vsctl`` was refactored as a
+    backend for this abstract API.
+    A new configuration variable, ``ovsdb_interface``, is added to select
+    the interface for interacting with the OVS database.

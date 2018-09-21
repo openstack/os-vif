@@ -18,8 +18,7 @@ import six
 
 interface_map = {
     'vsctl': 'vif_plug_ovs.ovsdb.impl_vsctl',
-    # NOTE(ralonsoh): to be implemented in following patches.
-    # 'native': 'vif_plug_ovs.ovsdb.impl_idl',
+    'native': 'vif_plug_ovs.ovsdb.impl_idl',
 }
 
 

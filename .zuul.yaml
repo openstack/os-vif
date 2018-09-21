@@ -10,6 +10,14 @@
       - openstack/os-vif
       - openstack/tempest
 
+- job:
+    name: openstack-tox-functional-ovs-with-sudo
+    parent: openstack-tox-functional-with-sudo
+    required-projects:
+      - git.openstack.org/openstack-dev/devstack
+    pre-run: playbooks/openstack-tox-functional-ovs-with-sudo/pre.yaml
+    timeout: 600
+
 - project:
     templates:
       - check-requirements
@@ -23,9 +31,9 @@
       jobs:
         - kuryr-kubernetes-tempest-daemon-octavia:
             voting: false
-        - openstack-tox-functional-with-sudo
+        - openstack-tox-functional-ovs-with-sudo
         - os-vif-ovs
     gate:
       jobs:
-        - openstack-tox-functional-with-sudo
+        - openstack-tox-functional-ovs-with-sudo
         - os-vif-ovs

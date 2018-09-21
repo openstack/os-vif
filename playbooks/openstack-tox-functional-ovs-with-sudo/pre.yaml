@@ -1,0 +1,23 @@
+- hosts: all
+  name: Functional tests pre-tasks
+  tasks:
+    - name: Include OS-specific variables
+      include_vars: "{{ item }}"
+      with_first_found:
+        - "{{ ansible_distribution }}.yaml"
+        - "{{ ansible_os_family }}.yaml"
+
+    - name: Install Open vSwitch
+      become: yes
+      package:
+        name: "{{ ovs_package }}"
+        state: present
+      register: ovs_installed
+
+    - name: Start Open vSwitch
+      become: yes
+      service:
+        name: "{{ ovs_service }}"
+        state: started
+        enabled: yes
+      register: ovs_running

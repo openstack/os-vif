@@ -57,13 +57,11 @@ class OvsPlugin(plugin.PluginBase):
                    'forever.',
                    deprecated_group="DEFAULT"),
         cfg.StrOpt('ovsdb_connection',
-                   default=None,
-                   help='The TCP socket connection for communicating with '
-                   'OVS. "None" (default) is for UNIX domain socket '
-                   'connection. If set to "tcp:IP:PORT" eg '
-                   'tcp:127.0.0.1:6640, ovs-vsctl commands will use the '
-                   'tcp:IP:PORT parameter for communicating with OVSDB over '
-                   'a TCP socket.'),
+                   default='tcp:127.0.0.1:6640',
+                   help='The connection string for the OVSDB backend. '
+                   'When executing commands using the native or vsctl '
+                   'ovsdb interface drivers this config option defines '
+                   'the ovsdb endpoint used.'),
         cfg.StrOpt('ovsdb_interface',
                    choices=list(ovsdb_api.interface_map),
                    default='vsctl',

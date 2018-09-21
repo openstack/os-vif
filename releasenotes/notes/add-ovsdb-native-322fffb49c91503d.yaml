@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Added native implementation of OVSDB API in ``vif_plug_ovs``. Both
+    ``vsctl`` and ``native`` APIs could be selected by setting the
+    configuration variable ``ovsdb_interface``.
+    A new configuration variable, ``ovsdb_connection``, is added. This variable
+    defines the connection string for the OVSDB backend.
+other:
+  - |
+    Changed default value of ``ovsdb_connection`` to "tcp:127.0.0.1:6640", to
+    match the default value set in Neutron project. This connection string is
+    needed by OVSDB native interface.

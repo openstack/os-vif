@@ -1,0 +1,3 @@
+---
+ovs_package: "net-misc/openvswitch"
+ovs_service: "ovs-vswitchd"

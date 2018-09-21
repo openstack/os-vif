@@ -49,6 +49,7 @@ oslo.service==1.30.0
 oslo.utils==3.36.0
 oslo.versionedobjects==1.28.0
 oslotest==1.10.0
+ovs==2.9.2
 ovsdbapp==0.12.1
 Paste==2.0.3
 PasteDeploy==1.5.2

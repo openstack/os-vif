@@ -46,6 +46,8 @@ object_data = {
     'VIFPortProfileFPTap': '1.0-11670d8dbabd772ff0da26961adadc5a',
     'VIFVHostUser': '1.1-1f95b43be1f884f090ca1f4d79adfd35',
     'VIFPortProfileOVSRepresentor': '1.1-30e555981003a109b133da5b43ded5df',
+    'VIFNestedDPDK': '1.0-fdbaf6b20afd116529929b21aa7158dc',
+    'VIFPortProfileK8sDPDK': '1.0-f1e0daa66b041ded4e6dbc053b4a66d5',
 }
 
 

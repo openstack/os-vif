@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    Removed IPTools implementation. IPTools driver was implemented to avoid a
+    bug in pyroute2 library, currently solved. This implementation was marked
+    as "deprecated" two releases ago. IP Linux commands now use `Pyroute2`_.
+
+    .. _Pyroute2: https://docs.pyroute2.org/

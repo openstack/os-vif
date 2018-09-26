@@ -17,13 +17,13 @@ from pyroute2.netlink import exceptions as ipexc
 from pyroute2.netlink.rtnl import ifinfmsg
 
 from os_vif import exception
-from os_vif.internal.command.ip import api
+from os_vif.internal.command.ip import ip_command
 from os_vif import utils
 
 LOG = logging.getLogger(__name__)
 
 
-class PyRoute2(api.IpCommand):
+class PyRoute2(ip_command.IpCommand):
 
     def _ip_link(self, ip, command, check_exit_code, **kwargs):
         try:

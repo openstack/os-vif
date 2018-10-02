@@ -75,6 +75,16 @@ VIFHostDevice
 This class provides a way to pass a physical device to the guest.  Either an
 entire physical device, or an SR-IOV PCI device virtual function, are permitted.
 
+.. _vif-nesteddpdk:
+
+VIFNestedDPDK
+-------------
+
+This class provides a configuration, where kuryr-kuberentes is used to provide
+accelerated DPDK datapath for nested Kubernetes pods running inside the VM.
+Port is first attached to the virtual machine, bound to the userspace driver
+(e.g. uio_pci_generic, igb_uio or vfio-pci) and then consumed by Kubernetes
+pod via kuryr-kubernetes CNI plugin.
 
 VIF port profile objects
 ========================
@@ -129,6 +139,11 @@ VIFPortProfileFPTap
 This profile provides the metadata required to associate a fast path vhost-user
 VIF with a Calico port.
 
+VIFPortProfileK8sDPDK
+---------------------
+
+This profile provides the metadata required to associate nested DPDK VIF with
+a Kubernetes pod.
 
 VIF network objects
 ===================

@@ -23,22 +23,23 @@ class TestIPDevice(base.TestCase):
         super(TestIPDevice, self).setUp()
         self.device_name = 'test_device'
         self.mock_log = mock.patch.object(ip_lib, "LOG").start()
+        self.ip_lib = ip_lib.Netifaces()
 
     @mock.patch.object(netifaces, 'ifaddresses', return_value=True)
     def test_exists(self, mock_ifaddresses):
-        self.assertTrue(ip_lib.exists(self.device_name))
+        self.assertTrue(self.ip_lib.exists(self.device_name))
         mock_ifaddresses.assert_called_once_with(self.device_name)
 
     @mock.patch.object(netifaces, 'ifaddresses', side_effect=ValueError())
     def test_exists_not_found(self, mock_ifaddresses):
-        self.assertFalse(ip_lib.exists(self.device_name))
+        self.assertFalse(self.ip_lib.exists(self.device_name))
         mock_ifaddresses.assert_called_once_with(self.device_name)
         self.mock_log.warning.assert_called_once_with(
             "The device does not exist on the system: %s", self.device_name)
 
     @mock.patch.object(netifaces, 'ifaddresses', side_effect=OSError())
     def test_exists_os_error_exception(self, mock_ifaddresses):
-        self.assertFalse(ip_lib.exists(self.device_name))
+        self.assertFalse(self.ip_lib.exists(self.device_name))
         mock_ifaddresses.assert_called_once_with(self.device_name)
         self.mock_log.error.assert_called_once_with(
             "Failed to get interface addresses: %s", self.device_name)

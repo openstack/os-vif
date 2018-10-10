@@ -59,3 +59,11 @@ class IpCommand(object):
         :param   dev_type: String network device type (TYPE_VETH, TYPE_VLAN)
         :return: status of the command execution
         """
+
+    @abc.abstractmethod
+    def exists(self, device):
+        """Method to dectect if a device exists.
+
+        :param   device: A network device (string)
+        :return: True if device exists else False
+        """

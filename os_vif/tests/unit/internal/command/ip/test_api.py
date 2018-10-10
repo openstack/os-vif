@@ -10,19 +10,23 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import os
+import mock
 
-from oslo_log import log as logging
+from os_vif.tests.unit import base
 
+from os_vif.internal.command.ip import api
 from os_vif.internal.command.ip.linux import impl_pyroute2 as linux_ip_lib
 from os_vif.internal.command.ip.windows import impl_netifaces as win_ip_lib
 
 
-LOG = logging.getLogger(__name__)
+class TestIpApi(base.TestCase):
 
+    @mock.patch("os.name", "nt")
+    def test_get_impl_windows(self):
+        ip_lib = api._get_impl()
+        self.assertIsInstance(ip_lib, win_ip_lib.Netifaces)
 
-def _get_impl():
-    if os.name == 'nt':
-        return win_ip_lib.Netifaces()
-    else:
-        return linux_ip_lib.PyRoute2()
+    @mock.patch("os.name", "posix")
+    def test_get_impl_linux(self):
+        ip_lib = api._get_impl()
+        self.assertIsInstance(ip_lib, linux_ip_lib.PyRoute2)

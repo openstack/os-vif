@@ -17,29 +17,30 @@ import netifaces
 from oslo_log import log as logging
 
 from os_vif import exception
-
+from os_vif.internal.command.ip import ip_command
 
 LOG = logging.getLogger(__name__)
 
 
-def exists(device):
-    """Return True if the device exists in the namespace."""
-    try:
-        return bool(netifaces.ifaddresses(device))
-    except ValueError:
-        LOG.warning("The device does not exist on the system: %s", device)
-    except OSError:
-        LOG.error("Failed to get interface addresses: %s", device)
-    return False
+class Netifaces(ip_command.IpCommand):
 
+    def exists(self, device):
+        """Return True if the device exists in the namespace."""
+        try:
+            return bool(netifaces.ifaddresses(device))
+        except ValueError:
+            LOG.warning("The device does not exist on the system: %s", device)
+        except OSError:
+            LOG.error("Failed to get interface addresses: %s", device)
+            return False
 
-def set(*args):
-    exception.NotImplementedForOS(function='ip.set', os='Windows')
+    def set(self, device, check_exit_code=None, state=None, mtu=None,
+            address=None, promisc=None):
+        exception.NotImplementedForOS(function='ip.set', os='Windows')
 
+    def add(self, device, dev_type, check_exit_code=None, peer=None, link=None,
+            vlan_id=None):
+        exception.NotImplementedForOS(function='ip.add', os='Windows')
 
-def add(*args):
-    exception.NotImplementedForOS(function='ip.add', os='Windows')
-
-
-def delete(*args):
-    exception.NotImplementedForOS(function='ip.delete', os='Windows')
+    def delete(self, device, check_exit_code=None):
+        exception.NotImplementedForOS(function='ip.delete', os='Windows')

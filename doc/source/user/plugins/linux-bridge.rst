@@ -3,8 +3,8 @@ Linux Bridge
 ============
 
 The Linux Bridge plugin, ``vif_plug_linux_bridge``, is an *os-vif* VIF plugin
-for the Linux Bridge network backend. It is one of three plugins provided as part
-of *os-vif* itself, the others being :doc:`ovs` and :doc:`noop`.
+for the Linux Bridge network backend. It is one of three plugins provided as
+part of *os-vif* itself, the others being :doc:`ovs` and :doc:`noop`.
 
 Supported VIF Types
 -------------------

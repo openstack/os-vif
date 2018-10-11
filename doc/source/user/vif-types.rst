@@ -73,7 +73,8 @@ VIFHostDevice
 -------------
 
 This class provides a way to pass a physical device to the guest.  Either an
-entire physical device, or an SR-IOV PCI device virtual function, are permitted.
+entire physical device, or an SR-IOV PCI device virtual function, are
+permitted.
 
 .. _vif-nesteddpdk:
 
@@ -116,8 +117,8 @@ device supporting the :term:`802.1Qbh` spec.
 VIFPortProfileFPOpenVSwitch
 ---------------------------
 
-This profile provides the metadata required to associate a fast path :term:`vhost-user`
-VIF with an :term:`Open vSwitch` port.
+This profile provides the metadata required to associate a fast path
+:term:`vhost-user` VIF with an :term:`Open vSwitch` port.
 
 VIFPortProfileOVSRepresentor
 ----------------------------

@@ -11,7 +11,6 @@
 # under the License.
 
 import mock
-import sys
 import testtools
 
 from oslo_config import cfg
@@ -52,17 +51,17 @@ class BaseOVSTest(testtools.TestCase):
         calls = [mock.call('Interface', 'device', ('mtu_request', 1500))]
         self.mock_db_set.assert_has_calls(calls)
 
-    @mock.patch.object(sys, 'platform', return_value='linux')
+    @mock.patch('sys.platform', constants.PLATFORM_LINUX)
     @mock.patch.object(linux_net, 'set_device_mtu')
     def test__update_device_mtu_interface_not_vhostuser_linux(self,
-            mock_set_device_mtu, mock_platform):
+            mock_set_device_mtu):
         self.br.update_device_mtu('device', 1500, 'not_vhost')
         mock_set_device_mtu.assert_has_calls([mock.call('device', 1500)])
 
+    @mock.patch('sys.platform', constants.PLATFORM_WIN32)
     @mock.patch.object(linux_net, 'set_device_mtu')
     def test__update_device_mtu_interface_not_vhostuser_windows(self,
             mock_set_device_mtu):
-        sys.platform = constants.PLATFORM_WIN32
         self.br.update_device_mtu('device', 1500, 'not_vhost')
         mock_set_device_mtu.assert_not_called()
 

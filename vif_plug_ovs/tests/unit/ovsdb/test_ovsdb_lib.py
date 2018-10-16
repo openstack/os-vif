@@ -131,6 +131,13 @@ class BaseOVSTest(testtools.TestCase):
             [mock.call('device', bridge='bridge', if_exists=True)])
         mock_delete_net_dev.assert_has_calls([mock.call('device')])
 
+    @mock.patch.object(linux_net, 'delete_net_dev')
+    def test_delete_ovs_vif_port_no_delete_netdev(self, mock_delete_net_dev):
+        self.br.delete_ovs_vif_port('bridge', 'device', delete_netdev=False)
+        self.mock_del_port.assert_has_calls(
+            [mock.call('device', bridge='bridge', if_exists=True)])
+        mock_delete_net_dev.assert_not_called()
+
     def test_ensure_ovs_bridge(self):
         self.br.ensure_ovs_bridge('bridge', constants.OVS_DATAPATH_SYSTEM)
         self.mock_add_br('bridge', may_exist=True,

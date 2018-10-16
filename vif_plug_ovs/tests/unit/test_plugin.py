@@ -278,7 +278,8 @@ class PluginTest(testtools.TestCase):
         mock_sys.platform = constants.PLATFORM_WIN32
         plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
         plugin.unplug(vif, self.instance)
-        delete_ovs_vif_port.assert_called_once_with('br0', vif.id)
+        delete_ovs_vif_port.assert_called_once_with('br0', vif.id,
+                                                    delete_netdev=False)
 
     def test_unplug_ovs_windows(self):
         self._check_unplug_ovs_windows(self.vif_ovs)

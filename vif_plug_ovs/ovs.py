@@ -253,7 +253,8 @@ class OvsPlugin(plugin.PluginBase):
 
     def _unplug_vif_windows(self, vif, instance_info):
         """Remove port from OVS."""
-        self.ovsdb.delete_ovs_vif_port(vif.network.bridge, vif.id)
+        self.ovsdb.delete_ovs_vif_port(vif.network.bridge, vif.id,
+                                       delete_netdev=False)
 
     def _unplug_vf_passthrough(self, vif, instance_info):
         """Remove port from OVS."""

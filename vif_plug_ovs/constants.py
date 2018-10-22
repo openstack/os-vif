@@ -20,3 +20,6 @@ OVS_DATAPATH_SYSTEM = 'system'
 OVS_DATAPATH_NETDEV = 'netdev'
 
 PLATFORM_WIN32 = 'win32'
+
+# Neutron dead VLAN.
+DEAD_VLAN = 4095

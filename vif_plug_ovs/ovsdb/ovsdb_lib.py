@@ -64,7 +64,7 @@ class BaseOVS(object):
 
     def create_ovs_vif_port(self, bridge, dev, iface_id, mac, instance_id,
                             mtu=None, interface_type=None,
-                            vhost_server_path=None):
+                            vhost_server_path=None, tag=None):
         external_ids = {'iface-id': iface_id,
                         'iface-status': 'active',
                         'attached-mac': mac,
@@ -75,6 +75,8 @@ class BaseOVS(object):
         if vhost_server_path:
             col_values.append(('options',
                                {'vhost-server-path': vhost_server_path}))
+        if tag:
+            col_values.append(('tag', tag))
 
         with self.ovsdb.transaction() as txn:
             txn.add(self.ovsdb.add_port(bridge, dev))

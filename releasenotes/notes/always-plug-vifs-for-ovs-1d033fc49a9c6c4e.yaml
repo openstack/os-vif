@@ -22,3 +22,16 @@ security:
     will be required to fully address this bug.
 
     .. _bug 1734320: https://bugs.launchpad.net/neutron/+bug/1734320
+  - |
+    A new config option was introduced for the OVS VIF plugin.
+    The ``isolate_vif`` option was added as a partial mitigation of
+    `bug 1734320`_. The ``isolate_vif`` option defaults to ``False`` for
+    backwards compatibility with SDN controller based OpenStack deployments.
+    For all deployments using the reference implementation of ML2/OVS with
+    the neutron L2 agents, ``isolate_vif`` should be set to ``True``.
+    This option instructs the OVS plugin to assign the VIF to the
+    Neutron dead VLAN (4095) when attaching the interface to OVS. By setting
+    the VIF's VLAN to this dead VLAN number, we eliminate the small attack
+    vector that exists for other tenants to read packets during the VIF's
+    bring up.
+

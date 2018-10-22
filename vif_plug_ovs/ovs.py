@@ -68,6 +68,23 @@ class OvsPlugin(plugin.PluginBase):
                    choices=list(ovsdb_api.interface_map),
                    default='vsctl',
                    help='The interface for interacting with the OVSDB'),
+        # Note(sean-k-mooney): This value is a bool for two reasons.
+        # First I want to allow this config option to be reusable with
+        # non ml2/ovs deployment in the future if required, as such I do not
+        # want to encode how the isolation is done in the config option.
+        # Second in the case of ml2/ovs the isolation is based on VLAN tags.
+        # The 802.1Q IEEE spec that defines the VLAN format reserved two VLAN
+        # id values, VLAN ID 0 means the packet is a member of no VLAN
+        # and VLAN ID 4095 is reserved for implementation defined use.
+        # Using VLAN ID 0 would not provide isolation and all other VLAN IDs
+        # except VLAN ID 4095 are valid for the ml2/ovs agent to use for a
+        # tenant network's local VLAN ID. As such only VLAN ID 4095 is valid
+        # to use for vif isolation which is defined in Neutron as the
+        # dead VLAN, a VLAN on which all traffic will be dropped.
+        cfg.BoolOpt('isolate_vif', default=False,
+                    help='Controls if VIF should be isolated when plugged '
+                    'to the ovs bridge. This should only be set to True '
+                    'when using the neutron ovs ml2 agent.')
     )
 
     def __init__(self, config):
@@ -128,6 +145,20 @@ class OvsPlugin(plugin.PluginBase):
 
     def _create_vif_port(self, vif, vif_name, instance_info, **kwargs):
         mtu = self._get_mtu(vif)
+        # Note(sean-k-mooney): As part of a partial fix to bug #1734320
+        # we introduced the isolate_vif config option to enable isolation
+        # of the vif prior to neutron wiring up the interface. To do
+        # this we take advantage of the fact the ml2/ovs uses the
+        # implementation defined VLAN 4095 as a dead VLAN to indicate
+        # that all packets should be dropped. We only enable this
+        # behaviour conditionally as it is not portable to SDN based
+        # deployment such as ODL or OVN as such operator must opt-in
+        # to this behaviour by setting the isolate_vif config option.
+        # TODO(sean-k-mooney): Extend neutron to record what ml2 driver
+        # bound the interface in the vif binding details so isolation
+        # can be enabled automatically in the future.
+        if self.config.isolate_vif:
+            kwargs['tag'] = constants.DEAD_VLAN
         self.ovsdb.create_ovs_vif_port(
             vif.network.bridge,
             vif_name,

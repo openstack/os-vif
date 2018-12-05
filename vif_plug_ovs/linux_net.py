@@ -158,6 +158,7 @@ def ensure_bridge(bridge):
         processutils.execute('brctl', 'addbr', bridge)
         processutils.execute('brctl', 'setfd', bridge, 0)
         processutils.execute('brctl', 'stp', bridge, 'off')
+        processutils.execute('brctl', 'setageing', bridge, 0)
         syspath = '/sys/class/net/%s/bridge/multicast_snooping'
         syspath = syspath % bridge
         processutils.execute('tee', syspath, process_input='0',

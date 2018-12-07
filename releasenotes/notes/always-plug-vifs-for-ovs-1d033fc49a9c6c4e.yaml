@@ -1,0 +1,24 @@
+---
+features:
+  - |
+    In this release the OVS plugin was extended to always plug VIFs even when
+    libvirt could plug the vif. This will enable faster migration leveraging
+    the multiple port bindings work completed in the Rocky release.
+security:
+  - |
+    In this release an edgecase where libvirt plugged the VIF instead of os-vif
+    was addressed. Previously if ``ovs_hybrid_plug`` was set to ``False`` in
+    the port binding details, os-vif would only ensure the ovs bridge existed
+    and the plugging would be done by libvirt. As a result during live
+    migration, there was a short interval where a guest could receive tagged
+    broadcast, multicast, or flooded traffic to/from another tenant.
+    This vulnerability is described in `bug 1734320`_. By ensuring that
+    os-vif always creates the OVS port as part of vif plugging we enable
+    neutron to isolate the port prior to nova resuming the VM on the
+    destination node. Note that as Nova cannot rely on Neutron to send
+    ``network-vif-plugged`` events on completion of wiring up an interface
+    it cannot wait to receive a notification before proceeding with the
+    migration. As a result this is a partial mitigation and additional changes
+    will be required to fully address this bug.
+
+    .. _bug 1734320: https://bugs.launchpad.net/neutron/+bug/1734320

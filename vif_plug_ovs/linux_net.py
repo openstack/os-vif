@@ -66,6 +66,7 @@ def interface_in_bridge(bridge, device):
                           {'bridge': bridge, 'device': device})
 
 
+@privsep.vif_plug.entrypoint
 def delete_net_dev(dev):
     """Delete a network device only if it exists."""
     if ip_lib.exists(dev):
@@ -139,7 +140,8 @@ def add_bridge_port(bridge, dev):
 @privsep.vif_plug.entrypoint
 def set_device_mtu(dev, mtu):
     """Set the device MTU."""
-    ip_lib.set(dev, mtu=mtu, check_exit_code=[0, 2, 254])
+    if ip_lib.exists(dev):
+        ip_lib.set(dev, mtu=mtu, check_exit_code=[0, 2, 254])
 
 
 @privsep.vif_plug.entrypoint

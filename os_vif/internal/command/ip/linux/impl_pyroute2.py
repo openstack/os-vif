@@ -40,61 +40,61 @@ class PyRoute2(ip_command.IpCommand):
     def set(self, device, check_exit_code=None, state=None, mtu=None,
             address=None, promisc=None):
         check_exit_code = check_exit_code or []
-        ip = iproute.IPRoute()
-        idx = ip.link_lookup(ifname=device)
-        if not idx:
-            raise exception.NetworkInterfaceNotFound(interface=device)
-        idx = idx[0]
+        with iproute.IPRoute() as ip:
+            idx = ip.link_lookup(ifname=device)
+            if not idx:
+                raise exception.NetworkInterfaceNotFound(interface=device)
+            idx = idx[0]
 
-        args = {'index': idx}
-        if state:
-            args['state'] = state
-        if mtu:
-            args['mtu'] = mtu
-        if address:
-            args['address'] = address
-        if promisc is not None:
-            flags = ip.link('get', index=idx)[0]['flags']
-            args['flags'] = (utils.set_mask(flags, ifinfmsg.IFF_PROMISC)
-                             if promisc is True else
-                             utils.unset_mask(flags, ifinfmsg.IFF_PROMISC))
+            args = {'index': idx}
+            if state:
+                args['state'] = state
+            if mtu:
+                args['mtu'] = mtu
+            if address:
+                args['address'] = address
+            if promisc is not None:
+                flags = ip.link('get', index=idx)[0]['flags']
+                args['flags'] = (utils.set_mask(flags, ifinfmsg.IFF_PROMISC)
+                                 if promisc is True else
+                                 utils.unset_mask(flags, ifinfmsg.IFF_PROMISC))
 
-        if isinstance(check_exit_code, int):
-            check_exit_code = [check_exit_code]
+            if isinstance(check_exit_code, int):
+                check_exit_code = [check_exit_code]
 
-        return self._ip_link(ip, 'set', check_exit_code, **args)
+            return self._ip_link(ip, 'set', check_exit_code, **args)
 
     def add(self, device, dev_type, check_exit_code=None, peer=None, link=None,
             vlan_id=None):
         check_exit_code = check_exit_code or []
-        ip = iproute.IPRoute()
-        args = {'ifname': device,
-                'kind': dev_type}
-        if self.TYPE_VLAN == dev_type:
-            args['vlan_id'] = vlan_id
-            idx = ip.link_lookup(ifname=link)
-            if 0 == len(idx):
-                raise exception.NetworkInterfaceNotFound(interface=link)
-            args['link'] = idx[0]
-        elif self.TYPE_VETH == dev_type:
-            args['peer'] = peer
-        else:
-            raise exception.NetworkInterfaceTypeNotDefined(type=dev_type)
+        with iproute.IPRoute() as ip:
+            args = {'ifname': device,
+                    'kind': dev_type}
+            if self.TYPE_VLAN == dev_type:
+                args['vlan_id'] = vlan_id
+                idx = ip.link_lookup(ifname=link)
+                if 0 == len(idx):
+                    raise exception.NetworkInterfaceNotFound(interface=link)
+                args['link'] = idx[0]
+            elif self.TYPE_VETH == dev_type:
+                args['peer'] = peer
+            else:
+                raise exception.NetworkInterfaceTypeNotDefined(type=dev_type)
 
-        return self._ip_link(ip, 'add', check_exit_code, **args)
+            return self._ip_link(ip, 'add', check_exit_code, **args)
 
     def delete(self, device, check_exit_code=None):
         check_exit_code = check_exit_code or []
-        ip = iproute.IPRoute()
-        idx = ip.link_lookup(ifname=device)
-        if len(idx) == 0:
-            raise exception.NetworkInterfaceNotFound(interface=device)
-        idx = idx[0]
+        with iproute.IPRoute() as ip:
+            idx = ip.link_lookup(ifname=device)
+            if len(idx) == 0:
+                raise exception.NetworkInterfaceNotFound(interface=device)
+            idx = idx[0]
 
-        return self._ip_link(ip, 'del', check_exit_code, **{'index': idx})
+            return self._ip_link(ip, 'del', check_exit_code, **{'index': idx})
 
     def exists(self, device):
         """Return True if the device exists."""
-        ip = iproute.IPRoute()
-        idx = ip.link_lookup(ifname=device)
-        return True if idx else False
+        with iproute.IPRoute() as ip:
+            idx = ip.link_lookup(ifname=device)
+            return True if idx else False

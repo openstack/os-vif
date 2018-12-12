@@ -181,3 +181,13 @@ class TestIpCommand(ShellIpCommands, base.BaseFunctionalTestCase):
         self.assertTrue(self.exist_device(device))
         _ip_cmd_delete(device)
         self.assertFalse(self.exist_device(device))
+
+    def test_iproute_object_closes_correctly(self):
+        # NOTE(ralonsoh): check https://bugs.launchpad.net/os-vif/+bug/1807949
+        device = "test_dev_9"
+        link = "test_devlink_2"
+        self.add_device(link, 'dummy')
+        self.addCleanup(self.del_device, 'dummy')
+        for _ in range(300):
+            _ip_cmd_add(device, 'vlan', link=link, vlan_id=100)
+            _ip_cmd_delete(device)

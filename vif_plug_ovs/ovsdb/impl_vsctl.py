@@ -366,8 +366,8 @@ def _set_colval_args(*col_values):
         if isinstance(val, collections.Mapping):
             args += ["%s:%s%s%s" % (
                 col, k, op, _py_to_val(v)) for k, v in val.items()]
-        elif (isinstance(val, collections.Sequence)
-                and not isinstance(val, six.string_types)):
+        elif (isinstance(val, collections.Sequence) and
+                not isinstance(val, six.string_types)):
             if len(val) == 0:
                 args.append("%s%s%s" % (col, op, "[]"))
             else:

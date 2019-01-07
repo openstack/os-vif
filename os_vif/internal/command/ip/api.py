@@ -13,16 +13,15 @@
 import os
 
 from oslo_log import log as logging
-from oslo_utils import importutils
+
+if os.name == 'nt':
+    from os_vif.internal.command.ip.windows.impl_netifaces import \
+        Netifaces as ip_lib_class
+else:
+    from os_vif.internal.command.ip.linux.impl_pyroute2 import \
+        PyRoute2 as ip_lib_class
 
 
 LOG = logging.getLogger(__name__)
 
-
-def _get_impl():
-    if os.name == 'nt':
-        impl = 'os_vif.internal.command.ip.windows.impl_netifaces.Netifaces'
-    else:
-        impl = 'os_vif.internal.command.ip.linux.impl_pyroute2.PyRoute2'
-
-    return importutils.import_object(impl)
+ip = ip_lib_class()

@@ -11,22 +11,28 @@
 #    under the License.
 
 import mock
-
-from os_vif.tests.unit import base
+from six import moves
 
 from os_vif.internal.command.ip import api
-from os_vif.internal.command.ip.linux import impl_pyroute2 as linux_ip_lib
-from os_vif.internal.command.ip.windows import impl_netifaces as win_ip_lib
+from os_vif.tests.unit import base
 
 
 class TestIpApi(base.TestCase):
 
-    @mock.patch("os.name", "nt")
-    def test_get_impl_windows(self):
-        ip_lib = api._get_impl()
-        self.assertIsInstance(ip_lib, win_ip_lib.Netifaces)
+    @staticmethod
+    def _reload_original_os_module():
+        moves.reload_module(api)
 
-    @mock.patch("os.name", "posix")
+    def test_get_impl_windows(self):
+        self.addCleanup(self._reload_original_os_module)
+        with mock.patch('os.name', 'nt'):
+            moves.reload_module(api)
+            from os_vif.internal.command.ip.windows import impl_netifaces
+            self.assertIsInstance(api.ip, impl_netifaces.Netifaces)
+
     def test_get_impl_linux(self):
-        ip_lib = api._get_impl()
-        self.assertIsInstance(ip_lib, linux_ip_lib.PyRoute2)
+        self.addCleanup(self._reload_original_os_module)
+        with mock.patch('os.name', 'posix'):
+            moves.reload_module(api)
+            from os_vif.internal.command.ip.linux import impl_pyroute2
+            self.assertIsInstance(api.ip, impl_pyroute2.PyRoute2)

@@ -16,24 +16,22 @@ from os_vif.internal.command.ip import api
 def set(device, check_exit_code=None, state=None, mtu=None, address=None,
         promisc=None):
     """Method to set a parameter in an interface."""
-    return api._get_impl().set(device, check_exit_code=check_exit_code,
-                               state=state, mtu=mtu, address=address,
-                               promisc=promisc)
+    return api.ip.set(device, check_exit_code=check_exit_code, state=state,
+                      mtu=mtu, address=address, promisc=promisc)
 
 
 def add(device, dev_type, check_exit_code=None, peer=None, link=None,
         vlan_id=None):
     """Method to add an interface."""
-    return api._get_impl().add(device, dev_type,
-                               check_exit_code=check_exit_code, peer=peer,
-                               link=link, vlan_id=vlan_id)
+    return api.ip.add(device, dev_type, check_exit_code=check_exit_code,
+                      peer=peer, link=link, vlan_id=vlan_id)
 
 
 def delete(device, check_exit_code=None):
     """Method to delete an interface."""
-    return api._get_impl().delete(device, check_exit_code=check_exit_code)
+    return api.ip.delete(device, check_exit_code=check_exit_code)
 
 
 def exists(device):
     """Method to check if an interface exists."""
-    return api._get_impl().exists(device)
+    return api.ip.exists(device)

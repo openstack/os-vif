@@ -15,7 +15,7 @@ import re
 from oslo_concurrency import processutils
 from oslo_utils import excutils
 
-from os_vif.internal.command.ip.linux import impl_pyroute2
+from os_vif.internal.command import ip as ip_lib
 from os_vif.tests.functional import base
 from os_vif.tests.functional import privsep
 
@@ -96,17 +96,17 @@ class ShellIpCommands(object):
 
 @privsep.os_vif_pctxt.entrypoint
 def _ip_cmd_set(*args, **kwargs):
-    impl_pyroute2.PyRoute2().set(*args, **kwargs)
+    ip_lib.set(*args, **kwargs)
 
 
 @privsep.os_vif_pctxt.entrypoint
 def _ip_cmd_add(*args, **kwargs):
-    impl_pyroute2.PyRoute2().add(*args, **kwargs)
+    ip_lib.add(*args, **kwargs)
 
 
 @privsep.os_vif_pctxt.entrypoint
 def _ip_cmd_delete(*args, **kwargs):
-    impl_pyroute2.PyRoute2().delete(*args, **kwargs)
+    ip_lib.delete(*args, **kwargs)
 
 
 class TestIpCommand(ShellIpCommands, base.BaseFunctionalTestCase):

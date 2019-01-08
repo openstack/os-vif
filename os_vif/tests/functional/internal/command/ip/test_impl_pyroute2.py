@@ -187,7 +187,8 @@ class TestIpCommand(ShellIpCommands, base.BaseFunctionalTestCase):
         device = "test_dev_9"
         link = "test_devlink_2"
         self.add_device(link, 'dummy')
-        self.addCleanup(self.del_device, 'dummy')
+        self.addCleanup(self.del_device, device)
+        self.addCleanup(self.del_device, link)
         for _ in range(300):
             _ip_cmd_add(device, 'vlan', link=link, vlan_id=100)
             _ip_cmd_delete(device)

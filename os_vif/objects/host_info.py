@@ -101,11 +101,10 @@ class HostVIFInfo(osv_base.VersionedObject, base.ComparableVersionedObject,
     }
 
     def obj_make_compatible(self, primitive, target_version):
-        super(HostVIFInfo, self).obj_make_compatible(primitive,
-                                                      target_version)
         target_version = versionutils.convert_version_to_tuple(target_version)
         if target_version < (1, 1) and 'supported_port_profiles' in primitive:
             del primitive['supported_port_profiles']
+        super(HostVIFInfo, self).obj_make_compatible(primitive, '1.0')
 
     def get_common_version(self):
         return _get_common_version(self.vif_object_name,

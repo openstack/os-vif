@@ -48,5 +48,6 @@ class Network(osv_base.VersionedObject):
 
     def obj_make_compatible(self, primitive, target_version):
         target_version = versionutils.convert_version_to_tuple(target_version)
-        if target_version < (1, 1):
-            primitive.pop('mtu', None)
+        if target_version < (1, 1) and 'mtu' in primitive:
+            del primitive['mtu']
+        super(Network, self).obj_make_compatible(primitive, '1.0')

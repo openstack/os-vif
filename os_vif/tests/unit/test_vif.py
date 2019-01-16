@@ -10,6 +10,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import warnings
+
 import os_vif
 from os_vif import objects
 from os_vif.tests.unit import base
@@ -52,6 +54,17 @@ class TestVIFS(base.TestCase):
                        vif_name="vif123",
                        bridge_name="br0")
 
+    def test_port_profile_base_backport_1_0(self):
+        datapath_offload = objects.vif.DatapathOffloadRepresentor(
+            representor_name="felix",
+            representor_address="0002:24:12.3")
+        obj = objects.vif.VIFPortProfileBase(
+            datapath_offload=datapath_offload)
+        primitive = obj.obj_to_primitive(target_version='1.0')
+        self.assertEqual('1.0', primitive['versioned_object.version'])
+        data = primitive['versioned_object.data']
+        self.assertNotIn('datapath_type', data)
+
     def test_vif_bridge_ovs(self):
         prof = objects.vif.VIFPortProfileOpenVSwitch(
             interface_id="07bd6cea-fb37-4594-b769-90fc51854ee9",
@@ -62,7 +75,7 @@ class TestVIFS(base.TestCase):
                        bridge_name="br0",
                        port_profile=prof)
 
-    def test_vif_bridge_ovs_backport_1_0(self):
+    def test_port_profile_ovs_backport_1_0(self):
         obj = objects.vif.VIFPortProfileOpenVSwitch(
             interface_id="07bd6cea-fb37-4594-b769-90fc51854ee9",
             profile_id="fishfood",
@@ -74,6 +87,24 @@ class TestVIFS(base.TestCase):
                          data['interface_id'])
         self.assertEqual('fishfood', data['profile_id'])
         self.assertNotIn('datapath_type', data)
+
+    def test_port_profile_ovs_backport_1_1(self):
+        datapath_offload = objects.vif.DatapathOffloadRepresentor(
+            representor_name="felix",
+            representor_address="0002:24:12.3")
+        obj = objects.vif.VIFPortProfileOpenVSwitch(
+            interface_id="07bd6cea-fb37-4594-b769-90fc51854ee9",
+            profile_id="fishfood",
+            datapath_type='netdev',
+            datapath_offload=datapath_offload)
+        primitive = obj.obj_to_primitive(target_version='1.1')
+        self.assertEqual('1.1', primitive['versioned_object.version'])
+        data = primitive['versioned_object.data']
+        self.assertEqual('07bd6cea-fb37-4594-b769-90fc51854ee9',
+                         data['interface_id'])
+        self.assertEqual('fishfood', data['profile_id'])
+        self.assertEqual('netdev', data['datapath_type'])
+        self.assertNotIn('datapath_offload', data)
 
     def test_vif_direct_plain(self):
         self._test_vif(objects.vif.VIFDirect,
@@ -118,7 +149,7 @@ class TestVIFS(base.TestCase):
                        vif_name="tap123",
                        port_profile=prof)
 
-    def test_vif_vhost_user_fp_ovs_backport_1_0(self):
+    def test_port_profile_fp_ovs_backport_1_0(self):
         obj = objects.vif.VIFPortProfileFPOpenVSwitch(
             interface_id="07bd6cea-fb37-4594-b769-90fc51854ee9",
             profile_id="fishfood",
@@ -135,6 +166,28 @@ class TestVIFS(base.TestCase):
         self.assertEqual(False, data['hybrid_plug'])
         self.assertNotIn('datapath_type', data)
 
+    def test_port_profile_fp_ovs_backport_1_1(self):
+        datapath_offload = objects.vif.DatapathOffloadRepresentor(
+            representor_name="felix",
+            representor_address="0002:24:12.3")
+        obj = objects.vif.VIFPortProfileFPOpenVSwitch(
+            interface_id="07bd6cea-fb37-4594-b769-90fc51854ee9",
+            profile_id="fishfood",
+            datapath_type='netdev',
+            bridge_name="br-int",
+            hybrid_plug=False,
+            datapath_offload=datapath_offload)
+        primitive = obj.obj_to_primitive(target_version='1.1')
+        self.assertEqual('1.1', primitive['versioned_object.version'])
+        data = primitive['versioned_object.data']
+        self.assertEqual('07bd6cea-fb37-4594-b769-90fc51854ee9',
+                         data['interface_id'])
+        self.assertEqual('fishfood', data['profile_id'])
+        self.assertEqual('br-int', data['bridge_name'])
+        self.assertEqual(False, data['hybrid_plug'])
+        self.assertEqual('netdev', data['datapath_type'])
+        self.assertNotIn('datapath_offload', data)
+
     def test_vif_vhost_user_ovs_representor(self):
         prof = objects.vif.VIFPortProfileOVSRepresentor(
             interface_id="07bd6cea-fb37-4594-b769-90fc51854ee8",
@@ -148,7 +201,7 @@ class TestVIFS(base.TestCase):
                        vif_name="tap123",
                        port_profile=prof)
 
-    def test_vif_vhost_user_ovs_representor_backport_1_0(self):
+    def test_port_profile_ovs_representor_backport_1_0(self):
         obj = objects.vif.VIFPortProfileOVSRepresentor(
             interface_id="07bd6cea-fb37-4594-b769-90fc51854ee9",
             profile_id="fishfood",
@@ -164,6 +217,41 @@ class TestVIFS(base.TestCase):
         self.assertEqual('tap123', data['representor_name'])
         self.assertEqual("0002:24:12.3", data['representor_address'])
         self.assertNotIn('datapath_type', data)
+
+    def test_port_profile_ovs_representor_backport_1_1(self):
+        datapath_offload = objects.vif.DatapathOffloadRepresentor(
+            representor_name="felix",
+            representor_address="0002:24:12.3")
+        obj = objects.vif.VIFPortProfileOVSRepresentor(
+            interface_id="07bd6cea-fb37-4594-b769-90fc51854ee9",
+            profile_id="fishfood",
+            datapath_type='netdev',
+            representor_name="tap123",
+            representor_address="0002:24:12.3",
+            datapath_offload=datapath_offload)
+        primitive = obj.obj_to_primitive(target_version='1.1')
+        self.assertEqual('1.1', primitive['versioned_object.version'])
+        data = primitive['versioned_object.data']
+        self.assertEqual('07bd6cea-fb37-4594-b769-90fc51854ee9',
+                         data['interface_id'])
+        self.assertEqual('fishfood', data['profile_id'])
+        self.assertEqual('tap123', data['representor_name'])
+        self.assertEqual("0002:24:12.3", data['representor_address'])
+        self.assertEqual('netdev', data['datapath_type'])
+        self.assertNotIn('datapath_offload', data)
+
+    def test_vif_vhost_user_generic_representor(self):
+        datapath_offload = objects.vif.DatapathOffloadRepresentor(
+            representor_name="felix",
+            representor_address="0002:24:12.3")
+        prof = objects.vif.VIFPortProfileBase(
+            datapath_offload=datapath_offload,
+            )
+        self._test_vif(objects.vif.VIFVHostUser,
+                       path="/some/socket.path",
+                       mode=objects.fields.VIFVHostUserMode.SERVER,
+                       vif_name="felix",
+                       port_profile=prof)
 
     def test_vif_vhost_user_fp_lb(self):
         prof = objects.vif.VIFPortProfileFPBridge(bridge_name="brq456")
@@ -204,3 +292,104 @@ class TestVIFS(base.TestCase):
             pci_adress="0002:24:12.3",
             dev_driver="virtio_pci",
             port_profile=prof)
+
+    def test_port_profile_fp_bridge_backport_1_0(self):
+        datapath_offload = objects.vif.DatapathOffloadRepresentor(
+            representor_name="felix",
+            representor_address="0002:24:12.3")
+        obj = objects.vif.VIFPortProfileFPBridge(
+            bridge_name='joe',
+            datapath_offload=datapath_offload)
+        primitive = obj.obj_to_primitive(target_version='1.0')
+        self.assertEqual('1.0', primitive['versioned_object.version'])
+        data = primitive['versioned_object.data']
+        self.assertEqual('joe', data['bridge_name'])
+        self.assertNotIn('datapath_type', data)
+
+    def test_port_profile_fp_tap_backport_1_0(self):
+        datapath_offload = objects.vif.DatapathOffloadRepresentor(
+            representor_name="felix",
+            representor_address="0002:24:12.3")
+        obj = objects.vif.VIFPortProfileFPTap(
+            mac_address='00:de:ad:be:ef:01',
+            datapath_offload=datapath_offload)
+        primitive = obj.obj_to_primitive(target_version='1.0')
+        self.assertEqual('1.0', primitive['versioned_object.version'])
+        data = primitive['versioned_object.data']
+        self.assertEqual('00:de:ad:be:ef:01', data['mac_address'])
+        self.assertNotIn('datapath_type', data)
+
+    def test_port_profile_8021qbg_backport_1_0(self):
+        datapath_offload = objects.vif.DatapathOffloadRepresentor(
+            representor_name="felix",
+            representor_address="0002:24:12.3")
+        obj = objects.vif.VIFPortProfile8021Qbg(
+            manager_id=42,
+            type_id=43,
+            type_id_version=44,
+            instance_id='07bd6cea-fb37-4594-b769-90fc51854ee9',
+            datapath_offload=datapath_offload)
+        primitive = obj.obj_to_primitive(target_version='1.0')
+        self.assertEqual('1.0', primitive['versioned_object.version'])
+        data = primitive['versioned_object.data']
+        self.assertEqual(42, data['manager_id'])
+        self.assertEqual(43, data['type_id'])
+        self.assertEqual(44, data['type_id_version'])
+        self.assertEqual('07bd6cea-fb37-4594-b769-90fc51854ee9',
+                         data['instance_id'])
+        self.assertNotIn('datapath_type', data)
+
+    def test_port_profile_8021qbh_backport_1_0(self):
+        datapath_offload = objects.vif.DatapathOffloadRepresentor(
+            representor_name="felix",
+            representor_address="0002:24:12.3")
+        obj = objects.vif.VIFPortProfile8021Qbh(
+            profile_id='catfood',
+            datapath_offload=datapath_offload)
+        primitive = obj.obj_to_primitive(target_version='1.0')
+        self.assertEqual('1.0', primitive['versioned_object.version'])
+        data = primitive['versioned_object.data']
+        self.assertEqual('catfood', data['profile_id'])
+        self.assertNotIn('datapath_type', data)
+
+    def test_port_profile_dpdk_k8s_backport_1_0(self):
+        datapath_offload = objects.vif.DatapathOffloadRepresentor(
+            representor_name="felix",
+            representor_address="0002:24:12.3")
+        obj = objects.vif.VIFPortProfileK8sDPDK(
+            l3_setup=False,
+            selflink="/some/url",
+            resourceversion="1",
+            datapath_offload=datapath_offload)
+        primitive = obj.obj_to_primitive(target_version='1.0')
+        self.assertEqual('1.0', primitive['versioned_object.version'])
+        data = primitive['versioned_object.data']
+        self.assertEqual(False, data['l3_setup'])
+        self.assertEqual("/some/url", data['selflink'])
+        self.assertEqual("1", data['resourceversion'])
+        self.assertNotIn('datapath_type', data)
+
+    def test_vif_host_dev_ovs_offload(self):
+        datapath_offload = objects.vif.DatapathOffloadRepresentor(
+            representor_name="felix",
+            representor_address="0002:24:12.3")
+        prof = objects.vif.VIFPortProfileOpenVSwitch(
+            interface_id="07bd6cea-fb37-4594-b769-90fc51854ee8",
+            profile_id="fishfood",
+            datapath_type='netdev',
+            datapath_offload=datapath_offload)
+        self._test_vif(
+            objects.vif.VIFHostDevice,
+            dev_type=objects.fields.VIFHostDeviceDevType.ETHERNET,
+            dev_address="0002:24:12.3",
+            port_profile=prof)
+
+    def test_pending_warnings_emitted_class_direct(self):
+        with warnings.catch_warnings(record=True) as capture:
+            warnings.simplefilter("always")
+            pp = objects.vif.VIFPortProfileOVSRepresentor()
+        self.assertEqual(1, len(capture))
+        w = capture[0]
+        self.assertEqual(PendingDeprecationWarning, w.category)
+        self.assertEqual(pp.VERSION,
+            objects.vif.VIFPortProfileOVSRepresentor.VERSION)

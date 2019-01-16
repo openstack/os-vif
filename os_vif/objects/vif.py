@@ -10,6 +10,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from debtcollector import removals
+
 from oslo_utils import versionutils
 from oslo_versionedobjects import base
 from oslo_versionedobjects import fields
@@ -178,10 +180,44 @@ class VIFNestedDPDK(VIFBase):
 
 
 @base.VersionedObjectRegistry.register
+class DatapathOffloadBase(osv_base.VersionedObject,
+                              base.ComparableVersionedObject):
+    # Base class for all types of datapath offload
+    VERSION = '1.0'
+
+
+@base.VersionedObjectRegistry.register
+class DatapathOffloadRepresentor(DatapathOffloadBase):
+    # Offload type for VF Representors conforming to the switchdev model
+    VERSION = '1.0'
+
+    fields = {
+        # Name to set on the representor (if set)
+        'representor_name': fields.StringField(nullable=True),
+
+        # The PCI address of the Virtual Function
+        'representor_address': fields.StringField(nullable=True),
+    }
+
+
+@base.VersionedObjectRegistry.register
 class VIFPortProfileBase(osv_base.VersionedObject,
                          base.ComparableVersionedObject):
     # Base class for all types of port profile
-    VERSION = '1.0'
+    # Version 1.0: Initial release
+    # Version 1.1: Added 'datapath_offload'
+    VERSION = '1.1'
+
+    fields = {
+        # Datapath offload type of the port
+        'datapath_offload': fields.ObjectField('DatapathOffloadBase',
+                                                nullable=True,
+                                                subclasses=True),
+    }
+
+    obj_relationships = {
+        'datapath_offload': (('1.1', '1.0'),),
+    }
 
 
 @base.VersionedObjectRegistry.register
@@ -189,7 +225,8 @@ class VIFPortProfileOpenVSwitch(VIFPortProfileBase):
     # Port profile info for OpenVSwitch networks
     # Version 1.0: Initial release
     # Version 1.1: Added 'datapath_type'
-    VERSION = '1.1'
+    # Version 1.2: VIFPortProfileBase updated to 1.1
+    VERSION = '1.2'
 
     fields = {
         'interface_id': fields.UUIDField(),
@@ -205,6 +242,9 @@ class VIFPortProfileOpenVSwitch(VIFPortProfileBase):
         target_version = versionutils.convert_version_to_tuple(target_version)
         if target_version < (1, 1) and 'datapath_type' in primitive:
             del primitive['datapath_type']
+        if target_version < (1, 2):
+            super(VIFPortProfileOpenVSwitch, self).obj_make_compatible(
+                primitive, "1.0")
 
 
 @base.VersionedObjectRegistry.register
@@ -212,7 +252,8 @@ class VIFPortProfileFPOpenVSwitch(VIFPortProfileOpenVSwitch):
     # Port profile info for OpenVSwitch networks using fastpath
     # Version 1.0: Initial release
     # Version 1.1: VIFPortProfileOpenVSwitch updated to 1.1
-    VERSION = '1.1'
+    # Version 1.2: VIFPortProfileOpenVSwitch updated to 1.2
+    VERSION = '1.2'
 
     fields = {
         # Name of the bridge (managed by fast path) to connect to
@@ -227,14 +268,23 @@ class VIFPortProfileFPOpenVSwitch(VIFPortProfileOpenVSwitch):
         if target_version < (1, 1):
             super(VIFPortProfileFPOpenVSwitch, self).obj_make_compatible(
                 primitive, "1.0")
+        if target_version < (1, 2):
+            super(VIFPortProfileFPOpenVSwitch, self).obj_make_compatible(
+                primitive, "1.1")
 
 
+@removals.removed_class("VIFPortProfileOVSRepresentor",
+                        category=PendingDeprecationWarning)
 @base.VersionedObjectRegistry.register
 class VIFPortProfileOVSRepresentor(VIFPortProfileOpenVSwitch):
     # Port profile info for OpenVSwitch networks using a representor
+    # This class is now frozen and retained for backwards compatibility. The
+    # 'datapath_offload' field in port profiles should be used instead.
+    #
     # Version 1.0: Initial release
     # Version 1.1: VIFPortProfileOpenVSwitch updated to 1.1
-    VERSION = '1.1'
+    # Version 1.2: VIFPortProfileOpenVSwitch updated to 1.2
+    VERSION = '1.2'
 
     fields = {
         # Name to set on the representor (if set)
@@ -249,37 +299,58 @@ class VIFPortProfileOVSRepresentor(VIFPortProfileOpenVSwitch):
         if target_version < (1, 1):
             super(VIFPortProfileOVSRepresentor, self).obj_make_compatible(
                 primitive, "1.0")
+        if target_version < (1, 2):
+            super(VIFPortProfileOVSRepresentor, self).obj_make_compatible(
+                primitive, "1.1")
 
 
 @base.VersionedObjectRegistry.register
 class VIFPortProfileFPBridge(VIFPortProfileBase):
     # Port profile info for LinuxBridge networks using fastpath
-
-    VERSION = '1.0'
+    #
+    # Version 1.0: Initial release
+    # Version 1.1: VIFPortProfileBase updated to 1.1
+    VERSION = '1.1'
 
     fields = {
         # Name of the bridge (managed by fast path) to connect to
         'bridge_name': fields.StringField(),
     }
 
+    def obj_make_compatible(self, primitive, target_version):
+        target_version = versionutils.convert_version_to_tuple(target_version)
+        if target_version < (1, 1):
+            super(VIFPortProfileFPBridge, self).obj_make_compatible(
+                primitive, "1.0")
+
 
 @base.VersionedObjectRegistry.register
 class VIFPortProfileFPTap(VIFPortProfileBase):
     # Port profile info for Calico networks using fastpath
-
-    VERSION = '1.0'
+    #
+    # Version 1.0: Initial release
+    # Version 1.1: VIFPortProfileBase updated to 1.1
+    VERSION = '1.1'
 
     fields = {
         # The mac address of the host vhostuser port
         'mac_address': fields.MACAddressField(nullable=True),
     }
 
+    def obj_make_compatible(self, primitive, target_version):
+        target_version = versionutils.convert_version_to_tuple(target_version)
+        if target_version < (1, 1):
+            super(VIFPortProfileFPTap, self).obj_make_compatible(
+                primitive, "1.0")
+
 
 @base.VersionedObjectRegistry.register
 class VIFPortProfile8021Qbg(VIFPortProfileBase):
     # Port profile info for VEPA 802.1qbg networks
-
-    VERSION = '1.0'
+    #
+    # Version 1.0: Initial release
+    # Version 1.1: VIFPortProfileBase updated to 1.1
+    VERSION = '1.1'
 
     fields = {
         'manager_id': fields.IntegerField(),
@@ -288,23 +359,39 @@ class VIFPortProfile8021Qbg(VIFPortProfileBase):
         'instance_id': fields.UUIDField(),
     }
 
+    def obj_make_compatible(self, primitive, target_version):
+        target_version = versionutils.convert_version_to_tuple(target_version)
+        if target_version < (1, 1):
+            super(VIFPortProfile8021Qbg, self).obj_make_compatible(
+                primitive, "1.0")
+
 
 @base.VersionedObjectRegistry.register
 class VIFPortProfile8021Qbh(VIFPortProfileBase):
     # Port profile info for VEPA 802.1qbh networks
-
-    VERSION = '1.0'
+    #
+    # Version 1.0: Initial release
+    # Version 1.1: VIFPortProfileBase updated to 1.1
+    VERSION = '1.1'
 
     fields = {
         'profile_id': fields.StringField()
     }
 
+    def obj_make_compatible(self, primitive, target_version):
+        target_version = versionutils.convert_version_to_tuple(target_version)
+        if target_version < (1, 1):
+            super(VIFPortProfile8021Qbh, self).obj_make_compatible(
+                primitive, "1.0")
+
 
 @base.VersionedObjectRegistry.register
 class VIFPortProfileK8sDPDK(VIFPortProfileBase):
     # Port profile info for Kuryr-Kubernetes DPDK ports
-
-    VERSION = '1.0'
+    #
+    # Version 1.0: Initial release
+    # Version 1.1: VIFPortProfileBase updated to 1.1
+    VERSION = '1.1'
 
     fields = {
         # Specify whether this vif requires L3 setup.
@@ -317,3 +404,9 @@ class VIFPortProfileK8sDPDK(VIFPortProfileBase):
         # the server's internal version of this object.
         'resourceversion': fields.StringField()
     }
+
+    def obj_make_compatible(self, primitive, target_version):
+        target_version = versionutils.convert_version_to_tuple(target_version)
+        if target_version < (1, 1):
+            super(VIFPortProfileK8sDPDK, self).obj_make_compatible(
+                primitive, "1.0")

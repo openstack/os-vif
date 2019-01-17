@@ -56,11 +56,26 @@ class TestHostInfo(base.TestCase):
                         ),
                     ])
             ])
+        # https://bugs.launchpad.net/oslo.versionedobjects/+bug/1563787
+        self.host_info.obj_reset_changes(recursive=True)
 
     def test_serialization(self):
         json = self.host_info.obj_to_primitive()
+        self.assertEqual("os_vif", json["versioned_object.namespace"])
 
         host_info = objects.host_info.HostInfo.obj_from_primitive(json)
+        # Copied from test_vif.py:
+        #
+        # The __eq__ function works by using obj_to_primitive()
+        # and this includes a list of changed fields. Very
+        # occassionally the ordering of the list of changes
+        # varies, causing bogus equality failures. This is
+        # arguably a bug in oslo.versionedobjects since the
+        # set of changes fields should not affect equality
+        # comparisons. Remove this hack once this is fixed:
+        #
+        # https://bugs.launchpad.net/oslo.versionedobjects/+bug/1563787
+        host_info.obj_reset_changes(recursive=True)
 
         self.assertEqual(self.host_info, host_info)
 

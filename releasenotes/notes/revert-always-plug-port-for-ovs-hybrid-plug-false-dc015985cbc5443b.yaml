@@ -1,0 +1,17 @@
+---
+security:
+  - |
+    In 1.13.0 it was reported that bug #1734320 was partially resolved by
+    change Iaf15fa7a678ec2624f7c12f634269c465fbad930. It has since emerged
+    that that change introduced another bug due to an interaction with
+    libvirt. It was understood that libvirt would not recreate the ovs port
+    if it was present on the ovs bridge when spawning a vm however on
+    inspection of the libvirt code this is not the case. In this release
+    we have reverted the change to os-vif and libvirt will be the only
+    entity to create the ovs port when vif_type is set to ovs and
+    hybrid_plug is set to false in the neutron port binding details.
+    Bug #1734320 is not expected to be present if hybrid_plug=true or
+    vif_type vhost-user is used on linux. On windows if hybrid_plug is false
+    on bug #1734320 is also not expected to be present. A new mitigation to
+    bug #1734320 will be developed for the remaining case of
+    hybrid_plug=false on linux.

@@ -68,7 +68,7 @@ class OvsPlugin(plugin.PluginBase):
                    choices=list(ovsdb_api.interface_map),
                    default='vsctl',
                    help='The interface for interacting with the OVSDB'),
-        # Note(sean-k-mooney): This value is a bool for two reasons.
+        # NOTE(sean-k-mooney): This value is a bool for two reasons.
         # First I want to allow this config option to be reusable with
         # non ml2/ovs deployment in the future if required, as such I do not
         # want to encode how the isolation is done in the config option.
@@ -145,7 +145,7 @@ class OvsPlugin(plugin.PluginBase):
 
     def _create_vif_port(self, vif, vif_name, instance_info, **kwargs):
         mtu = self._get_mtu(vif)
-        # Note(sean-k-mooney): As part of a partial fix to bug #1734320
+        # NOTE(sean-k-mooney): As part of a partial fix to bug #1734320
         # we introduced the isolate_vif config option to enable isolation
         # of the vif prior to neutron wiring up the interface. To do
         # this we take advantage of the fact the ml2/ovs uses the
@@ -232,7 +232,20 @@ class OvsPlugin(plugin.PluginBase):
         """Create a per-VIF OVS port."""
         self.ovsdb.ensure_ovs_bridge(vif.network.bridge,
                                      self._get_vif_datapath_type(vif))
-        self._create_vif_port(vif, vif.vif_name, instance_info)
+        # NOTE(sean-k-mooney): as part of a partial revert of
+        # change Iaf15fa7a678ec2624f7c12f634269c465fbad930
+        # (always create ovs port during plug), we stopped calling
+        # self._create_vif_port(vif, vif.vif_name, instance_info).
+        # Calling _create_vif_port here was intended to ensure
+        # that the vif was wired up by neutron before the vm was
+        # spawned on boot or live migration to partially resolve
+        # #1734320. When the "always create ovs port during plug" change
+        # was written it was understood by me that libvirt would not
+        # modify ovs if the port exists but in fact it deletes and
+        # recreates the port. This both undoes the effort to resolve
+        # bug #1734320 and intoduces other issues for neutron.
+        # this comment will be removed when we actully fix #1734320 in
+        # all cases.
 
     def _plug_vf_passthrough(self, vif, instance_info):
         self.ovsdb.ensure_ovs_bridge(
@@ -294,6 +307,9 @@ class OvsPlugin(plugin.PluginBase):
 
     def _unplug_vif_generic(self, vif, instance_info):
         """Remove port from OVS."""
+        # NOTE(sean-k-mooney): even with the partial revert of change
+        # Iaf15fa7a678ec2624f7c12f634269c465fbad930 this should be correct
+        # so this is not removed.
         self.ovsdb.delete_ovs_vif_port(vif.network.bridge, vif.vif_name)
 
     def _unplug_vf_passthrough(self, vif, instance_info):

@@ -176,8 +176,9 @@ class PluginTest(testtools.TestCase):
         plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
         plugin._plug_vif_generic(self.vif_ovs, self.instance)
         ensure_bridge.assert_called_once()
-        create_port.assert_called_once_with(self.vif_ovs,
-            self.vif_ovs.vif_name, self.instance)
+        # NOTE(sean-k-mooney): the interface will be plugged
+        # by libvirt so we assert _create_vif_port is not called.
+        create_port.assert_not_called()
 
     @mock.patch.object(linux_net, 'set_interface_state')
     @mock.patch.object(ovsdb_lib.BaseOVS, 'ensure_ovs_bridge')

@@ -109,6 +109,11 @@ def _ip_cmd_delete(*args, **kwargs):
     ip_lib.delete(*args, **kwargs)
 
 
+@privsep.os_vif_pctxt.entrypoint
+def _ip_cmd_exists(*args, **kwargs):
+    return ip_lib.exists(*args, **kwargs)
+
+
 class TestIpCommand(ShellIpCommands, base.BaseFunctionalTestCase):
 
     def setUp(self):
@@ -192,3 +197,11 @@ class TestIpCommand(ShellIpCommands, base.BaseFunctionalTestCase):
         for _ in range(300):
             _ip_cmd_add(device, 'vlan', link=link, vlan_id=100)
             _ip_cmd_delete(device)
+
+    def test_exists(self):
+        device = "test_dev_10"
+        self.addCleanup(self.del_device, device)
+        self.add_device(device, 'dummy')
+        self.assertTrue(_ip_cmd_exists(device))
+        self.del_device(device)
+        self.assertFalse(_ip_cmd_exists(device))

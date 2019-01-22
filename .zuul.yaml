@@ -21,11 +21,11 @@
       - release-notes-jobs-python3
     check:
       jobs:
-        - kuryr-kubernetes-tempest-daemon-octavia
+        - kuryr-kubernetes-tempest-daemon-octavia:
+            voting: false
         - openstack-tox-functional-with-sudo
         - os-vif-ovs
     gate:
       jobs:
-        - kuryr-kubernetes-tempest-daemon-octavia
         - openstack-tox-functional-with-sudo
         - os-vif-ovs

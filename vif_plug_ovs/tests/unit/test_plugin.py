@@ -61,6 +61,10 @@ class PluginTest(testtools.TestCase):
             interface_id='e65867e0-9340-4a7f-a256-09af6eb7a3aa',
             datapath_type='netdev')
 
+        self.profile_ovs_smart_nic = objects.vif.VIFPortProfileOpenVSwitch(
+            interface_id='e65867e0-9340-4a7f-a256-09af6eb7a3aa',
+            create_port=True)
+
         self.profile_ovs_no_datatype = objects.vif.VIFPortProfileOpenVSwitch(
             interface_id='e65867e0-9340-4a7f-a256-09af6eb7a3aa',
             datapath_type='')
@@ -79,6 +83,13 @@ class PluginTest(testtools.TestCase):
             network=self.network_ovs,
             vif_name='tap-xxx-yyy-zzz',
             port_profile=self.profile_ovs)
+
+        self.vif_ovs_smart_nic = objects.vif.VIFOpenVSwitch(
+            id='b679325f-ca89-4ee0-a8be-6db1409b69ea',
+            address='ca:fe:de:ad:be:ef',
+            network=self.network_ovs,
+            vif_name='rep0-0',
+            port_profile=self.profile_ovs_smart_nic)
 
         self.vif_vhostuser = objects.vif.VIFVHostUser(
             id='b679325f-ca89-4ee0-a8be-6db1409b69ea',
@@ -445,3 +456,17 @@ class PluginTest(testtools.TestCase):
             calls['get_representor_port'])
         delete_ovs_vif_port.assert_has_calls(calls['delete_ovs_vif_port'])
         set_interface_state.assert_has_calls(calls['set_interface_state'])
+
+    @mock.patch.object(ovsdb_lib.BaseOVS, 'ensure_ovs_bridge')
+    @mock.patch.object(ovs.OvsPlugin, "_create_vif_port")
+    def test_plug_vif_ovs_smart_nic(self, create_port, ensure_bridge):
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
+        plugin.plug(self.vif_ovs_smart_nic, self.instance)
+        ensure_bridge.assert_called_once()
+        create_port.assert_called_once()
+
+    @mock.patch.object(ovs.OvsPlugin, '_unplug_vif_generic')
+    def test_unplug_vif_ovs_smart_nic(self, delete_port):
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
+        plugin.unplug(self.vif_ovs_smart_nic, self.instance)
+        delete_port.assert_called_once()

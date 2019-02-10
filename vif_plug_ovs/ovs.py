@@ -247,6 +247,13 @@ class OvsPlugin(plugin.PluginBase):
         # this comment will be removed when we actully fix #1734320 in
         # all cases.
 
+        # NOTE(hamdyk): As a WA to the above note, one can use
+        # VIFPortProfileOpenVSwitch.create_port flag to explicitly
+        # plug the port to the switch.
+        if ("create_port" in vif.port_profile and
+                vif.port_profile.create_port):
+            self._create_vif_port(vif, vif.vif_name, instance_info)
+
     def _plug_vf_passthrough(self, vif, instance_info):
         self.ovsdb.ensure_ovs_bridge(
             vif.network.bridge, constants.OVS_DATAPATH_SYSTEM)

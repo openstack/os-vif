@@ -205,3 +205,18 @@ class TestIpCommand(ShellIpCommands, base.BaseFunctionalTestCase):
         self.assertTrue(_ip_cmd_exists(device))
         self.del_device(device)
         self.assertFalse(_ip_cmd_exists(device))
+
+    def test_add_bridge(self):
+        device = "test_dev_11"
+        self.addCleanup(self.del_device, device)
+        _ip_cmd_add(device, 'bridge')
+        self.assertTrue(self.exist_device(device))
+        base_path = "/sys/class/net/test_dev_11/bridge/%s"
+        with open(base_path % "forward_delay", "r") as f:
+            self.assertEqual("0", f.readline().rstrip('\n'))
+        with open(base_path % "stp_state", "r") as f:
+            self.assertEqual("0", f.readline().rstrip('\n'))
+        with open(base_path % "ageing_time", "r") as f:
+            self.assertEqual("0", f.readline().rstrip('\n'))
+        with open(base_path % "multicast_snooping", "r") as f:
+            self.assertEqual("0", f.readline().rstrip('\n'))

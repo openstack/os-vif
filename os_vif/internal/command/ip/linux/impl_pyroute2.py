@@ -38,7 +38,7 @@ class PyRoute2(ip_command.IpCommand):
                     ctx.reraise = False
 
     def set(self, device, check_exit_code=None, state=None, mtu=None,
-            address=None, promisc=None):
+            address=None, promisc=None, master=None):
         check_exit_code = check_exit_code or []
         with iproute.IPRoute() as ip:
             idx = ip.link_lookup(ifname=device)
@@ -58,6 +58,8 @@ class PyRoute2(ip_command.IpCommand):
                 args['flags'] = (utils.set_mask(flags, ifinfmsg.IFF_PROMISC)
                                  if promisc is True else
                                  utils.unset_mask(flags, ifinfmsg.IFF_PROMISC))
+            if master:
+                args['master'] = master
 
             if isinstance(check_exit_code, int):
                 check_exit_code = [check_exit_code]
@@ -78,6 +80,16 @@ class PyRoute2(ip_command.IpCommand):
                 args['link'] = idx[0]
             elif self.TYPE_VETH == dev_type:
                 args['peer'] = peer
+            elif self.TYPE_BRIDGE == dev_type:
+                # NOTE(sean-k-mooney): the keys are defined in the pyroute2
+                # codebase but are not documented. see the nla_map field
+                # in the bridge_data class located in the
+                # pyroute2.netlink.rtnl.ifinfmsg module for mode details
+                # https://github.com/svinota/pyroute2/blob/3ba9cdde34b2346ef8c2f8ba17cef5dbeb4c6d52/pyroute2/netlink/rtnl/ifinfmsg/__init__.py#L776-L820
+                args['IFLA_BR_AGEING_TIME'] = 0  # disable mac learning ageing
+                args['IFLA_BR_FORWARD_DELAY'] = 0  # set no delay
+                args['IFLA_BR_STP_STATE'] = 0  # disable spanning tree
+                args['IFLA_BR_MCAST_SNOOPING'] = 0  # disable snooping
             else:
                 raise exception.NetworkInterfaceTypeNotDefined(type=dev_type)
 

@@ -30,6 +30,7 @@ class TestIpCommand(base.TestCase):
     UP = 'up'
     TYPE_VETH = 'veth'
     TYPE_VLAN = 'vlan'
+    TYPE_BRIDGE = 'bridge'
     LINK = 'device2'
     VLAN_ID = 14
 
@@ -91,6 +92,16 @@ class TestIpCommand(base.TestCase):
                     'vlan_id': self.VLAN_ID,
                     'link': 1}
             self.ip_link.assert_called_once_with('add', **args)
+
+    def test_add_bridge(self):
+        self.ip.add(self.DEVICE, self.TYPE_BRIDGE)
+        args = {'ifname': self.DEVICE,
+                'kind': self.TYPE_BRIDGE,
+                'IFLA_BR_AGEING_TIME': 0,
+                'IFLA_BR_FORWARD_DELAY': 0,
+                'IFLA_BR_STP_STATE': 0,
+                'IFLA_BR_MCAST_SNOOPING': 0}
+        self.ip_link.assert_called_once_with('add', **args)
 
     def test_add_vlan_no_interface_found(self):
         with mock.patch.object(iproute.IPRoute, 'link_lookup',

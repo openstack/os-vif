@@ -25,7 +25,6 @@ from os_vif.internal.command import ip as ip_lib
 from oslo_concurrency import lockutils
 from oslo_concurrency import processutils
 from oslo_log import log as logging
-from oslo_utils import excutils
 
 from vif_plug_linux_bridge import privsep
 
@@ -97,6 +96,59 @@ def ensure_bridge(bridge, interface, net_attrs=None, gateway=True,
         _ensure_bridge_filtering(bridge, gateway)
 
 
+# TODO(sean-k-mooney): extract into common module
+def _disable_ipv6(bridge):
+    """disable ipv6 for bridge if available, must be called from
+       privsep context.
+    :param bridge: string bridge name
+    """
+    disv6 = ('/proc/sys/net/ipv6/conf/%s/disable_ipv6' %
+             bridge)
+    if os.path.exists(disv6):
+        with open(disv6, 'w') as f:
+            f.write('1')
+
+
+def _update_bridge_routes(interface, bridge):
+    """Updates routing table for a given bridge and interface.
+    :param interface: string interface name
+    :param bridge: string bridge name
+    """
+    # TODO(sean-k-mooney): investigate deleting all this route
+    # handling code. The vm tap devices should never have an ip,
+    # this is old nova networks code and i dont think it will ever
+    # be needed in os-vif.
+    # NOTE(vish): This will break if there is already an ip on the
+    #             interface, so we move any ips to the bridge
+    # NOTE(danms): We also need to copy routes to the bridge so as
+    #              not to break existing connectivity on the interface
+    old_routes = []
+    out, err = processutils.execute('ip', 'route', 'show', 'dev',
+                                    interface)
+    for line in out.split('\n'):
+        fields = line.split()
+        if fields and 'via' in fields:
+            old_routes.append(fields)
+            processutils.execute('ip', 'route', 'del', *fields)
+            out, err = processutils.execute('ip', 'addr', 'show', 'dev',
+                                            interface, 'scope', 'global')
+    for line in out.split('\n'):
+        fields = line.split()
+        if fields and fields[0] == 'inet':
+            if fields[-2] in ('secondary', 'dynamic', ):
+                params = fields[1:-2]
+            else:
+                params = fields[1:-1]
+                processutils.execute(*_ip_bridge_cmd('del', params,
+                                                     fields[-1]),
+                                     check_exit_code=[0, 2, 254])
+                processutils.execute(*_ip_bridge_cmd('add', params,
+                                                     bridge),
+                                     check_exit_code=[0, 2, 254])
+    for fields in old_routes:
+        processutils.execute('ip', 'route', 'add', *fields)
+
+
 @privsep.vif_plug.entrypoint
 def _ensure_bridge_privileged(bridge, interface, net_attrs, gateway,
                               filtering=True, mtu=None):
@@ -118,70 +170,18 @@ def _ensure_bridge_privileged(bridge, interface, net_attrs, gateway,
     """
     if not ip_lib.exists(bridge):
         LOG.debug('Starting Bridge %s', bridge)
-        try:
-            processutils.execute('brctl', 'addbr', bridge)
-        except Exception:
-            with excutils.save_and_reraise_exception() as ectx:
-                ectx.reraise = not ip_lib.exists(bridge)
-        processutils.execute('brctl', 'setfd', bridge, 0)
-        # processutils.execute('brctl setageing %s 10' % bridge)
-        processutils.execute('brctl', 'stp', bridge, 'off')
-        disv6 = ('/proc/sys/net/ipv6/conf/%s/disable_ipv6' % bridge)
-        if os.path.exists(disv6):
-            processutils.execute('tee',
-                                 disv6,
-                                 process_input='1',
-                                 check_exit_code=[0, 1])
-        # (danwent) bridge device MAC address can't be set directly.
-        # instead it inherits the MAC address of the first device on the
-        # bridge, which will either be the vlan interface, or a
-        # physical NIC.
+        ip_lib.add(bridge, 'bridge')
+        _disable_ipv6(bridge)
         ip_lib.set(bridge, state='up')
 
-    if interface:
+    if interface and ip_lib.exists(interface):
         LOG.debug('Adding interface %(interface)s to bridge %(bridge)s',
                   {'interface': interface, 'bridge': bridge})
-        out, err = processutils.execute('brctl', 'addif', bridge,
-                                        interface, check_exit_code=False)
-        if (err and err != "device %s is already a member of a bridge; "
-              "can't enslave it to bridge %s.\n" % (interface, bridge)):
-            msg = _('Failed to add interface: %s') % err
-            raise Exception(msg)
-
-        ip_lib.set(interface, state='up')
+        ip_lib.set(interface, master=bridge, state='up',
+                   check_exit_code=[0, 2, 254])
 
         _set_device_mtu(interface, mtu)
-
-        # NOTE(vish): This will break if there is already an ip on the
-        #             interface, so we move any ips to the bridge
-        # NOTE(danms): We also need to copy routes to the bridge so as
-        #              not to break existing connectivity on the interface
-        old_routes = []
-        out, err = processutils.execute('ip', 'route', 'show', 'dev',
-                                        interface)
-        for line in out.split('\n'):
-            fields = line.split()
-            if fields and 'via' in fields:
-                old_routes.append(fields)
-                processutils.execute('ip', 'route', 'del', *fields)
-        out, err = processutils.execute('ip', 'addr', 'show', 'dev', interface,
-                                        'scope', 'global')
-        for line in out.split('\n'):
-            fields = line.split()
-            if fields and fields[0] == 'inet':
-                if fields[-2] in ('secondary', 'dynamic', ):
-                    params = fields[1:-2]
-                else:
-                    params = fields[1:-1]
-                processutils.execute(*_ip_bridge_cmd('del', params,
-                                                     fields[-1]),
-                                     check_exit_code=[0, 2, 254])
-                processutils.execute(*_ip_bridge_cmd('add', params,
-                                                     bridge),
-                                     check_exit_code=[0, 2, 254])
-        for fields in old_routes:
-            processutils.execute('ip', 'route', 'add', *fields)
-
+        _update_bridge_routes(interface, bridge)
         # NOTE(sean-k-mooney):
         # The bridge mtu cannont be set until after an
         # interface is added due to bug:

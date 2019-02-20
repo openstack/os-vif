@@ -18,7 +18,6 @@ import functools
 import inspect
 import os
 import six
-import string
 import sys
 
 import eventlet.timeout
@@ -74,8 +73,7 @@ def setup_logging():
 
 def sanitize_log_path(path):
     """Sanitize the string so that its log path is shell friendly"""
-    replace_map = string.maketrans(' ()', '-__')
-    return path.translate(replace_map)
+    return path.replace(' ', '-').replace('(', '_').replace(')', '_')
 
 
 # Test worker cannot survive eventlet's Timeout exception, which effectively

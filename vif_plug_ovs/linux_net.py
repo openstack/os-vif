@@ -35,16 +35,16 @@ from vif_plug_ovs import privsep
 
 LOG = logging.getLogger(__name__)
 
-VIRTFN_RE = re.compile("virtfn(\d+)")
+VIRTFN_RE = re.compile(r"virtfn(\d+)")
 
 # phys_port_name only contains the VF number
-INT_RE = re.compile("^(\d+)$")
+INT_RE = re.compile(r"^(\d+)$")
 # phys_port_name contains VF## or vf##
-VF_RE = re.compile("vf(\d+)", re.IGNORECASE)
+VF_RE = re.compile(r"vf(\d+)", re.IGNORECASE)
 # phys_port_name contains PF## or pf##
-PF_RE = re.compile("pf(\d+)", re.IGNORECASE)
+PF_RE = re.compile(r"pf(\d+)", re.IGNORECASE)
 # bus_info (bdf) contains <bus>:<dev>.<func>
-PF_FUNC_RE = re.compile("\.(\d+)", 0)
+PF_FUNC_RE = re.compile(r"\.(\d+)", 0)
 
 _SRIOV_TOTALVFS = "sriov_totalvfs"
 

@@ -106,6 +106,17 @@ class TestVIFS(base.TestCase):
         self.assertEqual('netdev', data['datapath_type'])
         self.assertNotIn('datapath_offload', data)
 
+    def test_port_profile_ovs_backport_1_2(self):
+        obj = objects.vif.VIFPortProfileOpenVSwitch(
+            interface_id="07bd6cea-fb37-4594-b769-90fc51854ee9",
+            create_port=True)
+        primitive = obj.obj_to_primitive(target_version='1.2')
+        self.assertEqual('1.2', primitive['versioned_object.version'])
+        data = primitive['versioned_object.data']
+        self.assertEqual('07bd6cea-fb37-4594-b769-90fc51854ee9',
+                         data['interface_id'])
+        self.assertNotIn('create_port', data)
+
     def test_vif_direct_plain(self):
         self._test_vif(objects.vif.VIFDirect,
                        vif_name="vif123",

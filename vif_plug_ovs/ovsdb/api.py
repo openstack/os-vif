@@ -10,7 +10,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import abc
+
 from oslo_utils import importutils
+import six
 
 
 interface_map = {
@@ -25,3 +28,15 @@ def get_instance(context, iface_name=None):
     iface = importutils.import_module(
         interface_map[iface_name or context.interface])
     return iface.api_factory(context)
+
+
+@six.add_metaclass(abc.ABCMeta)
+class ImplAPI(object):
+    @abc.abstractmethod
+    def has_table_column(self, table, column):
+        """Check if a column exists in a database table
+
+        :param table: (string) table name
+        :param column: (string) column name
+        :return: True if the column exists, False if not.
+        """

@@ -14,6 +14,13 @@ Glossary
 
      __ http://docs.projectcalico.org
 
+   Fast Path
+
+     When used, 6Wind's proprietary fast path technology behaves as a
+     transparent acceleration layer for traditional switches (:term:`Open
+     vSwitch`, :term:`Linux Bridge`) and for alternative networking mechanisms
+     (:term:`Calico`, Midonet).
+
    Linux Bridge
 
      The native networking "backend" found in Linux.

@@ -11,11 +11,9 @@ Supported VIF Types
 
 The Linux Bridge plugin provides support for the following VIF types:
 
-``VIFBridge``
+:mod:`~os_vif.objects.VIFBridge`
   Configuration where a guest is connected to a Linux bridge via a TAP device.
   This is the only supported configuration for this plugin.
-
-  Refer to :ref:`vif-bridge` for more information.
 
 For information on the VIF type objects, refer to :doc:`/user/vif-types`. Note
 that only the above VIF types are supported by this plugin.

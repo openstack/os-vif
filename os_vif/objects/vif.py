@@ -22,7 +22,12 @@ from os_vif.objects import fields as osv_fields
 
 @base.VersionedObjectRegistry.register
 class VIFBase(osv_base.VersionedObject, base.ComparableVersionedObject):
-    """Represents a virtual network interface."""
+    """Represents a virtual network interface.
+
+    The base VIF defines fields that are common to all types of VIF and
+    provides an association to the network the VIF is plugged into. It should
+    not be instantiated itself - use a subclass instead.
+    """
 
     # Version 1.0: Initial release
     VERSION = '1.0'
@@ -60,7 +65,8 @@ class VIFGeneric(VIFBase):
     """A generic-style VIF.
 
     Generic-style VIFs are unbound, floating TUN/TAP devices that should be
-    setup by the plugin, not the hypervisor.
+    setup by the plugin, not the hypervisor. The way the TAP device is
+    connected to the host network stack is explicitly left undefined.
 
     For libvirt drivers, this maps to type="ethernet" which just implies a bare
     TAP device with all setup delegated to the plugin.
@@ -79,8 +85,9 @@ class VIFGeneric(VIFBase):
 class VIFBridge(VIFBase):
     """A bridge-style VIF.
 
-    Bridge-style VIFs are bound to a linux bridge by the hypervisor. Other
-    devices may be bound to the same L2 virtual bridge.
+    Bridge-style VIFs are bound to a Linux host bridge by the hypervisor. This
+    provides Ethernet layer bridging, typically to the LAN. Other devices may
+    be bound to the same L2 virtual bridge.
 
     For libvirt drivers, this maps to type='bridge'.
     """
@@ -130,6 +137,15 @@ class VIFDirect(VIFBase):
     :class:`~os_vif.objects.vif.VIFHostDevice`, which allows the guest to
     directly connect to the VF.
 
+    The connection to the device may operate in one of a number of different
+    modes, :term:`VEPA` (either :term:`802.1Qbg` or :term:`802.1Qbh`),
+    passthrough (exclusive assignment of the host NIC) or bridge (ethernet
+    layer bridging of traffic). The passthrough mode would be used when there
+    is a network device which needs to have a MAC address or VLAN
+    configuration. For passthrough of network devices without MAC/VLAN
+    configuration, :class:`~os_vif.objects.vif.VIFHostDevice` should be used
+    instead.
+
     For libvirt drivers, this maps to type='direct'
     """
 
@@ -155,11 +171,11 @@ class VIFDirect(VIFBase):
 class VIFVHostUser(VIFBase):
     """A vhostuser-style VIF.
 
-    vhostuser-style VIFs utilize a userspace vhost backend, which allows
-    traffic to traverse between the guest and a host userspace application
-    (commonly a virtual switch), bypassing the kernel network stack. Contrast
-    this with :class:`~os_vif.objects.vif.VIFBridge`, where all packets must be
-    handled by the hypervisor.
+    vhostuser-style VIFs utilize a :term:`userspace vhost <vhost-user>`
+    backend, which allows traffic to traverse between the guest and a host
+    userspace application (commonly a virtual switch), bypassing the kernel
+    network stack. Contrast this with :class:`~os_vif.objects.vif.VIFBridge`,
+    where all packets must be handled by the hypervisor.
 
     For libvirt drivers, this maps to type='vhostuser'
     """
@@ -190,9 +206,10 @@ class VIFVHostUser(VIFBase):
 class VIFHostDevice(VIFBase):
     """A hostdev-style VIF.
 
-    Hostdev-style VIFs provide a guest with direct access to an SR-IOV Virtual
-    Function (VF). Contrast this with :class:`~ovs_vif.objects.vif.VIFDirect`,
-    which includes a software layer between the VF and the guest.
+    Hostdev-style VIFs provide a guest with direct access to an :term:`SR-IOV`
+    :term:`Virtual Function` (VF) or an entire :term:`Physical Function` (PF).
+    Contrast this with :class:`~ovs_vif.objects.vif.VIFDirect`, which includes
+    a software layer between the interface and the guest.
 
     For libvirt drivers, this maps to type='hostdev'
     """
@@ -216,9 +233,15 @@ class VIFHostDevice(VIFBase):
 
 @base.VersionedObjectRegistry.register
 class VIFNestedDPDK(VIFBase):
-    """TODO.
+    """A nested DPDK-style VIF.
 
-    For kuryr-kubernetes nested DPDK interfaces.
+    Nested DPDK-style VIFs are used by Kuryr-Kubernetes to provide accelerated
+    DPDK datapath for nested Kubernetes pods running inside the VM. The port
+    is first attached to the virtual machine, bound to the userspace driver
+    (e.g. ``uio_pci_generic``, ``igb_uio`` or ``vfio-pci``) and then consumed
+    by Kubernetes pod via the kuryr-kubernetes CNI plugin.
+
+    This does not apply to libvirt drivers.
     """
 
     # Version 1.0: Initial release

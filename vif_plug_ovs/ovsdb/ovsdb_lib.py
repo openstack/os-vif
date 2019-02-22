@@ -31,9 +31,7 @@ class BaseOVS(object):
         self.ovsdb = ovsdb_api.get_instance(self)
 
     def _ovs_supports_mtu_requests(self):
-        return bool(self.ovsdb.db_list(
-            'Interface', columns=['mtu_request']).execute(check_error=True,
-                                                          log_errors=True))
+        return self.ovsdb.has_table_column('Interface', 'mtu_request')
 
     def _set_mtu_request(self, dev, mtu):
         self.ovsdb.db_set('Interface', dev, ('mtu_request', mtu)).execute()

@@ -24,6 +24,7 @@ from oslo_utils import uuidutils
 from ovsdbapp import api as ovsdb_api
 import six
 
+from vif_plug_ovs.ovsdb import api
 from vif_plug_ovs import privsep
 
 
@@ -214,7 +215,7 @@ class BrExistsCommand(DbCommand):
                                                     log_errors=False)
 
 
-class OvsdbVsctl(ovsdb_api.API):
+class OvsdbVsctl(ovsdb_api.API, api.ImplAPI):
     def __init__(self, context):
         super(OvsdbVsctl, self).__init__()
         self.context = context
@@ -352,6 +353,17 @@ class OvsdbVsctl(ovsdb_api.API):
 
     def db_remove(self, table, record, column, *values, **keyvalues):
         raise NotImplementedError()
+
+    def has_table_column(self, table, column):
+        try:
+            self.db_list(table, columns=[column]).execute(check_error=True)
+            return True
+        except processutils.ProcessExecutionError as e:
+            msg = ('ovs-vsctl: %s does not contain a column whose name '
+                   'matches "%s"' % (table, column))
+            if msg in e.stderr:
+                return False
+            raise e
 
 
 def _set_colval_args(*col_values):

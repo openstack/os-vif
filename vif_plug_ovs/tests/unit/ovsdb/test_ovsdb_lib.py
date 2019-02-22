@@ -13,6 +13,7 @@
 import mock
 import testtools
 
+from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_utils import uuidutils
 
@@ -142,3 +143,27 @@ class BaseOVSTest(testtools.TestCase):
         self.br.ensure_ovs_bridge('bridge', constants.OVS_DATAPATH_SYSTEM)
         self.mock_add_br('bridge', may_exist=True,
                          datapath_type=constants.OVS_DATAPATH_SYSTEM)
+
+    def test__ovs_supports_mtu_requests(self):
+        with mock.patch.object(self.br.ovsdb, 'db_list') as mock_db_list:
+            self.assertTrue(self.br._ovs_supports_mtu_requests())
+            mock_db_list.assert_called_once_with('Interface',
+                                                 columns=['mtu_request'])
+
+    def test__ovs_supports_mtu_requests_not_supported(self):
+        with mock.patch.object(self.br.ovsdb, 'db_list') as mock_db_list:
+            mock_db_list.side_effect = processutils.ProcessExecutionError(
+                stderr='ovs-vsctl: Interface does not contain a column whose '
+                       'name matches "mtu_request"')
+            self.assertFalse(self.br._ovs_supports_mtu_requests())
+            mock_db_list.assert_called_once_with('Interface',
+                                                 columns=['mtu_request'])
+
+    def test__ovs_supports_mtu_requests_other_error(self):
+        with mock.patch.object(self.br.ovsdb, 'db_list') as mock_db_list:
+            mock_db_list.side_effect = processutils.ProcessExecutionError(
+                stderr='other error')
+            self.assertRaises(processutils.ProcessExecutionError,
+                              self.br._ovs_supports_mtu_requests)
+            mock_db_list.assert_called_once_with('Interface',
+                                                 columns=['mtu_request'])

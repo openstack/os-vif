@@ -60,12 +60,6 @@ def _update_device_mtu(dev, mtu):
         set_device_mtu(dev, mtu)
 
 
-def interface_in_bridge(bridge, device):
-    """Check if an ethernet device belongs to a Linux Bridge."""
-    return os.path.exists('/sys/class/net/%(bridge)s/brif/%(device)s' %
-                          {'bridge': bridge, 'device': device})
-
-
 @privsep.vif_plug.entrypoint
 def delete_net_dev(dev):
     """Delete a network device only if it exists."""
@@ -100,24 +94,26 @@ def update_veth_pair(dev1_name, dev2_name, mtu):
         _update_device_mtu(dev, mtu)
 
 
+def _disable_ipv6(bridge):
+    """Disable ipv6 if available for bridge. Must be called from
+       privsep context.
+    """
+    # NOTE(sean-k-mooney): os-vif disables ipv6 to ensure the Bridge
+    # does not aquire an ipv6 auto config or link local adress.
+    # This is required to prevent bug 1302080.
+    # https://bugs.launchpad.net/neutron/+bug/1302080
+    disv6 = ('/proc/sys/net/ipv6/conf/%s/disable_ipv6' %
+             bridge)
+    if os.path.exists(disv6):
+        with open(disv6, 'w') as f:
+            f.write('1')
+
+
 @privsep.vif_plug.entrypoint
 def ensure_bridge(bridge):
     if not ip_lib.exists(bridge):
-        processutils.execute('brctl', 'addbr', bridge)
-        processutils.execute('brctl', 'setfd', bridge, 0)
-        processutils.execute('brctl', 'stp', bridge, 'off')
-        processutils.execute('brctl', 'setageing', bridge, 0)
-        syspath = '/sys/class/net/%s/bridge/multicast_snooping'
-        syspath = syspath % bridge
-        processutils.execute('tee', syspath, process_input='0',
-                             check_exit_code=[0, 1])
-        disv6 = ('/proc/sys/net/ipv6/conf/%s/disable_ipv6' %
-                 bridge)
-        if os.path.exists(disv6):
-            processutils.execute('tee',
-                                 disv6,
-                                 process_input='1',
-                                 check_exit_code=[0, 1])
+        ip_lib.add(bridge, 'bridge')
+    _disable_ipv6(bridge)
     # we bring up the bridge to allow it to switch packets
     set_interface_state(bridge, 'up')
 
@@ -125,16 +121,18 @@ def ensure_bridge(bridge):
 @privsep.vif_plug.entrypoint
 def delete_bridge(bridge, dev):
     if ip_lib.exists(bridge):
-        if interface_in_bridge(bridge, dev):
-            processutils.execute('brctl', 'delif', bridge, dev)
-
-        ip_lib.set(bridge, state='down')
-        processutils.execute('brctl', 'delbr', bridge)
+        # Note(sean-k-mooney): this will detach all ports on
+        # the bridge before deleting the bridge.
+        ip_lib.delete(bridge, check_exit_code=[0, 2, 254])
+        # howver it will not set the detached interface down
+        # so we set the dev down if dev is not None and exists.
+        if dev and ip_lib.exists(dev):
+            set_interface_state(dev, "down")
 
 
 @privsep.vif_plug.entrypoint
 def add_bridge_port(bridge, dev):
-    processutils.execute('brctl', 'addif', bridge, dev)
+    ip_lib.set(dev, master=bridge)
 
 
 @privsep.vif_plug.entrypoint

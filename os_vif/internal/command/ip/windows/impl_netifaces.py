@@ -35,7 +35,7 @@ class Netifaces(ip_command.IpCommand):
             return False
 
     def set(self, device, check_exit_code=None, state=None, mtu=None,
-            address=None, promisc=None):
+            address=None, promisc=None, master=None):
         exception.NotImplementedForOS(function='ip.set', os='Windows')
 
     def add(self, device, dev_type, check_exit_code=None, peer=None, link=None,

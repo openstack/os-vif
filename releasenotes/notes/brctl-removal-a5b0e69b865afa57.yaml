@@ -2,7 +2,7 @@
 other:
   - |
     With this release, packagers of ``os-vif`` no longer need to create a
-    depency on ``brctl``. ``brctl`` is largely considered obsolete and has
+    dependency on ``brctl``. ``brctl`` is largely considered obsolete and has
     been replaced with iproute2 by default in many linux distributions.
     RHEL 8 will not ship ``brctl`` in its default repos. As part of a larger
     effort to remove usage of ``brctl`` from OpenStack ``os-vif`` has

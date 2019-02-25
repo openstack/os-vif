@@ -102,8 +102,11 @@ def _disable_ipv6(bridge):
        privsep context.
     :param bridge: string bridge name
     """
-    disv6 = ('/proc/sys/net/ipv6/conf/%s/disable_ipv6' %
-             bridge)
+    # NOTE(sean-k-mooney): os-vif disables ipv6 to ensure the Bridge
+    # does not aquire an ipv6 auto config or link local adress.
+    # This is required to prevent bug 1302080.
+    # https://bugs.launchpad.net/neutron/+bug/1302080
+    disv6 = ('/proc/sys/net/ipv6/conf/%s/disable_ipv6' % bridge)
     if os.path.exists(disv6):
         with open(disv6, 'w') as f:
             f.write('1')
@@ -123,15 +126,16 @@ def _update_bridge_routes(interface, bridge):
     # NOTE(danms): We also need to copy routes to the bridge so as
     #              not to break existing connectivity on the interface
     old_routes = []
-    out, err = processutils.execute('ip', 'route', 'show', 'dev',
-                                    interface)
+    out, _ = processutils.execute('ip', 'route', 'show', 'dev',
+                                  interface)
     for line in out.split('\n'):
         fields = line.split()
         if fields and 'via' in fields:
             old_routes.append(fields)
             processutils.execute('ip', 'route', 'del', *fields)
-            out, err = processutils.execute('ip', 'addr', 'show', 'dev',
-                                            interface, 'scope', 'global')
+
+    out, _ = processutils.execute('ip', 'addr', 'show', 'dev',
+                                  interface, 'scope', 'global')
     for line in out.split('\n'):
         fields = line.split()
         if fields and fields[0] == 'inet':

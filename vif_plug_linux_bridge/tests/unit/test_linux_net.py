@@ -120,8 +120,7 @@ class LinuxNetTest(testtools.TestCase):
            followed by the bridge. This is required to work around
            https://bugs.launchpad.net/ubuntu/+source/linux/+bug/1399064
         """
-        mock_dev_exists.return_value = next(lambda: (yield False),
-                                            (yield True))
+        mock_dev_exists.side_effect = [False, True]
         linux_net._ensure_bridge_privileged("fake-bridge", "fake-interface",
                                             None, False, mtu=1500)
         calls = [mock.call('fake-interface', 1500),

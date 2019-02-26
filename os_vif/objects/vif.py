@@ -23,32 +23,33 @@ from os_vif.objects import fields as osv_fields
 @base.VersionedObjectRegistry.register
 class VIFBase(osv_base.VersionedObject, base.ComparableVersionedObject):
     """Represents a virtual network interface."""
-    # Version 1.0: Initial version
+
+    # Version 1.0: Initial release
     VERSION = '1.0'
 
     fields = {
-        # Unique identifier of the VIF port
+        #: Unique identifier of the VIF port.
         'id': fields.UUIDField(),
 
-        # The guest MAC address
+        #: The guest MAC address.
         'address': fields.MACAddressField(nullable=True),
 
-        # The network to which the VIF is connected
+        #: The network to which the VIF is connected.
         'network': fields.ObjectField('Network', nullable=True),
 
-        # Name of the registered os_vif plugin
+        #: Name of the registered os_vif plugin.
         'plugin': fields.StringField(),
 
-        # Whether the VIF is initially online
+        #: Whether the VIF is initially online.
         'active': fields.BooleanField(default=True),
 
-        # Whether the host VIF should be preserved on unplug
+        #: Whether the host VIF should be preserved on unplug.
         'preserve_on_delete': fields.BooleanField(default=False),
 
-        # Whether the network service has provided traffic filtering
+        #: Whether the network service has provided traffic filtering.
         'has_traffic_filtering': fields.BooleanField(default=False),
 
-        # The virtual port profile metadata
+        #: The virtual port profile metadata.
         'port_profile': fields.ObjectField('VIFPortProfileBase',
                                            subclasses=True)
     }
@@ -56,84 +57,125 @@ class VIFBase(osv_base.VersionedObject, base.ComparableVersionedObject):
 
 @base.VersionedObjectRegistry.register
 class VIFGeneric(VIFBase):
-    # For libvirt drivers, this maps to type="ethernet" which
-    # just implies a bare TAP device, all setup delegated to
-    # the plugin
+    """A generic-style VIF.
 
+    Generic-style VIFs are unbound, floating TUN/TAP devices that should be
+    setup by the plugin, not the hypervisor.
+
+    For libvirt drivers, this maps to type="ethernet" which just implies a bare
+    TAP device with all setup delegated to the plugin.
+    """
+
+    # Version 1.0: Initial release
     VERSION = '1.0'
 
     fields = {
-        # Name of the device to create
+        #: Name of the device to create.
         'vif_name': fields.StringField()
     }
 
 
 @base.VersionedObjectRegistry.register
 class VIFBridge(VIFBase):
-    # For libvirt drivers, this maps to type='bridge'
+    """A bridge-style VIF.
 
+    Bridge-style VIFs are bound to a linux bridge by the hypervisor. Other
+    devices may be bound to the same L2 virtual bridge.
+
+    For libvirt drivers, this maps to type='bridge'.
+    """
+
+    # Version 1.0: Initial release
     VERSION = '1.0'
 
     fields = {
-        # Name of the virtual device to create
+        #: Name of the virtual device to create.
         'vif_name': fields.StringField(),
 
-        # Name of the physical device to connect to (eg br0)
+        #: Name of the physical device to connect to (e.g. ``br0``).
         'bridge_name': fields.StringField(),
     }
 
 
 @base.VersionedObjectRegistry.register
 class VIFOpenVSwitch(VIFBase):
-    # For libvirt drivers, this also maps to type='bridge'
+    """A bridge-style VIF specifically for use with OVS.
 
+    Open vSwitch VIFs are bound directly (or indirectly) to an Open vSwitch
+    bridge by the hypervisor. Other devices may be bound to the same virtual
+    bridge.
+
+    For libvirt drivers, this also maps to type='bridge'.
+    """
+
+    # Version 1.0: Initial release
     VERSION = '1.0'
 
     fields = {
-        # Name of the virtual device to create
+        #: Name of the virtual device to create.
         'vif_name': fields.StringField(),
 
-        # Name of the physical device to connect to (eg br0)
+        #: Name of the physical device to connect to (e.g. ``br0``).
         'bridge_name': fields.StringField(),
     }
 
 
 @base.VersionedObjectRegistry.register
 class VIFDirect(VIFBase):
-    # For libvirt drivers, this maps to type='direct'
+    """A direct-style VIF.
 
+    Despite the confusing name, direct-style VIFs utilize macvtap which is a
+    device driver that inserts a software layer between a guest and an SR-IOV
+    Virtual Function (VF). Contrast this with
+    :class:`~os_vif.objects.vif.VIFHostDevice`, which allows the guest to
+    directly connect to the VF.
+
+    For libvirt drivers, this maps to type='direct'
+    """
+
+    # Version 1.0: Initial release
     VERSION = '1.0'
 
     fields = {
-        # Name of the device to create
+        #: Name of the device to create.
         'vif_name': fields.StringField(),
 
-        # The PCI address of the host device
+        #: The PCI address of the host device.
         'dev_address': fields.PCIAddressField(),
 
-        # Port connection mode
+        #: Port connection mode.
         'mode': osv_fields.VIFDirectModeField(),
 
-        # The VLAN device name to use
+        #: The VLAN device name to use.
         'vlan_name': fields.StringField(),
     }
 
 
 @base.VersionedObjectRegistry.register
 class VIFVHostUser(VIFBase):
-    # For libvirt drivers, this maps to type='vhostuser'
+    """A vhostuser-style VIF.
+
+    vhostuser-style VIFs utilize a userspace vhost backend, which allows
+    traffic to traverse between the guest and a host userspace application
+    (commonly a virtual switch), bypassing the kernel network stack. Contrast
+    this with :class:`~os_vif.objects.vif.VIFBridge`, where all packets must be
+    handled by the hypervisor.
+
+    For libvirt drivers, this maps to type='vhostuser'
+    """
+
     # Version 1.0: Initial release
     # Version 1.1: Added 'vif_name'
     VERSION = '1.1'
 
     fields = {
-        # Name of the vhostuser port to create
+        #: Name of the vhostuser port to create.
         'vif_name': fields.StringField(),
 
-        # UNIX socket path
+        #: UNIX socket path.
         'path': fields.StringField(),
 
-        # UNIX socket access permissions
+        #: UNIX socket access permissions.
         'mode': osv_fields.VIFVHostUserModeField(),
     }
 
@@ -146,35 +188,48 @@ class VIFVHostUser(VIFBase):
 
 @base.VersionedObjectRegistry.register
 class VIFHostDevice(VIFBase):
-    # For libvirt drivers, this maps to type='hostdev'
+    """A hostdev-style VIF.
 
+    Hostdev-style VIFs provide a guest with direct access to an SR-IOV Virtual
+    Function (VF). Contrast this with :class:`~ovs_vif.objects.vif.VIFDirect`,
+    which includes a software layer between the VF and the guest.
+
+    For libvirt drivers, this maps to type='hostdev'
+    """
+
+    # Version 1.0: Initial release
     VERSION = '1.0'
 
     fields = {
-
-        # The type of the host device.
-        # Valid values are ethernet and generic.
-        # Ethernet is <interface type='hostdev'>
-        # Generic is <hostdev mode='subsystem' type='pci'>
+        #: The type of the host device.
+        #:
+        #: Valid values are ``ethernet`` and ``generic``.
+        #:
+        #: - ``ethernet`` is ``<interface type='hostdev'>``
+        #: - ``generic`` is ``<hostdev mode='subsystem' type='pci'>``
         'dev_type': osv_fields.VIFHostDeviceDevTypeField(),
 
-        # The PCI address of the host device
+        #: The PCI address of the host device.
         'dev_address': fields.PCIAddressField(),
     }
 
 
 @base.VersionedObjectRegistry.register
 class VIFNestedDPDK(VIFBase):
-    # For kuryr-kubernetes nested DPDK interfaces
+    """TODO.
 
+    For kuryr-kubernetes nested DPDK interfaces.
+    """
+
+    # Version 1.0: Initial release
     VERSION = '1.0'
 
     fields = {
-        # PCI address of the device.
+        #: PCI address of the device.
         'pci_address': fields.StringField(),
 
-        # Name of the driver the device was previously bound to; it makes
-        # the controller driver agnostic (virtio, sr-iov, etc.)
+        #: Name of the driver the device was previously bound to; it makes
+        #: the controller driver agnostic (virtio, SR-IOV, etc.).
         'dev_driver': fields.StringField(),
     }
 

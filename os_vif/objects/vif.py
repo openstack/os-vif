@@ -236,21 +236,25 @@ class VIFNestedDPDK(VIFBase):
 
 @base.VersionedObjectRegistry.register
 class DatapathOffloadBase(osv_base.VersionedObject,
-                              base.ComparableVersionedObject):
-    # Base class for all types of datapath offload
+                          base.ComparableVersionedObject):
+    """Base class for all types of datapath offload."""
+
+    # Version 1.0: Initial release
     VERSION = '1.0'
 
 
 @base.VersionedObjectRegistry.register
 class DatapathOffloadRepresentor(DatapathOffloadBase):
-    # Offload type for VF Representors conforming to the switchdev model
+    """Offload type for VF Representors conforming to the switchdev model."""
+
+    # Version 1.0: Initial release
     VERSION = '1.0'
 
     fields = {
-        # Name to set on the representor (if set)
+        #: Name to set on the representor (if set).
         'representor_name': fields.StringField(nullable=True),
 
-        # The PCI address of the Virtual Function
+        #: The PCI address of the Virtual Function.
         'representor_address': fields.StringField(nullable=True),
     }
 
@@ -258,16 +262,17 @@ class DatapathOffloadRepresentor(DatapathOffloadBase):
 @base.VersionedObjectRegistry.register
 class VIFPortProfileBase(osv_base.VersionedObject,
                          base.ComparableVersionedObject):
-    # Base class for all types of port profile
+    """Base class for all types of port profile."""
+
     # Version 1.0: Initial release
     # Version 1.1: Added 'datapath_offload'
     VERSION = '1.1'
 
     fields = {
-        # Datapath offload type of the port
+        #: Datapath offload type of the port.
         'datapath_offload': fields.ObjectField('DatapathOffloadBase',
-                                                nullable=True,
-                                                subclasses=True),
+                                               nullable=True,
+                                               subclasses=True),
     }
 
     obj_relationships = {
@@ -277,7 +282,8 @@ class VIFPortProfileBase(osv_base.VersionedObject,
 
 @base.VersionedObjectRegistry.register
 class VIFPortProfileOpenVSwitch(VIFPortProfileBase):
-    # Port profile info for OpenVSwitch networks
+    """Port profile info for Open vSwitch networks."""
+
     # Version 1.0: Initial release
     # Version 1.1: Added 'datapath_type'
     # Version 1.2: VIFPortProfileBase updated to 1.1 from 1.0
@@ -285,13 +291,17 @@ class VIFPortProfileOpenVSwitch(VIFPortProfileBase):
     VERSION = '1.3'
 
     fields = {
+        #: A UUID to uniquely identify the interface. If omitted one will be
+        #: generated automatically.
         'interface_id': fields.UUIDField(),
+
+        #: The OpenVSwitch port profile for the interface.
         'profile_id': fields.StringField(),
 
-        # Datapath type of the bridge
+        #: Datapath type of the bridge.
         'datapath_type': fields.StringField(nullable=True),
 
-        # If set, the os-vif plugin should add the port to the bridge
+        #: Whether the os-vif plugin should add the port to the bridge.
         'create_port': fields.BooleanField(default=False),
     }
 
@@ -311,7 +321,8 @@ class VIFPortProfileOpenVSwitch(VIFPortProfileBase):
 
 @base.VersionedObjectRegistry.register
 class VIFPortProfileFPOpenVSwitch(VIFPortProfileOpenVSwitch):
-    # Port profile info for OpenVSwitch networks using fastpath
+    """Port profile info for Open vSwitch networks using fastpath."""
+
     # Version 1.0: Initial release
     # Version 1.1: VIFPortProfileOpenVSwitch updated to 1.1 from 1.0
     # Version 1.2: VIFPortProfileOpenVSwitch updated to 1.2 from 1.1
@@ -319,10 +330,10 @@ class VIFPortProfileFPOpenVSwitch(VIFPortProfileOpenVSwitch):
     VERSION = '1.3'
 
     fields = {
-        # Name of the bridge (managed by fast path) to connect to
+        #: Name of the bridge (managed by fast path) to connect to.
         'bridge_name': fields.StringField(),
 
-        # Whether the OpenVSwitch network is using hybrid plug
+        #: Whether the OpenVSwitch network is using hybrid plug.
         'hybrid_plug': fields.BooleanField(default=False),
     }
 
@@ -346,10 +357,12 @@ class VIFPortProfileFPOpenVSwitch(VIFPortProfileOpenVSwitch):
                         category=PendingDeprecationWarning)
 @base.VersionedObjectRegistry.register
 class VIFPortProfileOVSRepresentor(VIFPortProfileOpenVSwitch):
-    # Port profile info for OpenVSwitch networks using a representor
-    # This class is now frozen and retained for backwards compatibility. The
-    # 'datapath_offload' field in port profiles should be used instead.
-    #
+    """Port profile info for OpenVSwitch networks using a representor.
+
+    This class is now frozen and retained for backwards compatibility. The
+    ``datapath_offload`` field in port profiles should be used instead.
+    """
+
     # Version 1.0: Initial release
     # Version 1.1: VIFPortProfileOpenVSwitch updated to 1.1 from 1.0
     # Version 1.2: VIFPortProfileOpenVSwitch updated to 1.2 from 1.1
@@ -357,10 +370,10 @@ class VIFPortProfileOVSRepresentor(VIFPortProfileOpenVSwitch):
     VERSION = '1.3'
 
     fields = {
-        # Name to set on the representor (if set)
+        #: Name to set on the representor (if set).
         'representor_name': fields.StringField(nullable=True),
 
-        # The PCI address of the Virtual Function
+        #: The PCI address of the Virtual Function.
         'representor_address': fields.PCIAddressField(nullable=True),
     }
 
@@ -382,14 +395,14 @@ class VIFPortProfileOVSRepresentor(VIFPortProfileOpenVSwitch):
 
 @base.VersionedObjectRegistry.register
 class VIFPortProfileFPBridge(VIFPortProfileBase):
-    # Port profile info for LinuxBridge networks using fastpath
-    #
+    """Port profile info for LinuxBridge networks using fastpath."""
+
     # Version 1.0: Initial release
     # Version 1.1: VIFPortProfileBase updated to 1.1 from 1.0
     VERSION = '1.1'
 
     fields = {
-        # Name of the bridge (managed by fast path) to connect to
+        #: Name of the bridge (managed by fast path) to connect to.
         'bridge_name': fields.StringField(),
     }
 
@@ -405,14 +418,14 @@ class VIFPortProfileFPBridge(VIFPortProfileBase):
 
 @base.VersionedObjectRegistry.register
 class VIFPortProfileFPTap(VIFPortProfileBase):
-    # Port profile info for Calico networks using fastpath
-    #
+    """Port profile info for Calico networks using fastpath."""
+
     # Version 1.0: Initial release
     # Version 1.1: VIFPortProfileBase updated to 1.1 from 1.0
     VERSION = '1.1'
 
     fields = {
-        # The mac address of the host vhostuser port
+        #: The MAC address of the host vhostuser port.
         'mac_address': fields.MACAddressField(nullable=True),
     }
 
@@ -428,16 +441,31 @@ class VIFPortProfileFPTap(VIFPortProfileBase):
 
 @base.VersionedObjectRegistry.register
 class VIFPortProfile8021Qbg(VIFPortProfileBase):
-    # Port profile info for VEPA 802.1qbg networks
-    #
+    """Port profile info for VEPA 802.1qbg networks."""
+
     # Version 1.0: Initial release
     # Version 1.1: VIFPortProfileBase updated to 1.1 from 1.0
     VERSION = '1.1'
 
     fields = {
+        # TODO(stephenfin): Apparently the value 0 is reserved for manager_id,
+        # so should we set 'minimum=1'?
+        # https://libvirt.org/formatdomain.html#elementsNICS
+
+        #: The VSI Manager ID identifies the database containing the VSI type
+        #: and instance definitions.
         'manager_id': fields.IntegerField(),
+
+        #: The VSI Type ID identifies a VSI type characterizing the network
+        #: access. VSI types are typically managed by network administrator.
         'type_id': fields.IntegerField(),
+
+        #: The VSI Type Version allows multiple versions of a VSI Type.
         'type_id_version': fields.IntegerField(),
+
+        #: The VSI Instance ID Identifier is generated when a VSI instance
+        #: (i.e. a virtual interface of a virtual machine) is created. This is
+        #: a globally unique identifier.
         'instance_id': fields.UUIDField(),
     }
 
@@ -453,13 +481,17 @@ class VIFPortProfile8021Qbg(VIFPortProfileBase):
 
 @base.VersionedObjectRegistry.register
 class VIFPortProfile8021Qbh(VIFPortProfileBase):
-    # Port profile info for VEPA 802.1qbh networks
-    #
+    """Port profile info for VEPA 802.1qbh networks."""
+
     # Version 1.0: Initial release
     # Version 1.1: VIFPortProfileBase updated to 1.1 from 1.0
     VERSION = '1.1'
 
     fields = {
+        #: The name of the port profile that is to be applied to this
+        #: interface. This name is resolved by the port profile database into
+        #: the network parameters from the port profile, and those network
+        #: parameters will be applied to this interface.
         'profile_id': fields.StringField()
     }
 
@@ -475,21 +507,21 @@ class VIFPortProfile8021Qbh(VIFPortProfileBase):
 
 @base.VersionedObjectRegistry.register
 class VIFPortProfileK8sDPDK(VIFPortProfileBase):
-    # Port profile info for Kuryr-Kubernetes DPDK ports
-    #
+    """Port profile info for Kuryr-Kubernetes DPDK ports."""
+
     # Version 1.0: Initial release
     # Version 1.1: VIFPortProfileBase updated to 1.1 from 1.0
     VERSION = '1.1'
 
     fields = {
-        # Specify whether this vif requires L3 setup.
+        #: Specify whether this vif requires L3 setup.
         'l3_setup': fields.BooleanField(),
 
-        # String containing URL representing object in Kubernetes API.
+        #: String containing URL representing object in Kubernetes v1 API.
         'selflink': fields.StringField(),
 
-        # String used in Kubernetes v1 API to identifies
-        # the server's internal version of this object.
+        #: String used in Kubernetes v1 API to identify the server's internal
+        #: version of this object.
         'resourceversion': fields.StringField()
     }
 

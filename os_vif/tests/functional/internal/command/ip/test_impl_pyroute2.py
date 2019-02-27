@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import os
 import re
 
 from oslo_concurrency import processutils
@@ -220,3 +221,16 @@ class TestIpCommand(ShellIpCommands, base.BaseFunctionalTestCase):
             self.assertEqual("0", f.readline().rstrip('\n'))
         with open(base_path % "multicast_snooping", "r") as f:
             self.assertEqual("0", f.readline().rstrip('\n'))
+
+    def test_add_port_to_bridge(self):
+        device = "test_dev_12"
+        bridge = "test_dev_13"
+        self.addCleanup(self.del_device, device)
+        self.addCleanup(self.del_device, bridge)
+        self.add_device(device, 'dummy')
+        _ip_cmd_add(bridge, 'bridge')
+        self.assertTrue(self.exist_device(device))
+        self.assertTrue(self.exist_device(bridge))
+        _ip_cmd_set(device, master=bridge)
+        path = "/sys/class/net/{}/brif/{}".format(bridge, device)
+        self.assertTrue(os.path.exists(path))

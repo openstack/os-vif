@@ -59,7 +59,7 @@ class PyRoute2(ip_command.IpCommand):
                                  if promisc is True else
                                  utils.unset_mask(flags, ifinfmsg.IFF_PROMISC))
             if master:
-                args['master'] = master
+                args['master'] = ip.link_lookup(ifname=master)
 
             if isinstance(check_exit_code, int):
                 check_exit_code = [check_exit_code]

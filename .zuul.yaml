@@ -1,4 +1,6 @@
 - job:
+    # TODO(sean-k-mooney): convert to new job format based on
+    # os-vif-tempest-base instead of legacy-dsvm-base
     name: os-vif-ovs
     parent: legacy-dsvm-base
     run: playbooks/os-vif-ovs/run.yaml
@@ -8,6 +10,7 @@
       - openstack-infra/devstack-gate
       - openstack/nova
       - openstack/os-vif
+      - openstack/neutron
       - openstack/tempest
 
 - job:
@@ -17,6 +20,99 @@
       - git.openstack.org/openstack-dev/devstack
     pre-run: playbooks/openstack-tox-functional-ovs-with-sudo/pre.yaml
     timeout: 600
+
+- job:
+    name: os-vif-tempest-base
+    parent: devstack-tempest
+    description: |
+      Base integration test with Neutron networking and py3.
+      This is derived from tempest-full-py3 and adapted for
+      use in os-vif
+    required-projects:
+      - openstack-infra/devstack-gate
+      - openstack/nova
+      - openstack/os-vif
+      - openstack/neutron
+      - openstack/tempest
+    vars:
+      tempest_concurrency: 4
+      devstack_plugins:
+        neutron: git://git.openstack.org/openstack/neutron.git
+      devstack_localrc:
+        # TODO(sean-k-mooney) move all tempest jobs to py3 by default.
+        # USE_PYTHON3: true
+        FORCE_CONFIG_DRIVE: true
+        ENABLE_VOLUME_MULTIATTACH: true
+        # NOTE(sean-k-mooney) we do not have to set
+        # DEVSTACK_PROJECT_FROM_GIT: "os-vif"
+        # in the local.conf because os-vif is listed as a required
+        # project and will be added to the LIB_FROM_GIT automatically.
+      devstack_services:
+        s-account: false
+        s-container: false
+        s-object: false
+        s-proxy: false
+        # without Swift, c-bak cannot run (in the Gate at least)
+        c-bak: false
+
+- job:
+    name: os-vif-ovs-iptables
+    parent: os-vif-tempest-base
+    timeout: 10800
+    description: |
+      os-vif iptables job derived from neutron-tempest-iptables_hybrid
+    vars:
+      # TODO(sean-k-mooney): this will execute more test cases than we
+      # actually need to validate this configuration. Reduce this to
+      # the scenario tests and select api tests in the future.
+      tox_envlist: full
+      devstack_local_conf:
+        post-config:
+          $NEUTRON_CONF:
+            QUOTAS:
+              quota_router: 100
+              quota_floatingip: 500
+              quota_security_group: 100
+              quota_security_group_rule: 1000
+          # NOTE(slaweq): We can get rid of this hardcoded absolute path when
+          # devstack-tempest job will be switched to use lib/neutron instead of
+          # lib/neutron-legacy
+          "/$NEUTRON_CORE_PLUGIN_CONF":
+            ml2_type_vlan:
+              network_vlan_ranges: foo:1:10
+            agent:
+              enable_distributed_routing: True
+              l2_population: True
+              tunnel_types: vxlan,gre
+            securitygroup:
+              firewall_driver: iptables_hybrid
+          $NEUTRON_L3_CONF:
+            agent:
+              availability_zone: nova
+          $NEUTRON_DHCP_CONF:
+            agent:
+              availability_zone: nova
+        test-config:
+          $TEMPEST_CONFIG:
+            neutron_plugin_options:
+              provider_vlans: foo,
+              agent_availability_zone: nova
+              image_is_advanced: true
+              available_type_drivers: flat,geneve,vlan,gre,local,vxlan
+
+- job:
+    name: os-vif-linuxbridge
+    parent: os-vif-tempest-base
+    timeout: 10800
+    description: |
+      os-vif linux bridge job derived from neutron-tempest-linuxbridge
+    vars:
+      # TODO(sean-k-mooney): this will execute more test cases than we
+      # actually need to validate this configuration. reduce this to
+      # the scenario tests and select api tests in the future.
+      tox_envlist: full
+      devstack_localrc:
+        Q_AGENT: linuxbridge
 
 - project:
     templates:
@@ -33,7 +129,11 @@
             voting: false
         - openstack-tox-functional-ovs-with-sudo
         - os-vif-ovs
+        - os-vif-ovs-iptables
+        - os-vif-linuxbridge
     gate:
       jobs:
         - openstack-tox-functional-ovs-with-sudo
         - os-vif-ovs
+        - os-vif-ovs-iptables
+        - os-vif-linuxbridge

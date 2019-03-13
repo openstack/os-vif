@@ -15,7 +15,7 @@ import mock
 import os.path
 import testtools
 
-from os_vif.internal.command import ip as ip_lib
+from os_vif.internal.ip.api import ip as ip_lib
 
 from vif_plug_ovs import exception
 from vif_plug_ovs import linux_net

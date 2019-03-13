@@ -16,7 +16,7 @@ from pyroute2.netlink import exceptions as ipexc
 from pyroute2.netlink.rtnl import ifinfmsg
 
 from os_vif import exception
-from os_vif.internal.command.ip.linux import impl_pyroute2
+from os_vif.internal.ip.linux import impl_pyroute2
 from os_vif.tests.unit import base
 
 

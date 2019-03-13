@@ -14,7 +14,7 @@ import mock
 import testtools
 
 import fixtures
-from os_vif.internal.command import ip as ip_lib
+from os_vif.internal.ip.api import ip as ip_lib
 from oslo_concurrency import lockutils
 from oslo_concurrency import processutils
 from oslo_config import cfg

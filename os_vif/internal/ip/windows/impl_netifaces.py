@@ -17,7 +17,7 @@ import netifaces
 from oslo_log import log as logging
 
 from os_vif import exception
-from os_vif.internal.command.ip import ip_command
+from os_vif.internal.ip import ip_command
 
 LOG = logging.getLogger(__name__)
 

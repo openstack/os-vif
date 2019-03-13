@@ -15,10 +15,10 @@ import os
 from oslo_log import log as logging
 
 if os.name == 'nt':
-    from os_vif.internal.command.ip.windows.impl_netifaces import \
+    from os_vif.internal.ip.windows.impl_netifaces import \
         Netifaces as ip_lib_class
 else:
-    from os_vif.internal.command.ip.linux.impl_pyroute2 import \
+    from os_vif.internal.ip.linux.impl_pyroute2 import \
         PyRoute2 as ip_lib_class
 
 

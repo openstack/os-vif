@@ -13,7 +13,7 @@
 import mock
 import testtools
 
-from os_vif.internal.command import ip as ip_lib
+from os_vif.internal.ip.api import ip as ip_lib
 from os_vif import objects
 from os_vif.objects import fields
 

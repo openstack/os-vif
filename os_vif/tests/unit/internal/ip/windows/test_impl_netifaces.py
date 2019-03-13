@@ -13,7 +13,7 @@
 import mock
 import netifaces
 
-from os_vif.internal.command.ip.windows import impl_netifaces as ip_lib
+from os_vif.internal.ip.windows import impl_netifaces as ip_lib
 from os_vif.tests.unit import base
 
 

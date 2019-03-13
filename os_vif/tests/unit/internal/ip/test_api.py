@@ -13,7 +13,7 @@
 import mock
 from six import moves
 
-from os_vif.internal.command.ip import api
+from os_vif.internal.ip import api
 from os_vif.tests.unit import base
 
 
@@ -27,12 +27,12 @@ class TestIpApi(base.TestCase):
         self.addCleanup(self._reload_original_os_module)
         with mock.patch('os.name', 'nt'):
             moves.reload_module(api)
-            from os_vif.internal.command.ip.windows import impl_netifaces
+            from os_vif.internal.ip.windows import impl_netifaces
             self.assertIsInstance(api.ip, impl_netifaces.Netifaces)
 
     def test_get_impl_linux(self):
         self.addCleanup(self._reload_original_os_module)
         with mock.patch('os.name', 'posix'):
             moves.reload_module(api)
-            from os_vif.internal.command.ip.linux import impl_pyroute2
+            from os_vif.internal.ip.linux import impl_pyroute2
             self.assertIsInstance(api.ip, impl_pyroute2.PyRoute2)

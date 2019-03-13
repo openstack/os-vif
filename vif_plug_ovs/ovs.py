@@ -19,7 +19,7 @@
 
 import sys
 
-from os_vif.internal.command import ip as ip_lib
+from os_vif.internal.ip.api import ip as ip_lib
 from os_vif import objects
 from os_vif import plugin
 from oslo_config import cfg

@@ -17,7 +17,7 @@ from pyroute2.netlink import exceptions as ipexc
 from pyroute2.netlink.rtnl import ifinfmsg
 
 from os_vif import exception
-from os_vif.internal.command.ip import ip_command
+from os_vif.internal.ip import ip_command
 from os_vif import utils
 
 LOG = logging.getLogger(__name__)

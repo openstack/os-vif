@@ -37,7 +37,7 @@
     vars:
       tempest_concurrency: 4
       devstack_plugins:
-        neutron: git://git.openstack.org/openstack/neutron.git
+        neutron: https://git.openstack.org/openstack/neutron.git
       devstack_localrc:
         # TODO(sean-k-mooney) move all tempest jobs to py3 by default.
         # USE_PYTHON3: true

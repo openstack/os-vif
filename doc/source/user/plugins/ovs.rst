@@ -11,28 +11,24 @@ Supported VIF Types
 
 The Open vSwitch plugin provides support for the following VIF types:
 
-``VIFOpenVSwitch``
+:mod:`~os_vif.objects.VIFOpenVSwitch`
   Configuration where a guest is directly connected an Open vSwitch bridge.
 
-  Refer to :ref:`vif-openvswitch` for more information.
-
-``VIFBridge``
+:mod:`~os_vif.objects.VIFBridge`
   Configuration where a guest is connected to a Linux bridge via a TAP device,
   and that bridge is connected to the Open vSwitch bridge. This allows for the
   use of ``iptables`` rules for filtering traffic.
 
-  Refer to :ref:`vif-bridge` for more information.
-
-``VIFVHostUser``
+:mod:`~os_vif.objects.VIFVHostUser`
   Configuration where a guest exposes a UNIX socket for its control plane. This
   configuration is used with the `DPDK datapath of Open vSwitch`__.
 
-  Refer to :ref:`vif-vhostuser` for more information.
+  __ http://docs.openvswitch.org/en/latest/howto/dpdk/
 
-``VIFHostDevice``
+:mod:`~os_vif.objects.VIFHostDevice`
   Configuration where an :term:`SR-IOV` PCI device :term:`VF` is passed through
   to a guest. The ``hw-tc-offload`` feature should be enabled on the SR-IOV
-  :term:`PF` using ``ethtool``:
+  :term:`PF` using :command:`ethtool`:
 
   .. code-block:: shell
 
@@ -48,11 +44,7 @@ The Open vSwitch plugin provides support for the following VIF types:
       2.8. These add support for :term:`tc`-based hardware offloads for SR-IOV
       VFs and offloading of OVS datapath rules using tc, respectively.
 
-  Refer to :ref:`vif-hostdevice` for more information.
-
   .. versionadded:: 1.5.0
 
 For information on the VIF type objects, refer to :doc:`/user/vif-types`. Note
 that only the above VIF types are supported by this plugin.
-
-__ http://docs.openvswitch.org/en/latest/howto/dpdk/

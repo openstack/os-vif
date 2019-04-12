@@ -12,11 +12,9 @@ Supported VIF Types
 
 The no-op plugin provides support for the following VIF types:
 
-``VIFVHostUser``
+:mod:`~os_vif.objects.VIFVHostUser`
   Configuration where a guest exposes a UNIX socket for its control plane. This
   configuration is used with a userspace dataplane such as VPP or Snabb switch.
-
-  Refer to :ref:`vif-vhostuser` for more information.
 
 For information on the VIF type objects, refer to :doc:`/user/vif-types`. Note
 that only the above VIF types are supported by this plugin.

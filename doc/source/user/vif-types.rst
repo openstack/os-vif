@@ -40,80 +40,39 @@ Each VIF instance can optionally be associated with a port profile object. This
 provides a set of metadata attributes that serve to identify the guest virtual
 interface to the host. Different types of host connectivity will require
 different port profile object metadata. Each port profile type is associated
-with a versioned object, subclassing `VIFPortProfileBase`.
+with a versioned object, subclassing :class:`VIFPortProfileBase`.
 
-VIFPortProfileOpenVSwitch
--------------------------
+.. autoclass:: VIFPortProfileBase
 
-This profile provides the metadata required to associate a VIF with an Open
-vSwitch host port.
+.. autoclass:: VIFPortProfileOpenVSwitch
 
-VIFPortProfile8021Qbg
----------------------
+.. autoclass:: VIFPortProfileFPOpenVSwitch
 
-This profile provides the metadata required to associate a VIF with a VEPA host
-device supporting the :term:`802.1Qbg` spec.
+.. autoclass:: VIFPortProfileOVSRepresentor
 
-VIFPortProfile8021Qbh
----------------------
+.. autoclass:: VIFPortProfileFPBridge
 
-This profile provides the metadata required to associate a VIF with a VEPA host
-device supporting the :term:`802.1Qbh` spec.
+.. autoclass:: VIFPortProfileFPTap
 
-VIFPortProfileFPOpenVSwitch
----------------------------
+.. autoclass:: VIFPortProfile8021Qbg
 
-This profile provides the metadata required to associate a fast path
-:term:`vhost-user` VIF with an :term:`Open vSwitch` port.
+.. autoclass:: VIFPortProfile8021Qbh
 
-VIFPortProfileOVSRepresentor
-----------------------------
+.. autoclass:: VIFPortProfileK8sDPDK
 
-This profile provides the metadata required to associate a VIF with a
-:term:`VF` representor and :term:`Open vSwitch` port. If `representor_name` is
-specified, it indicates a desire to rename the representor to the given name
-on plugging.
-
-.. note:: This port profile is provided for backwards compatibility only.
-
-This interface has been superceded by the one provided by the
-`DatapathOffloadRepresentor` class, which is now a field element of the
-`VIFPortProfileBase` class.
-
-VIFPortProfileFPBridge
-----------------------
-
-This profile provides the metadata required to associate a fast path vhost-user
-VIF with a :term:`Linux bridge` port.
-
-VIFPortProfileFPTap
--------------------
-
-This profile provides the metadata required to associate a fast path vhost-user
-VIF with a Calico port.
-
-VIFPortProfileK8sDPDK
----------------------
-
-This profile provides the metadata required to associate nested DPDK VIF with
-a Kubernetes pod.
 
 Datapath Offload type object
 ============================
 
-Port profiles can be associated with a `datapath_offload` object. This
+Port profiles can be associated with a ``datapath_offload`` object. This
 provides a set of metadata attributes that serve to identify the datapath
 offload parameters of a VIF. Each different type of datapath offload is
-associated with a versioned object, subclassing `DatapathOffloadBase`.
+associated with a versioned object, subclassing :class:`DatapathOffloadBase`.
 
-DatapathOffloadRepresentor
---------------------------
+.. autoclass:: DatapathOffloadBase
 
-This object provides the metadata required to associate a VIF with a
-:term:`VF` representor conforming to the
-`switchdev <https://netdevconf.org/1.2/session.html?or-gerlitz>`_ kernel model.
-If `representor_name` is specified, it indicates a desire to rename the
-representor to the given name on plugging.
+.. autoclass:: DatapathOffloadRepresentor
+
 
 VIF network objects
 ===================
@@ -122,4 +81,4 @@ Each VIF instance is associated with a set of objects which describe the
 logical network that the guest will be plugged into. This information is again
 represented by a set of versioned objects
 
-TODO :-(
+.. todo:: Populate this!

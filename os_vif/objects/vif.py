@@ -268,7 +268,15 @@ class DatapathOffloadBase(osv_base.VersionedObject,
 
 @base.VersionedObjectRegistry.register
 class DatapathOffloadRepresentor(DatapathOffloadBase):
-    """Offload type for VF Representors conforming to the switchdev model."""
+    """Offload type for VF Representors conforming to the switchdev model.
+
+    This datapath offloads provides the metadata required to associate a VIF
+    with a :term:`VF` representor conforming to the `switchdev`_ kernel model.
+    If ``representor_name`` is specified, it indicates a desire to rename the
+    representor to the given name on plugging.
+
+    .. _switchdev: https://netdevconf.org/1.2/session.html?or-gerlitz
+    """
 
     # Version 1.0: Initial release
     VERSION = '1.0'
@@ -285,7 +293,11 @@ class DatapathOffloadRepresentor(DatapathOffloadBase):
 @base.VersionedObjectRegistry.register
 class VIFPortProfileBase(osv_base.VersionedObject,
                          base.ComparableVersionedObject):
-    """Base class for all types of port profile."""
+    """Base class for all types of port profile.
+
+    The base profile defines fields that are common to all types of profile. It
+    should not be instantiated itself - use a subclass instead.
+    """
 
     # Version 1.0: Initial release
     # Version 1.1: Added 'datapath_offload'
@@ -305,7 +317,11 @@ class VIFPortProfileBase(osv_base.VersionedObject,
 
 @base.VersionedObjectRegistry.register
 class VIFPortProfileOpenVSwitch(VIFPortProfileBase):
-    """Port profile info for Open vSwitch networks."""
+    """Port profile info for Open vSwitch networks.
+
+    This profile provides the metadata required to associate a VIF with an Open
+    vSwitch interface.
+    """
 
     # Version 1.0: Initial release
     # Version 1.1: Added 'datapath_type'
@@ -344,7 +360,11 @@ class VIFPortProfileOpenVSwitch(VIFPortProfileBase):
 
 @base.VersionedObjectRegistry.register
 class VIFPortProfileFPOpenVSwitch(VIFPortProfileOpenVSwitch):
-    """Port profile info for Open vSwitch networks using fastpath."""
+    """Port profile info for Open vSwitch networks using fast path.
+
+    This profile provides the metadata required to associate a :term:`fast
+    path <Fast Path>` VIF with an :term:`Open vSwitch` port.
+    """
 
     # Version 1.0: Initial release
     # Version 1.1: VIFPortProfileOpenVSwitch updated to 1.1 from 1.0
@@ -382,8 +402,19 @@ class VIFPortProfileFPOpenVSwitch(VIFPortProfileOpenVSwitch):
 class VIFPortProfileOVSRepresentor(VIFPortProfileOpenVSwitch):
     """Port profile info for OpenVSwitch networks using a representor.
 
-    This class is now frozen and retained for backwards compatibility. The
-    ``datapath_offload`` field in port profiles should be used instead.
+    This profile provides the metadata required to associate a VIF with a
+    :term:`VF` representor and :term:`Open vSwitch` port. If `representor_name`
+    is specified, it indicates a desire to rename the representor to the given
+    name on plugging.
+
+    .. note::
+
+        This port profile is provided for backwards compatibility only.
+
+        This interface has been superceded by the one provided by the
+        :class:`DatapathOffloadRepresentor` class, which is now a field element
+        of the :class:`VIFPortProfileBase` class. The ``datapath_offload``
+        field in port profiles should be used instead.
     """
 
     # Version 1.0: Initial release
@@ -418,7 +449,11 @@ class VIFPortProfileOVSRepresentor(VIFPortProfileOpenVSwitch):
 
 @base.VersionedObjectRegistry.register
 class VIFPortProfileFPBridge(VIFPortProfileBase):
-    """Port profile info for LinuxBridge networks using fastpath."""
+    """Port profile info for Linux Bridge networks using fast path.
+
+    This profile provides the metadata required to associate a :term:`fast
+    path <Fast Path>` VIF with a :term:`Linux bridge` port.
+    """
 
     # Version 1.0: Initial release
     # Version 1.1: VIFPortProfileBase updated to 1.1 from 1.0
@@ -441,7 +476,11 @@ class VIFPortProfileFPBridge(VIFPortProfileBase):
 
 @base.VersionedObjectRegistry.register
 class VIFPortProfileFPTap(VIFPortProfileBase):
-    """Port profile info for Calico networks using fastpath."""
+    """Port profile info for Calico networks using fast path.
+
+    This profile provides the metadata required to associate a :term:`fast
+    path <Fast Path>` VIF with a :term:`Calico` port.
+    """
 
     # Version 1.0: Initial release
     # Version 1.1: VIFPortProfileBase updated to 1.1 from 1.0
@@ -464,7 +503,11 @@ class VIFPortProfileFPTap(VIFPortProfileBase):
 
 @base.VersionedObjectRegistry.register
 class VIFPortProfile8021Qbg(VIFPortProfileBase):
-    """Port profile info for VEPA 802.1qbg networks."""
+    """Port profile info for VEPA 802.1qbg networks.
+
+    This profile provides the metadata required to associate a VIF with a VEPA
+    host device supporting the :term:`802.1Qbg` spec.
+    """
 
     # Version 1.0: Initial release
     # Version 1.1: VIFPortProfileBase updated to 1.1 from 1.0
@@ -504,7 +547,11 @@ class VIFPortProfile8021Qbg(VIFPortProfileBase):
 
 @base.VersionedObjectRegistry.register
 class VIFPortProfile8021Qbh(VIFPortProfileBase):
-    """Port profile info for VEPA 802.1qbh networks."""
+    """Port profile info for VEPA 802.1qbh networks.
+
+    This profile provides the metadata required to associate a VIF with a VEPA
+    host device supporting the :term:`802.1Qbh` spec.
+    """
 
     # Version 1.0: Initial release
     # Version 1.1: VIFPortProfileBase updated to 1.1 from 1.0
@@ -530,7 +577,11 @@ class VIFPortProfile8021Qbh(VIFPortProfileBase):
 
 @base.VersionedObjectRegistry.register
 class VIFPortProfileK8sDPDK(VIFPortProfileBase):
-    """Port profile info for Kuryr-Kubernetes DPDK ports."""
+    """Port profile info for Kuryr-Kubernetes DPDK ports.
+
+    This profile provides the metadata required to associate nested DPDK VIF
+    with a Kubernetes pod.
+    """
 
     # Version 1.0: Initial release
     # Version 1.1: VIFPortProfileBase updated to 1.1 from 1.0

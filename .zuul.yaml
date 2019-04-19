@@ -7,7 +7,7 @@
     post-run: playbooks/os-vif-ovs/post.yaml
     timeout: 7800
     required-projects:
-      - openstack-infra/devstack-gate
+      - openstack/devstack-gate
       - openstack/nova
       - openstack/os-vif
       - openstack/neutron
@@ -17,7 +17,7 @@
     name: openstack-tox-functional-ovs-with-sudo
     parent: openstack-tox-functional-with-sudo
     required-projects:
-      - git.openstack.org/openstack-dev/devstack
+      - opendev.org/openstack/devstack
     pre-run: playbooks/openstack-tox-functional-ovs-with-sudo/pre.yaml
     timeout: 600
 
@@ -29,7 +29,7 @@
       This is derived from tempest-full-py3 and adapted for
       use in os-vif
     required-projects:
-      - openstack-infra/devstack-gate
+      - openstack/devstack-gate
       - openstack/nova
       - openstack/os-vif
       - openstack/neutron
@@ -37,7 +37,7 @@
     vars:
       tempest_concurrency: 4
       devstack_plugins:
-        neutron: https://git.openstack.org/openstack/neutron.git
+        neutron: https://opendev.org/openstack/neutron.git
       devstack_localrc:
         # TODO(sean-k-mooney) move all tempest jobs to py3 by default.
         # USE_PYTHON3: true

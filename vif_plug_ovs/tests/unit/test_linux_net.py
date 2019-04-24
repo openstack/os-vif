@@ -17,6 +17,7 @@ import testtools
 
 from os_vif.internal.command import ip as ip_lib
 from oslo_concurrency import processutils
+from six.moves import builtins
 
 from vif_plug_ovs import constants
 from vif_plug_ovs import exception
@@ -40,12 +41,13 @@ class LinuxNetTest(testtools.TestCase):
                                             check_exit_code=[0, 2, 254])
         mock_dev_exists.assert_has_calls([mock.call("br0")])
 
+    @mock.patch.object(linux_net, "_arp_filtering")
     @mock.patch.object(ip_lib, "set")
     @mock.patch.object(os.path, "exists", return_value=False)
     @mock.patch.object(processutils, "execute")
     @mock.patch.object(linux_net, "device_exists", return_value=False)
     def test_ensure_bridge_new_ipv4(self, mock_dev_exists, mock_execute,
-                                    mock_path_exists, mock_ip_set):
+                                    mock_path_exists, mock_ip_set, *args):
         linux_net.ensure_bridge("br0")
 
         calls = [
@@ -61,12 +63,13 @@ class LinuxNetTest(testtools.TestCase):
         mock_ip_set.assert_called_once_with('br0', state='up',
                                             check_exit_code=[0, 2, 254])
 
+    @mock.patch.object(linux_net, "_arp_filtering")
     @mock.patch.object(ip_lib, "set")
     @mock.patch.object(os.path, "exists", return_value=True)
     @mock.patch.object(processutils, "execute")
     @mock.patch.object(linux_net, "device_exists", return_value=False)
     def test_ensure_bridge_new_ipv6(self, mock_dev_exists, mock_execute,
-                                    mock_path_exists, mock_ip_set):
+                                    mock_path_exists, mock_ip_set, *args):
         linux_net.ensure_bridge("br0")
 
         calls = [
@@ -625,3 +628,16 @@ class LinuxNetTest(testtools.TestCase):
             linux_net.get_vf_num_by_pci_address,
             '0000:00:00.1'
         )
+
+    @mock.patch.object(os.path, 'exists', return_value=True)
+    @mock.patch.object(builtins, 'open')
+    def test__arp_filtering(self, mock_open, *args):
+        mock_open.side_effect = mock.mock_open(read_data=mock.Mock())
+        linux_net._arp_filtering("br0")
+
+        mock_open.assert_has_calls([
+            mock.call('/proc/sys/net/ipv4/conf/br0/arp_ignore', 'w'),
+            mock.call('/proc/sys/net/ipv4/conf/br0/arp_announce', 'w')])
+        mock_open.side_effect.return_value.write.assert_has_calls([
+            mock.call('1'),
+            mock.call('2')])

@@ -83,6 +83,22 @@ def _create_ovs_bridge_cmd(bridge, datapath_type):
             '--', 'set', 'Bridge', bridge, 'datapath_type=%s' % datapath_type]
 
 
+# TODO(ralonsoh): extract into common module
+def _arp_filtering(bridge):
+    """Prevent the bridge from replying to ARP messages with machine local IPs
+
+    1. Reply only if the target IP address is local address configured on the
+       incoming interface.
+    2. Always use the best local address.
+    """
+    arp_params = [('/proc/sys/net/ipv4/conf/%s/arp_ignore' % bridge, '1'),
+                  ('/proc/sys/net/ipv4/conf/%s/arp_announce' % bridge, '2')]
+    for parameter, value in arp_params:
+        if os.path.exists(parameter):
+            with open(parameter, 'w') as f:
+                f.write(value)
+
+
 @privsep.vif_plug.entrypoint
 def create_ovs_vif_port(bridge, dev, iface_id, mac, instance_id,
                         mtu=None, interface_type=None, timeout=None,
@@ -173,6 +189,7 @@ def ensure_bridge(bridge):
                                  disv6,
                                  process_input='1',
                                  check_exit_code=[0, 1])
+        _arp_filtering(bridge)
     # we bring up the bridge to allow it to switch packets
     set_interface_state(bridge, 'up')
 

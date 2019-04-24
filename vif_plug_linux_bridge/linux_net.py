@@ -56,6 +56,22 @@ def _ip_bridge_cmd(action, params, device):
     return cmd
 
 
+# TODO(ralonsoh): extract into common module
+def _arp_filtering(bridge):
+    """Prevent the bridge from replying to ARP messages with machine local IPs
+
+    1. Reply only if the target IP address is local address configured on the
+       incoming interface.
+    2. Always use the best local address.
+    """
+    arp_params = [('/proc/sys/net/ipv4/conf/%s/arp_ignore' % bridge, '1'),
+                  ('/proc/sys/net/ipv4/conf/%s/arp_announce' % bridge, '2')]
+    for parameter, value in arp_params:
+        if os.path.exists(parameter):
+            with open(parameter, 'w') as f:
+                f.write(value)
+
+
 @privsep.vif_plug.entrypoint
 def ensure_vlan_bridge(vlan_num, bridge, bridge_interface,
                        net_attrs=None, mac_address=None,
@@ -141,6 +157,7 @@ def _ensure_bridge_privileged(bridge, interface, net_attrs, gateway,
         # instead it inherits the MAC address of the first device on the
         # bridge, which will either be the vlan interface, or a
         # physical NIC.
+        _arp_filtering(bridge)
         ip_lib.set(bridge, state='up')
 
     if interface:

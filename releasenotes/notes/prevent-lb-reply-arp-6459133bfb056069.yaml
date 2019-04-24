@@ -1,0 +1,8 @@
+---
+security:
+  - |
+    Prevent Linux Bridge from replying to ARP messages. It should reply only if
+    the target IP address is a local address configured on the incoming
+    interface and it should always use the best local address. See `The ARP
+    flux problem <http://linux-ip.net/html/ether-arp.html#ether-arp-flux>`_ for
+    more information.

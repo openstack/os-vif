@@ -112,6 +112,22 @@ def _disable_ipv6(bridge):
             f.write('1')
 
 
+# TODO(ralonsoh): extract into common module
+def _arp_filtering(bridge):
+    """Prevent the bridge from replying to ARP messages with machine local IPs
+
+    1. Reply only if the target IP address is local address configured on the
+       incoming interface.
+    2. Always use the best local address.
+    """
+    arp_params = [('/proc/sys/net/ipv4/conf/%s/arp_ignore' % bridge, '1'),
+                  ('/proc/sys/net/ipv4/conf/%s/arp_announce' % bridge, '2')]
+    for parameter, value in arp_params:
+        if os.path.exists(parameter):
+            with open(parameter, 'w') as f:
+                f.write(value)
+
+
 def _update_bridge_routes(interface, bridge):
     """Updates routing table for a given bridge and interface.
     :param interface: string interface name
@@ -176,6 +192,7 @@ def _ensure_bridge_privileged(bridge, interface, net_attrs, gateway,
         LOG.debug('Starting Bridge %s', bridge)
         ip_lib.add(bridge, 'bridge')
         _disable_ipv6(bridge)
+        _arp_filtering(bridge)
         ip_lib.set(bridge, state='up')
 
     if interface and ip_lib.exists(interface):

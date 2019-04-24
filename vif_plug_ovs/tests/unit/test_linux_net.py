@@ -16,6 +16,7 @@ import os.path
 import testtools
 
 from os_vif.internal.command import ip as ip_lib
+from six.moves import builtins
 
 from vif_plug_ovs import exception
 from vif_plug_ovs import linux_net
@@ -29,31 +30,37 @@ class LinuxNetTest(testtools.TestCase):
 
         privsep.vif_plug.set_client_mode(False)
 
+    @mock.patch.object(linux_net, "_arp_filtering")
     @mock.patch.object(linux_net, "set_interface_state")
     @mock.patch.object(linux_net, "_disable_ipv6")
     @mock.patch.object(ip_lib, "add")
     @mock.patch.object(ip_lib, "exists", return_value=False)
     def test_ensure_bridge(self, mock_dev_exists, mock_add,
-                           mock_disable_ipv6, mock_set_state):
+                           mock_disable_ipv6, mock_set_state,
+                           mock_arp_filtering):
         linux_net.ensure_bridge("br0")
 
         mock_dev_exists.assert_called_once_with("br0")
         mock_add.assert_called_once_with("br0", "bridge")
         mock_disable_ipv6.assert_called_once_with("br0")
         mock_set_state.assert_called_once_with("br0", "up")
+        mock_arp_filtering.assert_called_once_with("br0")
 
+    @mock.patch.object(linux_net, "_arp_filtering")
     @mock.patch.object(linux_net, "set_interface_state")
     @mock.patch.object(linux_net, "_disable_ipv6")
     @mock.patch.object(ip_lib, "add")
     @mock.patch.object(ip_lib, "exists", return_value=True)
     def test_ensure_bridge_exists(self, mock_dev_exists, mock_add,
-                           mock_disable_ipv6, mock_set_state):
+                                  mock_disable_ipv6, mock_set_state,
+                                  mock_arp_filtering):
         linux_net.ensure_bridge("br0")
 
         mock_dev_exists.assert_called_once_with("br0")
         mock_add.assert_not_called()
         mock_disable_ipv6.assert_called_once_with("br0")
         mock_set_state.assert_called_once_with("br0", "up")
+        mock_arp_filtering.assert_called_once_with("br0")
 
     @mock.patch('six.moves.builtins.open')
     @mock.patch("os.path.exists")
@@ -71,6 +78,19 @@ class LinuxNetTest(testtools.TestCase):
         linux_net._disable_ipv6("br0")
         mock_exists.assert_called_once_with(exists_path)
         mock_open.assert_called_once_with(exists_path, 'w')
+
+    @mock.patch.object(os.path, 'exists', return_value=True)
+    @mock.patch.object(builtins, 'open')
+    def test__arp_filtering(self, mock_open, *args):
+        mock_open.side_effect = mock.mock_open(read_data=mock.Mock())
+        linux_net._arp_filtering("br0")
+
+        mock_open.assert_has_calls([
+            mock.call('/proc/sys/net/ipv4/conf/br0/arp_ignore', 'w'),
+            mock.call('/proc/sys/net/ipv4/conf/br0/arp_announce', 'w')])
+        mock_open.side_effect.return_value.write.assert_has_calls([
+            mock.call('1'),
+            mock.call('2')])
 
     @mock.patch.object(ip_lib, "delete")
     @mock.patch.object(ip_lib, "exists", return_value=False)

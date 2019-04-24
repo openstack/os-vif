@@ -92,12 +92,14 @@ class LinuxNetTest(testtools.TestCase):
 
     @mock.patch.object(ip_lib, "add")
     @mock.patch.object(ip_lib, "set")
+    @mock.patch.object(linux_net, "_arp_filtering")
     @mock.patch.object(linux_net, "_set_device_mtu")
     @mock.patch.object(linux_net, "_disable_ipv6")
     @mock.patch.object(linux_net, "_update_bridge_routes")
     @mock.patch.object(ip_lib, "exists")
     def test_ensure_bridge_priv_mtu_not_called(self, mock_dev_exists,
-        mock_routes, mock_disable_ipv6, mock_set_mtu, mock_ip_set, mock_add):
+            mock_routes, mock_disable_ipv6, mock_set_mtu, mock_arp_filtering,
+            mock_ip_set, mock_add):
         """This test validates that mtus are updated only if an interface
            is added to the bridge
         """
@@ -109,12 +111,14 @@ class LinuxNetTest(testtools.TestCase):
 
     @mock.patch.object(ip_lib, "add")
     @mock.patch.object(ip_lib, "set")
+    @mock.patch.object(linux_net, "_arp_filtering")
     @mock.patch.object(linux_net, "_set_device_mtu")
     @mock.patch.object(linux_net, "_disable_ipv6")
     @mock.patch.object(linux_net, "_update_bridge_routes")
     @mock.patch.object(ip_lib, "exists")
     def test_ensure_bridge_priv_mtu_order(self, mock_dev_exists, mock_routes,
-        mock_disable_ipv6, mock_set_mtu, mock_ip_set, mock_add):
+            mock_disable_ipv6, mock_set_mtu, mock_arp_filtering, mock_ip_set,
+            mock_add):
         """This test validates that when adding an interface
            to a bridge, the interface mtu is updated first
            followed by the bridge. This is required to work around

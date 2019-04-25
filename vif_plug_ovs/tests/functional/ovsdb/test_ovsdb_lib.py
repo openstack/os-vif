@@ -35,7 +35,8 @@ def run_privileged(*full_args):
     return processutils.execute(*full_args)[0].rstrip()
 
 
-class TestOVSDBLib(testscenarios.WithScenarios, base.BaseFunctionalTestCase):
+class TestOVSDBLib(testscenarios.WithScenarios,
+                   base.VifPlugOvsBaseFunctionalTestCase):
 
     scenarios = [
         ('native', {'interface': 'native'}),

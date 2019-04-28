@@ -19,13 +19,13 @@
       - release-notes-jobs
     check:
       jobs:
+        - kuryr-kubernetes-tempest-daemon-octavia:
+            voting: false
         - openstack-tox-functional-with-sudo
-        - kuryr-kubernetes-tempest-daemon-octavia
         - openstack-tox-lower-constraints
         - os-vif-ovs
     gate:
       jobs:
         - openstack-tox-functional-with-sudo
-        - kuryr-kubernetes-tempest-daemon-octavia
         - openstack-tox-lower-constraints
         - os-vif-ovs

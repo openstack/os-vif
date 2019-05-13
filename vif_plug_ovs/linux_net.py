@@ -47,6 +47,7 @@ PF_RE = re.compile(r"pf(\d+)", re.IGNORECASE)
 PF_FUNC_RE = re.compile(r"\.(\d+)", 0)
 
 _SRIOV_TOTALVFS = "sriov_totalvfs"
+NIC_NAME_LEN = 14
 
 
 def _update_device_mtu(dev, mtu):
@@ -370,3 +371,18 @@ def get_vf_num_by_pci_address(pci_addr):
     if vf_num is None:
         raise exception.PciDeviceNotFoundById(id=pci_addr)
     return vf_num
+
+
+def get_dpdk_representor_port_name(port_id):
+    devname = "vfr" + port_id
+    return devname[:NIC_NAME_LEN]
+
+
+def get_pf_pci_from_vf(vf_pci):
+    """Get physical function PCI address of a VF
+
+    :param vf_pci: the PCI address of the VF
+    :return: the PCI address of the PF
+    """
+    physfn_path = os.readlink("/sys/bus/pci/devices/%s/physfn" % vf_pci)
+    return os.path.basename(physfn_path)

@@ -252,16 +252,28 @@ class OvsPlugin(plugin.PluginBase):
                 vif.port_profile.create_port):
             self._create_vif_port(vif, vif.vif_name, instance_info)
 
-    def _plug_vf_passthrough(self, vif, instance_info):
-        self.ovsdb.ensure_ovs_bridge(
-            vif.network.bridge, constants.OVS_DATAPATH_SYSTEM)
+    def _plug_vf(self, vif, instance_info):
+        datapath = self._get_vif_datapath_type(vif)
+        self.ovsdb.ensure_ovs_bridge(vif.network.bridge, datapath)
         pci_slot = vif.dev_address
-        pf_ifname = linux_net.get_ifname_by_pci_address(
-            pci_slot, pf_interface=True, switchdev=True)
         vf_num = linux_net.get_vf_num_by_pci_address(pci_slot)
-        representor = linux_net.get_representor_port(pf_ifname, vf_num)
-        linux_net.set_interface_state(representor, 'up')
-        self._create_vif_port(vif, representor, instance_info)
+        args = []
+        kwargs = {}
+        if datapath == constants.OVS_DATAPATH_SYSTEM:
+            pf_ifname = linux_net.get_ifname_by_pci_address(
+                pci_slot, pf_interface=True, switchdev=True)
+            representor = linux_net.get_representor_port(pf_ifname, vf_num)
+            linux_net.set_interface_state(representor, 'up')
+            args = [vif, representor, instance_info]
+        else:
+            representor = linux_net.get_dpdk_representor_port_name(
+                vif.id)
+            pf_pci = linux_net.get_pf_pci_from_vf(pci_slot)
+            args = [vif, representor, instance_info]
+            kwargs = {'interface_type': constants.OVS_DPDK_INTERFACE_TYPE,
+                      'pf_pci': pf_pci,
+                      'vf_num': vf_num}
+        self._create_vif_port(*args, **kwargs)
 
     def plug(self, vif, instance_info):
         if not hasattr(vif, "port_profile"):
@@ -284,7 +296,7 @@ class OvsPlugin(plugin.PluginBase):
         elif isinstance(vif, objects.vif.VIFVHostUser):
             self._plug_vhostuser(vif, instance_info)
         elif isinstance(vif, objects.vif.VIFHostDevice):
-            self._plug_vf_passthrough(vif, instance_info)
+            self._plug_vf(vif, instance_info)
 
     def _unplug_vhostuser(self, vif, instance_info):
         self.ovsdb.delete_ovs_vif_port(vif.network.bridge,
@@ -317,19 +329,26 @@ class OvsPlugin(plugin.PluginBase):
         # so this is not removed.
         self.ovsdb.delete_ovs_vif_port(vif.network.bridge, vif.vif_name)
 
-    def _unplug_vf_passthrough(self, vif, instance_info):
+    def _unplug_vf(self, vif):
         """Remove port from OVS."""
-        pci_slot = vif.dev_address
-        pf_ifname = linux_net.get_ifname_by_pci_address(pci_slot,
-            pf_interface=True, switchdev=True)
-        vf_num = linux_net.get_vf_num_by_pci_address(pci_slot)
-        representor = linux_net.get_representor_port(pf_ifname, vf_num)
+        datapath = self._get_vif_datapath_type(vif)
+        if datapath == constants.OVS_DATAPATH_SYSTEM:
+            pci_slot = vif.dev_address
+            pf_ifname = linux_net.get_ifname_by_pci_address(
+                pci_slot, pf_interface=True, switchdev=True)
+            vf_num = linux_net.get_vf_num_by_pci_address(pci_slot)
+            representor = linux_net.get_representor_port(pf_ifname, vf_num)
+        else:
+            representor = linux_net.get_dpdk_representor_port_name(
+                vif.id)
+
         # The representor interface can't be deleted because it bind the
         # SR-IOV VF, therefore we just need to remove it from the ovs bridge
         # and set the status to down
         self.ovsdb.delete_ovs_vif_port(
             vif.network.bridge, representor, delete_netdev=False)
-        linux_net.set_interface_state(representor, 'down')
+        if datapath == constants.OVS_DATAPATH_SYSTEM:
+            linux_net.set_interface_state(representor, 'down')
 
     def unplug(self, vif, instance_info):
         if not hasattr(vif, "port_profile"):
@@ -352,4 +371,4 @@ class OvsPlugin(plugin.PluginBase):
         elif isinstance(vif, objects.vif.VIFVHostUser):
             self._unplug_vhostuser(vif, instance_info)
         elif isinstance(vif, objects.vif.VIFHostDevice):
-            self._unplug_vf_passthrough(vif, instance_info)
+            self._unplug_vf(vif)

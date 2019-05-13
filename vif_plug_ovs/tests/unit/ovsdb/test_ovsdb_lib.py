@@ -115,6 +115,38 @@ class BaseOVSTest(testtools.TestCase):
             mock_update_device_mtu.assert_has_calls(
                 [mock.call(device, mtu, interface_type=interface_type)])
 
+    def test_create_ovs_vif_port_type_dpdk(self):
+        iface_id = 'iface_id'
+        mac = 'ca:fe:ca:fe:ca:fe'
+        instance_id = uuidutils.generate_uuid()
+        interface_type = constants.OVS_DPDK_INTERFACE_TYPE
+        device = 'device'
+        bridge = 'bridge'
+        mtu = 1500
+        pf_pci = '0000:02:00.1'
+        vf_num = '0'
+        external_ids = {'iface-id': iface_id,
+                        'iface-status': 'active',
+                        'attached-mac': mac,
+                        'vm-uuid': instance_id}
+        values = [('external_ids', external_ids),
+                  ('type', interface_type),
+                  ('options', {'dpdk-devargs':
+                               '0000:02:00.1,representor=[0]'})]
+        with mock.patch.object(self.br, 'update_device_mtu',
+                               return_value=True) as mock_update_device_mtu, \
+                mock.patch.object(self.br, '_ovs_supports_mtu_requests',
+                                  return_value=True):
+            self.br.create_ovs_vif_port(bridge, device, iface_id, mac,
+                                        instance_id, mtu=mtu,
+                                        interface_type=interface_type,
+                                        pf_pci=pf_pci, vf_num=vf_num)
+            self.mock_add_port.assert_has_calls([mock.call(bridge, device)])
+            self.mock_db_set.assert_has_calls(
+                [mock.call('Interface', device, *values)])
+            mock_update_device_mtu.assert_has_calls(
+                [mock.call(device, mtu, interface_type=interface_type)])
+
     def test_update_ovs_vif_port(self):
         with mock.patch.object(self.br, 'update_device_mtu') as \
                 mock_update_device_mtu:

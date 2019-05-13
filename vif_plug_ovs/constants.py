@@ -22,5 +22,7 @@ OVS_DATAPATH_NETDEV = 'netdev'
 PLATFORM_LINUX = 'linux2'
 PLATFORM_WIN32 = 'win32'
 
+OVS_DPDK_INTERFACE_TYPE = 'dpdk'
+
 # Neutron dead VLAN.
 DEAD_VLAN = 4095

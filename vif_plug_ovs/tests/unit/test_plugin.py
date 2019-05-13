@@ -61,6 +61,10 @@ class PluginTest(testtools.TestCase):
             interface_id='e65867e0-9340-4a7f-a256-09af6eb7a3aa',
             datapath_type='netdev')
 
+        self.profile_ovs_system = objects.vif.VIFPortProfileOpenVSwitch(
+            interface_id='e65867e0-9340-4a7f-a256-09af6eb7a3aa',
+            datapath_type='system')
+
         self.profile_ovs_smart_nic = objects.vif.VIFPortProfileOpenVSwitch(
             interface_id='e65867e0-9340-4a7f-a256-09af6eb7a3aa',
             create_port=True)
@@ -114,6 +118,14 @@ class PluginTest(testtools.TestCase):
             dev_type=fields.VIFHostDeviceDevType.ETHERNET,
             dev_address='0002:24:12.3',
             bridge_name='br-int',
+            port_profile=self.profile_ovs_system)
+
+        self.vif_ovs_vf_dpdk = objects.vif.VIFHostDevice(
+            id='b679325f-ca89-4ee0-a8be-6db1409b69ea',
+            address='ca:fe:de:ad:be:ef',
+            network=self.network_ovs,
+            dev_type=fields.VIFHostDeviceDevType.ETHERNET,
+            dev_address='0002:24:12.3',
             port_profile=self.profile_ovs)
 
         self.instance = objects.instance_info.InstanceInfo(
@@ -470,3 +482,64 @@ class PluginTest(testtools.TestCase):
         plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
         plugin.unplug(self.vif_ovs_smart_nic, self.instance)
         delete_port.assert_called_once()
+
+    @mock.patch.object(linux_net, 'get_dpdk_representor_port_name')
+    @mock.patch.object(ovsdb_lib.BaseOVS, 'ensure_ovs_bridge')
+    @mock.patch.object(linux_net, 'get_vf_num_by_pci_address')
+    @mock.patch.object(linux_net, 'get_pf_pci_from_vf')
+    @mock.patch.object(ovs.OvsPlugin, '_create_vif_port')
+    def test_plug_ovs_vf_dpdk(self, _create_vif_port,
+                                   get_pf_pci_from_vf,
+                                   get_vf_num_by_pci_address,
+                                   ensure_ovs_bridge,
+                                   get_dpdk_representor_port_name):
+
+        pf_pci = self.vif_ovs_vf_dpdk.dev_address
+        devname = 'vfrb679325f-ca'
+        get_vf_num_by_pci_address.return_value = '2'
+        get_pf_pci_from_vf.return_value = pf_pci
+        get_dpdk_representor_port_name.return_value = devname
+        calls = {
+            'ensure_ovs_bridge': [mock.call('br0',
+                                  constants.OVS_DATAPATH_NETDEV)],
+            'get_vf_num_by_pci_address': [mock.call('0002:24:12.3')],
+            'get_pf_pci_from_vf': [mock.call(pf_pci)],
+            'get_dpdk_representor_port_name': [mock.call(
+                self.vif_ovs_vf_dpdk.id)],
+            '_create_vif_port': [mock.call(
+                                 self.vif_ovs_vf_dpdk,
+                                 devname,
+                                 self.instance,
+                                 interface_type='dpdk',
+                                 pf_pci=pf_pci,
+                                 vf_num='2')]}
+
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
+        plugin.plug(self.vif_ovs_vf_dpdk, self.instance)
+        ensure_ovs_bridge.assert_has_calls(
+            calls['ensure_ovs_bridge'])
+        get_vf_num_by_pci_address.assert_has_calls(
+            calls['get_vf_num_by_pci_address'])
+        get_pf_pci_from_vf.assert_has_calls(
+            calls['get_pf_pci_from_vf'])
+        get_dpdk_representor_port_name.assert_has_calls(
+            calls['get_dpdk_representor_port_name'])
+        _create_vif_port.assert_has_calls(
+            calls['_create_vif_port'])
+
+    @mock.patch.object(linux_net, 'get_dpdk_representor_port_name')
+    @mock.patch.object(ovsdb_lib.BaseOVS, 'delete_ovs_vif_port')
+    def test_unplug_ovs_vf_dpdk(self, delete_ovs_vif_port,
+                                get_dpdk_representor_port_name):
+        devname = 'vfrb679325f-ca'
+        get_dpdk_representor_port_name.return_value = devname
+        calls = {
+            'get_dpdk_representor_port_name': [mock.call(
+                self.vif_ovs_vf_dpdk.id)],
+            'delete_ovs_vif_port': [mock.call('br0', devname,
+                                              delete_netdev=False)]}
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
+        plugin.unplug(self.vif_ovs_vf_dpdk, self.instance)
+        get_dpdk_representor_port_name.assert_has_calls(
+            calls['get_dpdk_representor_port_name'])
+        delete_ovs_vif_port.assert_has_calls(calls['delete_ovs_vif_port'])

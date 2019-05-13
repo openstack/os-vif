@@ -62,7 +62,27 @@ class BaseOVS(object):
 
     def create_ovs_vif_port(self, bridge, dev, iface_id, mac, instance_id,
                             mtu=None, interface_type=None,
-                            vhost_server_path=None, tag=None):
+                            vhost_server_path=None, tag=None,
+                            pf_pci=None, vf_num=None):
+        """Create OVS port
+
+        :param bridge: bridge name to create the port on.
+        :param dev: port name.
+        :param iface_id: port ID.
+        :param mac: port MAC.
+        :param instance_id: VM ID on which the port is attached to.
+        :param mtu: port MTU.
+        :param interface_type: OVS interface type.
+        :param vhost_server_path: path to socket file of vhost server.
+        :param tag: OVS interface tag.
+        :param pf_pci: PCI address of PF for dpdk representor port.
+        :param vf_num: VF number of PF for dpdk representor port.
+
+        .. note:: create DPDK representor port by setting all three values:
+            `interface_type`, `pf_pci` and `vf_num`. if interface type is
+            not `OVS_DPDK_INTERFACE_TYPE` then `pf_pci` and `vf_num` values
+            are ignored.
+        """
         external_ids = {'iface-id': iface_id,
                         'iface-status': 'active',
                         'attached-mac': mac,
@@ -75,7 +95,12 @@ class BaseOVS(object):
                                {'vhost-server-path': vhost_server_path}))
         if tag:
             col_values.append(('tag', tag))
-
+        if (interface_type == constants.OVS_DPDK_INTERFACE_TYPE and
+                pf_pci and vf_num):
+            devargs_string = "{PF_PCI},representor=[{VF_NUM}]".format(
+                PF_PCI=pf_pci, VF_NUM=vf_num)
+            col_values.append(('options',
+                              {'dpdk-devargs': devargs_string}))
         with self.ovsdb.transaction() as txn:
             txn.add(self.ovsdb.add_port(bridge, dev))
             txn.add(self.ovsdb.db_set('Interface', dev, *col_values))

@@ -82,7 +82,7 @@ class LinuxNetTest(testtools.TestCase):
     @mock.patch.object(os.path, 'exists', return_value=True)
     @mock.patch.object(builtins, 'open')
     def test__arp_filtering(self, mock_open, *args):
-        mock_open.side_effect = mock.mock_open(read_data=mock.Mock())
+        mock_open.side_effect = mock.mock_open()
         linux_net._arp_filtering("br0")
 
         mock_open.assert_has_calls([

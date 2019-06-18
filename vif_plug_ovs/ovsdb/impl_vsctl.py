@@ -372,7 +372,12 @@ def _set_colval_args(*col_values):
     # op. Will try to find a better way to default this op to '='
     for entry in col_values:
         if len(entry) == 2:
-            col, op, val = entry[0], '=', entry[1]
+            # Escape colons for MAC address since ovs-vsctl command tries
+            # to parse it as JSON and colons throw it off
+            if entry[0] == 'mac':
+                col, op, val = entry[0], '=', entry[1].replace(':', '\:')
+            else:
+                col, op, val = entry[0], '=', entry[1]
         else:
             col, op, val = entry
         if isinstance(val, collections.Mapping):

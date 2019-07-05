@@ -81,8 +81,8 @@
             ml2_type_vlan:
               network_vlan_ranges: foo:1:10
             agent:
-              enable_distributed_routing: True
-              l2_population: True
+              enable_distributed_routing: true
+              l2_population: true
               tunnel_types: vxlan,gre
             securitygroup:
               firewall_driver: iptables_hybrid
@@ -119,8 +119,7 @@
       - check-requirements
       - openstack-lower-constraints-jobs
       - openstack-python-jobs
-      - openstack-python36-jobs
-      - openstack-python37-jobs
+      - openstack-python3-train-jobs
       - publish-openstack-docs-pti
       - release-notes-jobs-python3
     check:

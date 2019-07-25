@@ -21,10 +21,10 @@ def set(device, check_exit_code=None, state=None, mtu=None, address=None,
 
 
 def add(device, dev_type, check_exit_code=None, peer=None, link=None,
-        vlan_id=None):
+        vlan_id=None, ageing=None):
     """Method to add an interface."""
     return api.ip.add(device, dev_type, check_exit_code=check_exit_code,
-                      peer=peer, link=link, vlan_id=vlan_id)
+                      peer=peer, link=link, vlan_id=vlan_id, ageing=ageing)
 
 
 def delete(device, check_exit_code=None):

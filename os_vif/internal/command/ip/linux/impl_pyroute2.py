@@ -67,7 +67,7 @@ class PyRoute2(ip_command.IpCommand):
             return self._ip_link(ip, 'set', check_exit_code, **args)
 
     def add(self, device, dev_type, check_exit_code=None, peer=None, link=None,
-            vlan_id=None):
+            vlan_id=None, ageing=None):
         check_exit_code = check_exit_code or []
         with iproute.IPRoute() as ip:
             args = {'ifname': device,
@@ -86,10 +86,18 @@ class PyRoute2(ip_command.IpCommand):
                 # in the bridge_data class located in the
                 # pyroute2.netlink.rtnl.ifinfmsg module for mode details
                 # https://github.com/svinota/pyroute2/blob/3ba9cdde34b2346ef8c2f8ba17cef5dbeb4c6d52/pyroute2/netlink/rtnl/ifinfmsg/__init__.py#L776-L820
-                args['IFLA_BR_AGEING_TIME'] = 0  # disable mac learning ageing
                 args['IFLA_BR_FORWARD_DELAY'] = 0  # set no delay
                 args['IFLA_BR_STP_STATE'] = 0  # disable spanning tree
                 args['IFLA_BR_MCAST_SNOOPING'] = 0  # disable snooping
+                # NOTE(sean-k-mooney): we conditionally enable mac ageing as
+                # this code is shared between the ovs and linux bridge
+                # plugins. For linux bridge we want to allow the default
+                # ageing of 300 seconds, whereas for ovs with the ip-tables
+                # firewall we want to disable ageing. None was chosen as
+                # the default value of ageing to allow the caller to determine
+                # what policy to use and keep this code generic.
+                if ageing is not None:
+                    args['IFLA_BR_AGEING_TIME'] = ageing
             else:
                 raise exception.NetworkInterfaceTypeNotDefined(type=dev_type)
 

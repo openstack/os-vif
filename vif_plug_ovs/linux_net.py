@@ -128,7 +128,10 @@ def _arp_filtering(bridge):
 @privsep.vif_plug.entrypoint
 def ensure_bridge(bridge):
     if not ip_lib.exists(bridge):
-        ip_lib.add(bridge, 'bridge')
+        # NOTE(sean-k-mooney): we set mac ageing to 0 to disable mac ageing
+        # on the hybrid plug bridge to avoid packet loss during live
+        # migration. This avoids bug #1715317 and related bug #1414559
+        ip_lib.add(bridge, 'bridge', ageing=0)
     _disable_ipv6(bridge)
     _arp_filtering(bridge)
     # we bring up the bridge to allow it to switch packets

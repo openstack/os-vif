@@ -1,0 +1,13 @@
+---
+fixes:
+  - |
+    As part of a `bug #1715317`_, MAC ageing was disabled for the intermediate
+    bridge created as part of the hybrid plug mechanism. During the removal
+    of ``brctl``, this behavior was inadvertently applied to all linux bridges
+    created by os-vif including those used in the linuxbridge driver.
+    As a result this can lead to packet flooding (see bug #1837252) when
+    instances are migrated. This behavior has been reverted so that the
+    default mac ageing is determined by the kernel and is not set when using
+    the os-vif linux bridge plugin.
+
+    .. _bug #1715317: https://bugs.launchpad.net/os-vif/+bug/1837252

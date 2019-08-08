@@ -41,7 +41,7 @@ class LinuxNetTest(testtools.TestCase):
         linux_net.ensure_bridge("br0")
 
         mock_dev_exists.assert_called_once_with("br0")
-        mock_add.assert_called_once_with("br0", "bridge")
+        mock_add.assert_called_once_with("br0", "bridge", ageing=0)
         mock_disable_ipv6.assert_called_once_with("br0")
         mock_set_state.assert_called_once_with("br0", "up")
         mock_arp_filtering.assert_called_once_with("br0")

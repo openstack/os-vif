@@ -39,7 +39,7 @@ class IpCommand(object):
 
     @abc.abstractmethod
     def add(self, device, dev_type, check_exit_code=None, peer=None, link=None,
-            vlan_id=None):
+            vlan_id=None, ageing=None):
         """Method to add an interface.
 
         :param   device: A network device (string)
@@ -50,6 +50,8 @@ class IpCommand(object):
         :param   link: String root network interface name, 'device' will be a
                        VLAN tagged virtual interface
         :param   vlan_id: Integer VLAN ID for VLAN devices
+        :param   ageing: integer value in seconds before learned
+                         mac addresses are forgotten.
         :return: status of the command execution
         """
 

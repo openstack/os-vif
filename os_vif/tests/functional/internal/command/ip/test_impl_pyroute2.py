@@ -217,14 +217,36 @@ class TestIpCommand(ShellIpCommands, base.BaseFunctionalTestCase):
             self.assertEqual("0", f.readline().rstrip('\n'))
         with open(base_path % "stp_state", "r") as f:
             self.assertEqual("0", f.readline().rstrip('\n'))
+        with open(base_path % "multicast_snooping", "r") as f:
+            self.assertEqual("0", f.readline().rstrip('\n'))
+        with open(base_path % "ageing_time", "r") as f:
+            value = int(f.readline().rstrip('\n'))
+            # NOTE(sean-k-mooney): IEEE 8021-Q recommends that the default
+            # ageing should be 300 and the linux kernel defaults to 300
+            # via an unconditional define. As such we expect this to be
+            # 300 however since services like network-manager could change
+            # the default on bridge creation we check that if it is not 300
+            # then the value should not be 0.
+            self.assertTrue(300 == value or value != 0)
+
+    def test_add_bridge_with_mac_ageing_0(self):
+        device = "test_dev_12"
+        self.addCleanup(self.del_device, device)
+        _ip_cmd_add(device, 'bridge', ageing=0)
+        self.assertTrue(self.exist_device(device))
+        base_path = "/sys/class/net/test_dev_12/bridge/%s"
+        with open(base_path % "forward_delay", "r") as f:
+            self.assertEqual("0", f.readline().rstrip('\n'))
+        with open(base_path % "stp_state", "r") as f:
+            self.assertEqual("0", f.readline().rstrip('\n'))
         with open(base_path % "ageing_time", "r") as f:
             self.assertEqual("0", f.readline().rstrip('\n'))
         with open(base_path % "multicast_snooping", "r") as f:
             self.assertEqual("0", f.readline().rstrip('\n'))
 
     def test_add_port_to_bridge(self):
-        device = "test_dev_12"
-        bridge = "test_dev_13"
+        device = "test_dev_13"
+        bridge = "test_dev_14"
         self.addCleanup(self.del_device, device)
         self.addCleanup(self.del_device, bridge)
         self.add_device(device, 'dummy')

@@ -97,6 +97,15 @@ class TestIpCommand(base.TestCase):
         self.ip.add(self.DEVICE, self.TYPE_BRIDGE)
         args = {'ifname': self.DEVICE,
                 'kind': self.TYPE_BRIDGE,
+                'IFLA_BR_FORWARD_DELAY': 0,
+                'IFLA_BR_STP_STATE': 0,
+                'IFLA_BR_MCAST_SNOOPING': 0}
+        self.ip_link.assert_called_once_with('add', **args)
+
+    def test_add_bridge_with_ageing(self):
+        self.ip.add(self.DEVICE, self.TYPE_BRIDGE, ageing=0)
+        args = {'ifname': self.DEVICE,
+                'kind': self.TYPE_BRIDGE,
                 'IFLA_BR_AGEING_TIME': 0,
                 'IFLA_BR_FORWARD_DELAY': 0,
                 'IFLA_BR_STP_STATE': 0,

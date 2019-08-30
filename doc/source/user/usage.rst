@@ -26,7 +26,7 @@ of type ``os_vif.objects.instance_info.InstanceInfo``:
     from os_vif.objects import fields
     from os_vif.objects import instance_info
     from os_vif.objects import network
-    from os_vif.objects import subnet
+    from os_vif.objects import subnet as os_subnet
     from os_vif.objects import vif as vif_obj
 
     instance_uuid = 'd7a730ca-3c28-49c3-8f26-4662b909fe8a'
@@ -36,8 +36,8 @@ of type ``os_vif.objects.instance_info.InstanceInfo``:
         name=instance.name,
         project_id=instance.project_id)
 
-    subnet = subnet.Subnet(cidr='192.168.1.0/24')
-    subnets = subnet.SubnetList([subnet])
+    subnet = os_subnet.Subnet(cidr='192.168.1.0/24')
+    subnets = os_subnet.SubnetList([subnet])
     network = network.Network(label='tenantnet',
                               subnets=subnets,
                               multi_host=False,

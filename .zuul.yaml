@@ -39,8 +39,7 @@
       devstack_plugins:
         neutron: https://opendev.org/openstack/neutron.git
       devstack_localrc:
-        # TODO(sean-k-mooney) move all tempest jobs to py3 by default.
-        # USE_PYTHON3: true
+        USE_PYTHON3: true
         FORCE_CONFIG_DRIVE: true
         ENABLE_VOLUME_MULTIATTACH: true
         # NOTE(sean-k-mooney) we do not have to set
@@ -118,7 +117,6 @@
     templates:
       - check-requirements
       - openstack-lower-constraints-jobs
-      - openstack-python-jobs
       - openstack-python3-ussuri-jobs
       - publish-openstack-docs-pti
       - release-notes-jobs-python3

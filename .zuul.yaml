@@ -1,19 +1,4 @@
 - job:
-    # TODO(sean-k-mooney): convert to new job format based on
-    # os-vif-tempest-base instead of legacy-dsvm-base
-    name: os-vif-ovs
-    parent: legacy-dsvm-base
-    run: playbooks/os-vif-ovs/run.yaml
-    post-run: playbooks/os-vif-ovs/post.yaml
-    timeout: 7800
-    required-projects:
-      - openstack/devstack-gate
-      - openstack/nova
-      - openstack/os-vif
-      - openstack/neutron
-      - openstack/tempest
-
-- job:
     name: openstack-tox-functional-ovs-with-sudo
     parent: openstack-tox-functional-with-sudo
     required-projects:
@@ -36,6 +21,7 @@
       - openstack/tempest
     vars:
       tempest_concurrency: 4
+      tox_envlist: full
       devstack_plugins:
         neutron: https://opendev.org/openstack/neutron.git
       devstack_localrc:
@@ -55,27 +41,68 @@
         c-bak: false
 
 - job:
-    name: os-vif-ovs-iptables
+    name: os-vif-ovs-base
     parent: os-vif-tempest-base
-    timeout: 10800
+    timeout: 7800
+    description: |
+      os-vif ovs base job, this should not be used directly.
+    vars:
+      devstack_local_conf:
+        post-config:
+          $NEUTRON_L3_CONF:
+            agent:
+              availability_zone: nova
+          $NEUTRON_DHCP_CONF:
+            agent:
+              availability_zone: nova
+          "/$NEUTRON_CORE_PLUGIN_CONF":
+            ml2_type_vlan:
+              network_vlan_ranges: foo:1:10
+            agent:
+              enable_distributed_routing: true
+              l2_population: true
+              tunnel_types: vxlan,gre
+        test-config:
+          $TEMPEST_CONFIG:
+            neutron_plugin_options:
+              provider_vlans: foo,
+              agent_availability_zone: nova
+              image_is_advanced: true
+              available_type_drivers: flat,vlan,gre,local,vxlan
+
+- job:
+    name: os-vif-ovs
+    parent: os-vif-ovs-base
+    description: |
+      os-vif ovs job with ovs firewall driver
+    vars:
+      devstack_local_conf:
+        post-config:
+          # NOTE(sean-k-mooney): i do not believe that the devstack role
+          # will merge the base /$NEUTRON_CORE_PLUGIN_CONF with the parent
+          # job so we redefine the entire section
+          "/$NEUTRON_CORE_PLUGIN_CONF":
+            ml2_type_vlan:
+              network_vlan_ranges: foo:1:10
+            agent:
+              enable_distributed_routing: true
+              l2_population: true
+              tunnel_types: vxlan,gre
+            securitygroup:
+              firewall_driver: openvswitch
+
+- job:
+    name: os-vif-ovs-iptables
+    parent: os-vif-ovs-base
     description: |
       os-vif iptables job derived from neutron-tempest-iptables_hybrid
     vars:
-      # TODO(sean-k-mooney): this will execute more test cases than we
-      # actually need to validate this configuration. Reduce this to
-      # the scenario tests and select api tests in the future.
       tox_envlist: full
       devstack_local_conf:
         post-config:
-          $NEUTRON_CONF:
-            QUOTAS:
-              quota_router: 100
-              quota_floatingip: 500
-              quota_security_group: 100
-              quota_security_group_rule: 1000
-          # NOTE(slaweq): We can get rid of this hardcoded absolute path when
-          # devstack-tempest job will be switched to use lib/neutron instead of
-          # lib/neutron-legacy
+          # NOTE(sean-k-mooney): i do not believe that the devstack role
+          # will merge the base /$NEUTRON_CORE_PLUGIN_CONF with the parent
+          # job so we redefine the entire section
           "/$NEUTRON_CORE_PLUGIN_CONF":
             ml2_type_vlan:
               network_vlan_ranges: foo:1:10
@@ -85,20 +112,6 @@
               tunnel_types: vxlan,gre
             securitygroup:
               firewall_driver: iptables_hybrid
-          $NEUTRON_L3_CONF:
-            agent:
-              availability_zone: nova
-          $NEUTRON_DHCP_CONF:
-            agent:
-              availability_zone: nova
-        test-config:
-          $TEMPEST_CONFIG:
-            neutron_plugin_options:
-              provider_vlans: foo,
-              agent_availability_zone: nova
-              image_is_advanced: true
-              available_type_drivers: flat,geneve,vlan,gre,local,vxlan
-
 - job:
     name: os-vif-linuxbridge
     parent: os-vif-tempest-base
@@ -106,10 +119,6 @@
     description: |
       os-vif linux bridge job derived from neutron-tempest-linuxbridge
     vars:
-      # TODO(sean-k-mooney): this will execute more test cases than we
-      # actually need to validate this configuration. reduce this to
-      # the scenario tests and select api tests in the future.
-      tox_envlist: full
       devstack_localrc:
         Q_AGENT: linuxbridge
 

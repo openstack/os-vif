@@ -93,8 +93,6 @@ class BaseOVS(object):
         if vhost_server_path:
             col_values.append(('options',
                                {'vhost-server-path': vhost_server_path}))
-        if tag:
-            col_values.append(('tag', tag))
         if (interface_type == constants.OVS_DPDK_INTERFACE_TYPE and
                 pf_pci and vf_num):
             devargs_string = "{PF_PCI},representor=[{VF_NUM}]".format(
@@ -103,6 +101,8 @@ class BaseOVS(object):
                               {'dpdk-devargs': devargs_string}))
         with self.ovsdb.transaction() as txn:
             txn.add(self.ovsdb.add_port(bridge, dev))
+            if tag:
+                txn.add(self.ovsdb.db_set('Port', dev, ('tag', tag)))
             txn.add(self.ovsdb.db_set('Interface', dev, *col_values))
         self.update_device_mtu(dev, mtu, interface_type=interface_type)
 

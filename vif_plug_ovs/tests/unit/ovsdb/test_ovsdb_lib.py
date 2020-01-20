@@ -108,10 +108,12 @@ class BaseOVSTest(testtools.TestCase):
             self.br.create_ovs_vif_port(bridge, device, iface_id, mac,
                                         instance_id, mtu=mtu,
                                         interface_type=interface_type,
-                                        vhost_server_path=vhost_server_path)
+                                        vhost_server_path=vhost_server_path,
+                                        tag=4000)
             self.mock_add_port.assert_has_calls([mock.call(bridge, device)])
             self.mock_db_set.assert_has_calls(
-                [mock.call('Interface', device, *values)])
+                [mock.call('Port', device, ('tag', 4000)),
+                 mock.call('Interface', device, *values)])
             mock_update_device_mtu.assert_has_calls(
                 [mock.call(device, mtu, interface_type=interface_type)])
 

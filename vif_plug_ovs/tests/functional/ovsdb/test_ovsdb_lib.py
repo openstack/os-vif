@@ -61,10 +61,10 @@ class TestOVSDBLib(testscenarios.WithScenarios,
             impl_idl.OvsVsctlTransaction, 'post_commit',
             side_effect=impl_idl.OvsVsctlTransaction.do_post_commit).start()
 
-    def _check_interface(self, port, parameter, expected_value):
+    def _check_parameter(self, table, port, parameter, expected_value):
         def check_value():
             return (self._ovsdb.db_get(
-                'Interface', port, parameter).execute() == expected_value)
+                table, port, parameter).execute() == expected_value)
 
         self.assertTrue(base.wait_until_true(check_value, timeout=2,
                                              sleep=0.5))
@@ -97,9 +97,9 @@ class TestOVSDBLib(testscenarios.WithScenarios,
         self._add_port(self.brname, port_name)
         if self.ovs._ovs_supports_mtu_requests():
             self.ovs._set_mtu_request(port_name, 1000)
-            self._check_interface(port_name, 'mtu', 1000)
+            self._check_parameter('Interface', port_name, 'mtu', 1000)
             self.ovs._set_mtu_request(port_name, 1500)
-            self._check_interface(port_name, 'mtu', 1500)
+            self._check_parameter('Interface', port_name, 'mtu', 1500)
         else:
             self.skipTest('Current version of Open vSwitch does not support '
                           '"mtu_request" parameter')
@@ -118,16 +118,22 @@ class TestOVSDBLib(testscenarios.WithScenarios,
         self.ovs.create_ovs_vif_port(self.brname, port_name, iface_id, mac,
                                      instance_id, mtu=mtu,
                                      interface_type=interface_type,
-                                     vhost_server_path=vhost_server_path)
+                                     vhost_server_path=vhost_server_path,
+                                     tag=2000)
 
         expected_external_ids = {'iface-status': 'active',
                                  'iface-id': iface_id,
                                  'attached-mac': mac,
                                  'vm-uuid': instance_id}
-        self._check_interface(port_name, 'external_ids', expected_external_ids)
-        self._check_interface(port_name, 'type', interface_type)
+        self._check_parameter('Interface', port_name, 'external_ids',
+                              expected_external_ids)
+        self._check_parameter('Interface', port_name, 'type', interface_type)
         expected_vhost_server_path = {'vhost-server-path': vhost_server_path}
-        self._check_interface(port_name, 'options', expected_vhost_server_path)
+        self._check_parameter('Interface', port_name, 'options',
+                              expected_vhost_server_path)
+        self._check_parameter('Interface', port_name, 'options',
+                              expected_vhost_server_path)
+        self._check_parameter('Port', port_name, 'tag', 2000)
 
     @mock.patch.object(linux_net, 'delete_net_dev')
     def test_delete_ovs_vif_port(self, *mock):

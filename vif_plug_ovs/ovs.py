@@ -82,15 +82,7 @@ class OvsPlugin(plugin.PluginBase):
         cfg.BoolOpt('isolate_vif', default=False,
                     help='Controls if VIF should be isolated when plugged '
                     'to the ovs bridge. This should only be set to True '
-                    'when using the neutron ovs ml2 agent.'),
-        cfg.StrOpt('cleanup_base_mac',
-                   default='aa:16:3f:00:00:00',
-                   help='The cleanup base MAC address to be used for removed '
-                   'DPDK representor ports. '
-                   'The first 3 octets will remain unchanged and the others '
-                   'will be randomly generated . '
-                   'A valid base MAC must have local assignment bit set and '
-                   'multicast bit cleared in the first octet.')
+                    'when using the neutron ovs ml2 agent.')
     )
 
     def __init__(self, config):

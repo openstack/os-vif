@@ -17,7 +17,6 @@ from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_utils import uuidutils
 
-from os_vif import utils
 from vif_plug_ovs import constants
 from vif_plug_ovs import linux_net
 from vif_plug_ovs.ovsdb import ovsdb_lib
@@ -38,9 +37,6 @@ class BaseOVSTest(testtools.TestCase):
                           test_vif_plug_ovs_group)
         CONF.register_opt(cfg.StrOpt('ovsdb_connection', default=None),
                           test_vif_plug_ovs_group)
-        CONF.register_opt(cfg.StrOpt('cleanup_base_mac',
-                                     default='aa:16:3f:00:00:00'),
-                                     test_vif_plug_ovs_group)
         self.br = ovsdb_lib.BaseOVS(cfg.CONF.test_vif_plug_ovs)
         self.mock_db_set = mock.patch.object(self.br.ovsdb, 'db_set').start()
         self.mock_del_port = mock.patch.object(self.br.ovsdb,
@@ -136,8 +132,7 @@ class BaseOVSTest(testtools.TestCase):
         values = [('external_ids', external_ids),
                   ('type', interface_type),
                   ('options', {'dpdk-devargs':
-                               '0000:02:00.1,representor=[0]'}),
-                  ('mac', 'ca:fe:ca:fe:ca:fe')]
+                               '0000:02:00.1,representor=[0]'})]
         with mock.patch.object(self.br, 'update_device_mtu',
                                return_value=True) as mock_update_device_mtu, \
                 mock.patch.object(self.br, '_ovs_supports_mtu_requests',
@@ -163,43 +158,18 @@ class BaseOVSTest(testtools.TestCase):
                     interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE)])
 
     @mock.patch.object(linux_net, 'delete_net_dev')
-    @mock.patch.object(ovsdb_lib.BaseOVS, '_is_dpdk_representor_port',
-                       return_value=False)
-    def test_delete_ovs_vif_port(self, mock_is_dpdk_representor_port,
-                                 mock_delete_net_dev):
+    def test_delete_ovs_vif_port(self, mock_delete_net_dev):
         self.br.delete_ovs_vif_port('bridge', 'device')
         self.mock_del_port.assert_has_calls(
             [mock.call('device', bridge='bridge', if_exists=True)])
         mock_delete_net_dev.assert_has_calls([mock.call('device')])
 
     @mock.patch.object(linux_net, 'delete_net_dev')
-    @mock.patch.object(ovsdb_lib.BaseOVS, '_is_dpdk_representor_port',
-                       return_value=False)
-    def test_delete_ovs_vif_port_no_delete_netdev(self,
-            mock_is_dpdk_representor_port, mock_delete_net_dev):
-        self.br.delete_ovs_vif_port('bridge', 'device',
-                                    delete_netdev=False)
+    def test_delete_ovs_vif_port_no_delete_netdev(self, mock_delete_net_dev):
+        self.br.delete_ovs_vif_port('bridge', 'device', delete_netdev=False)
         self.mock_del_port.assert_has_calls(
             [mock.call('device', bridge='bridge', if_exists=True)])
         mock_delete_net_dev.assert_not_called()
-
-    @mock.patch.object(linux_net, 'delete_net_dev')
-    @mock.patch.object(utils, 'get_random_mac',
-                       return_value='aa:16:3f:00:00:00')
-    @mock.patch.object(ovsdb_lib.BaseOVS, '_is_dpdk_representor_port',
-                       return_value=True)
-    def test_delete_ovs_dpdk_representor_port(self,
-            mock_is_dpdk_representor_port, mock_get_random_mac,
-            mock_delete_net_dev):
-        self.br.delete_ovs_vif_port('bridge', 'device')
-        self.mock_del_port.assert_has_calls(
-            [mock.call('device', bridge='bridge', if_exists=True)])
-        self.mock_db_set.assert_has_calls(
-            [mock.call('Interface', 'device',
-                       ('mac', 'aa:16:3f:00:00:00'))])
-        mock_delete_net_dev.assert_has_calls([mock.call('device')])
-        mock_get_random_mac.assert_has_calls([mock.call(
-            ['aa', '16', '3f', '00', '00', '00'])])
 
     def test_ensure_ovs_bridge(self):
         self.br.ensure_ovs_bridge('bridge', constants.OVS_DATAPATH_SYSTEM)

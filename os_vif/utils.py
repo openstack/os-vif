@@ -11,24 +11,6 @@
 #    under the License.
 
 
-import random
-
-
-def get_random_mac(base_mac):
-    """Get a random MAC address string of the specified base format.
-    The first 3 octets will remain unchanged and the others will be
-    randomly generated.
-
-    :param base_mac: Base MAC address represented by an array of 6 strings/int
-    :returns: The MAC address string.
-    """
-
-    mac = [int(base_mac[0], 16), int(base_mac[1], 16),
-           int(base_mac[2], 16), random.getrandbits(8),
-           random.getrandbits(8), random.getrandbits(8)]
-    return ':'.join(["%02x" % byte for byte in mac])
-
-
 def set_mask(data, mask):
     return data | mask
 

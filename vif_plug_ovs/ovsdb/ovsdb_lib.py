@@ -14,6 +14,7 @@ import sys
 
 from oslo_log import log as logging
 
+from os_vif import utils as os_vif_utils
 from vif_plug_ovs import constants
 from vif_plug_ovs import linux_net
 from vif_plug_ovs.ovsdb import api as ovsdb_api
@@ -29,6 +30,14 @@ class BaseOVS(object):
         self.connection = config.ovsdb_connection
         self.interface = config.ovsdb_interface
         self.ovsdb = ovsdb_api.get_instance(self)
+        self.cleanup_base_mac = config.cleanup_base_mac
+
+    def _is_dpdk_representor_port(self, dev):
+        options = self.ovsdb.db_get('Interface', dev, 'options').execute()
+        if options.get("dpdk-devargs") and\
+                "representor" in options.get("dpdk-devargs"):
+            return True
+        return False
 
     def _ovs_supports_mtu_requests(self):
         return self.ovsdb.has_table_column('Interface', 'mtu_request')
@@ -101,6 +110,7 @@ class BaseOVS(object):
                 PF_PCI=pf_pci, VF_NUM=vf_num)
             col_values.append(('options',
                               {'dpdk-devargs': devargs_string}))
+            col_values.append(('mac', mac))
         with self.ovsdb.transaction() as txn:
             txn.add(self.ovsdb.add_port(bridge, dev))
             txn.add(self.ovsdb.db_set('Interface', dev, *col_values))
@@ -109,7 +119,16 @@ class BaseOVS(object):
     def update_ovs_vif_port(self, dev, mtu=None, interface_type=None):
         self.update_device_mtu(dev, mtu, interface_type=interface_type)
 
+    def _get_ovs_port_options(self, dev):
+        return self.ovsdb.db_get('Interface', dev, 'options').execute()
+
     def delete_ovs_vif_port(self, bridge, dev, delete_netdev=True):
+        if self._is_dpdk_representor_port(dev):
+            # Cleanup dpdk representor MAC address by setting a random MAC
+            col_values = [('mac', os_vif_utils.get_random_mac(
+                self.cleanup_base_mac.split(':')))]
+            self.ovsdb.db_set('Interface', dev, *col_values).execute()
+
         self.ovsdb.del_port(dev, bridge=bridge, if_exists=True).execute()
         if delete_netdev:
             linux_net.delete_net_dev(dev)

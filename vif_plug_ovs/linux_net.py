@@ -287,11 +287,11 @@ def get_representor_port(pf_ifname, vf_num):
         # the PCI func number of pf_ifname.
         rep_parent_pf_func = _parse_pf_number(phys_port_name)
         if rep_parent_pf_func is not None:
-                ifname_pf_func = _get_pf_func(pf_ifname)
-                if ifname_pf_func is None:
-                    continue
-                if int(rep_parent_pf_func) != int(ifname_pf_func):
-                    continue
+            ifname_pf_func = _get_pf_func(pf_ifname)
+            if ifname_pf_func is None:
+                continue
+            if int(rep_parent_pf_func) != int(ifname_pf_func):
+                continue
 
         representor_num = _parse_vf_number(phys_port_name)
         # Note: representor_num can be 0, referring to VF0

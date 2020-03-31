@@ -130,7 +130,7 @@ class LinuxNetTest(testtools.TestCase):
         calls = [mock.call('fake-interface', 1500),
                  mock.call('fake-bridge', 1500)]
         mock_set_mtu.assert_has_calls(calls)
-        calls = [mock.call('fake-bridge', state = 'up'),
+        calls = [mock.call('fake-bridge', state='up'),
                  mock.call('fake-interface', master='fake-bridge', state='up',
                  check_exit_code=[0, 2, 254])]
         mock_ip_set.assert_has_calls(calls)

@@ -29,6 +29,16 @@ Usage Guide
    user/plugins/noop
    user/plugins/ovs
 
+For Contributors
+----------------
+
+* If you are a new contributor to os-vif please refer: :doc:`contributor/contributing`
+
+.. toctree::
+   :hidden:
+
+   contributor/contributing
+
 Reference
 ---------
 

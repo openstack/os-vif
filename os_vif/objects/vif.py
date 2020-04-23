@@ -452,7 +452,7 @@ class VIFPortProfileFPBridge(VIFPortProfileBase):
     """Port profile info for Linux Bridge networks using fast path.
 
     This profile provides the metadata required to associate a :term:`fast
-    path <Fast Path>` VIF with a :term:`Linux bridge` port.
+    path <Fast Path>` VIF with a :term:`Linux Bridge` port.
     """
 
     # Version 1.0: Initial release

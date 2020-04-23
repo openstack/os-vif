@@ -7,7 +7,6 @@ backend of a guest virtual network interface. There is a small, finite set of
 ways that a VIF backend can be configured for any given hypervisor and a
 limited amount of metadata is associated with each approach.
 
-
 .. py:module:: os_vif.objects.vif
 
 VIF objects
@@ -27,8 +26,6 @@ subclassing :class:`VIFBase`.
 .. autoclass:: VIFDirect
 
 .. autoclass:: VIFVHostUser
-
-.. autoclass:: VIFDirect
 
 .. autoclass:: VIFNestedDPDK
 

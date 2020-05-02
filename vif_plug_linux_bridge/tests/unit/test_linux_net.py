@@ -10,16 +10,18 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import mock
-import testtools
+from unittest import mock
 
 import fixtures
-from os_vif.internal.ip.api import ip as ip_lib
+import testtools
+
 from oslo_concurrency import lockutils
 from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_config import fixture as config_fixture
 from oslo_log.fixture import logging_error as log_fixture
+
+from os_vif.internal.ip.api import ip as ip_lib
 
 from vif_plug_linux_bridge import linux_net
 from vif_plug_linux_bridge import privsep

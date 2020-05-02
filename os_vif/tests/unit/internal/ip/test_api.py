@@ -12,7 +12,7 @@
 
 import importlib
 
-import mock
+from unittest import mock
 
 from os_vif.internal.ip import api
 from os_vif.tests.unit import base

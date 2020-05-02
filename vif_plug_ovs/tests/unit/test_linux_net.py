@@ -11,8 +11,10 @@
 # under the License.
 
 import glob
-import mock
 import os.path
+
+from unittest import mock
+
 import testtools
 
 from os_vif.internal.ip.api import ip as ip_lib

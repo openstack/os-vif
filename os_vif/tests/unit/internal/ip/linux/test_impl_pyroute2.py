@@ -10,7 +10,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import mock
+from unittest import mock
+
 from pyroute2 import iproute
 from pyroute2.netlink import exceptions as ipexc
 from pyroute2.netlink.rtnl import ifinfmsg

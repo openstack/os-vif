@@ -12,7 +12,6 @@
 
 import copy
 import mock
-import six
 
 from oslo_serialization import jsonutils
 from oslo_versionedobjects import base
@@ -51,7 +50,7 @@ class TestVersionedObjectPrintable(test_base.TestCase):
         out = str(self.obj)
         self.assertIn("'child1_field1': [1, 2, 3]}", out)
         self.assertIn("'child1_field1': [4, 5, 6]}", out)
-        cmp = str({'parent_field2': six.text_type("test string")})
+        cmp = str({'parent_field2': "test string"})
         cmp = cmp.replace('{', '').replace('}', '')
         self.assertIn(str(cmp), out)
 

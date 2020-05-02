@@ -12,14 +12,12 @@
 
 import abc
 from oslo_config import cfg
-import six
 
 
 CONF = cfg.CONF
 
 
-@six.add_metaclass(abc.ABCMeta)
-class PluginBase(object):
+class PluginBase(metaclass=abc.ABCMeta):
     """Base class for all VIF plugins."""
 
     # Override to provide a tuple of oslo_config.Opt instances for

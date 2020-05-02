@@ -11,11 +11,9 @@
 #    under the License.
 
 import abc
-import six
 
 
-@six.add_metaclass(abc.ABCMeta)
-class IpCommand(object):
+class IpCommand(metaclass=abc.ABCMeta):
 
     TYPE_VETH = 'veth'
     TYPE_VLAN = 'vlan'

@@ -13,7 +13,6 @@
 import abc
 
 from oslo_utils import importutils
-import six
 
 
 interface_map = {
@@ -29,8 +28,7 @@ def get_instance(context, iface_name=None):
     return iface.api_factory(context)
 
 
-@six.add_metaclass(abc.ABCMeta)
-class ImplAPI(object):
+class ImplAPI(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def has_table_column(self, table, column):
         """Check if a column exists in a database table

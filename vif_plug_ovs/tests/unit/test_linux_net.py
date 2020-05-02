@@ -16,7 +16,6 @@ import os.path
 import testtools
 
 from os_vif.internal.ip.api import ip as ip_lib
-from six.moves import builtins
 
 from vif_plug_ovs import exception
 from vif_plug_ovs import linux_net
@@ -62,7 +61,7 @@ class LinuxNetTest(testtools.TestCase):
         mock_set_state.assert_called_once_with("br0", "up")
         mock_arp_filtering.assert_called_once_with("br0")
 
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     @mock.patch("os.path.exists")
     def test__disable_ipv6(self, mock_exists, mock_open):
 
@@ -80,7 +79,7 @@ class LinuxNetTest(testtools.TestCase):
         mock_open.assert_called_once_with(exists_path, 'w')
 
     @mock.patch.object(os.path, 'exists', return_value=True)
-    @mock.patch.object(builtins, 'open')
+    @mock.patch('builtins.open')
     def test__arp_filtering(self, mock_open, *args):
         mock_open.side_effect = mock.mock_open()
         linux_net._arp_filtering("br0")
@@ -132,7 +131,7 @@ class LinuxNetTest(testtools.TestCase):
         linux_net.add_bridge_port("br0", "vnet1")
         mock_set.assert_called_once_with("vnet1", master="br0")
 
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     @mock.patch.object(os.path, 'isfile')
     def test_is_switchdev_ioerror(self, mock_isfile, mock_open):
         mock_isfile.side_effect = [True]
@@ -143,7 +142,7 @@ class LinuxNetTest(testtools.TestCase):
         test_switchdev = linux_net._is_switchdev('pf_ifname')
         self.assertEqual(test_switchdev, False)
 
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     @mock.patch.object(os.path, 'isfile')
     def test_is_switchdev_empty(self, mock_isfile, mock_open):
         mock_isfile.side_effect = [True]
@@ -159,7 +158,7 @@ class LinuxNetTest(testtools.TestCase):
         mock_open.assert_has_calls(open_calls)
         self.assertEqual(test_switchdev, False)
 
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     @mock.patch.object(os.path, 'isfile')
     def test_is_switchdev_positive(self, mock_isfile, mock_open):
         mock_isfile.side_effect = [True]
@@ -191,7 +190,7 @@ class LinuxNetTest(testtools.TestCase):
         self.assertEqual(linux_net._parse_pf_number("pf31"), "31")
         self.assertIsNone(linux_net._parse_pf_number("g4rbl3d"))
 
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     @mock.patch.object(os.path, 'isfile')
     @mock.patch.object(os, 'listdir')
     @mock.patch.object(linux_net, "get_function_by_ifname")
@@ -232,7 +231,7 @@ class LinuxNetTest(testtools.TestCase):
         mock_open.assert_has_calls(open_calls)
         self.assertEqual('rep_vf_2', ifname)
 
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     @mock.patch.object(os.path, 'isfile')
     @mock.patch.object(os, 'listdir')
     @mock.patch.object(linux_net, "get_function_by_ifname")
@@ -263,7 +262,7 @@ class LinuxNetTest(testtools.TestCase):
         ifname = linux_net.get_representor_port('pf_ifname2', '2')
         self.assertEqual('rep_pf2_vf_2', ifname)
 
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     @mock.patch.object(os.path, 'isfile')
     @mock.patch.object(os, 'listdir')
     @mock.patch.object(linux_net, "get_function_by_ifname")
@@ -290,7 +289,7 @@ class LinuxNetTest(testtools.TestCase):
             linux_net.get_representor_port,
             'pf_ifname', '3'),
 
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     @mock.patch.object(os.path, 'isfile')
     @mock.patch.object(os, 'listdir')
     @mock.patch.object(linux_net, "get_function_by_ifname")
@@ -317,7 +316,7 @@ class LinuxNetTest(testtools.TestCase):
             linux_net.get_representor_port,
             'pf_ifname', '3')
 
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     @mock.patch.object(os.path, 'isfile')
     @mock.patch.object(os, 'listdir')
     @mock.patch.object(linux_net, "get_function_by_ifname")
@@ -344,7 +343,7 @@ class LinuxNetTest(testtools.TestCase):
             linux_net.get_representor_port,
             'pf_ifname', '3')
 
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     @mock.patch.object(os.path, 'isfile')
     @mock.patch.object(os, 'listdir')
     def test_physical_function_inferface_name(
@@ -359,7 +358,7 @@ class LinuxNetTest(testtools.TestCase):
             '0000:00:00.1', pf_interface=True, switchdev=False)
         self.assertEqual(ifname, 'foo')
 
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     @mock.patch.object(os.path, 'isfile')
     @mock.patch.object(os, 'listdir')
     def test_physical_function_inferface_name_with_switchdev(

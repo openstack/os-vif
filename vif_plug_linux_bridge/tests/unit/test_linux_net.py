@@ -135,7 +135,7 @@ class LinuxNetTest(testtools.TestCase):
                  check_exit_code=[0, 2, 254])]
         mock_ip_set.assert_has_calls(calls)
 
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     @mock.patch("os.path.exists")
     def test__disable_ipv6(self, mock_exists, mock_open):
 

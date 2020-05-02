@@ -28,8 +28,6 @@ from oslo_concurrency import lockutils
 from oslo_concurrency import processutils
 from vif_plug_linux_bridge import privsep
 
-import six
-
 
 # NOTE(vish): Iptables supports chain names of up to 28 characters,  and we
 #             add up to 12 characters to binary_name which is used as a prefix,
@@ -219,7 +217,7 @@ class IptablesTable(object):
 
     def remove_rules_regex(self, regex):
         """Remove all rules matching regex."""
-        if isinstance(regex, six.string_types):
+        if isinstance(regex, str):
             regex = re.compile(regex)
         num_rules = len(self.rules)
         self.rules = [r for r in self.rules if not regex.match(str(r))]
@@ -302,7 +300,7 @@ class IptablesManager(object):
             elif ip_version == 6:
                 tables = self.ipv6
 
-            for table, chains in six.iteritems(builtin_chains[ip_version]):
+            for table, chains in builtin_chains[ip_version].items():
                 for chain in chains:
                     tables[table].add_chain(chain)
                     tables[table].add_rule(chain, '-j $%s' % (chain,),
@@ -334,11 +332,11 @@ class IptablesManager(object):
         self.apply()
 
     def dirty(self):
-        for table in six.itervalues(self.ipv4):
+        for table in self.ipv4.values():
             if table.dirty:
                 return True
         if self.use_ipv6:
-            for table in six.itervalues(self.ipv6):
+            for table in self.ipv6.values():
                 if table.dirty:
                     return True
         return False
@@ -365,7 +363,7 @@ class IptablesManager(object):
         for save, restore, tables in s:
             all_tables, _err = save()
             all_lines = all_tables.split('\n')
-            for table_name, table in six.iteritems(tables):
+            for table_name, table in tables.items():
                 start, end = self._find_table(all_lines, table_name)
                 all_lines[start:end] = self._modify_rules(
                         all_lines[start:end], table, table_name)

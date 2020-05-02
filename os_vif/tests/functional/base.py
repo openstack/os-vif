@@ -17,7 +17,6 @@ import abc
 import functools
 import inspect
 import os
-import six
 import sys
 
 import eventlet.timeout
@@ -99,8 +98,8 @@ def sanitize_log_path(path):
 # kills the whole worker, with all test cases scheduled to it. This metaclass
 # makes all test cases convert Timeout exceptions into unittest friendly
 # failure mode (self.fail).
-@six.add_metaclass(_CatchTimeoutMetaclass)
-class BaseFunctionalTestCase(base.BaseTestCase):
+class BaseFunctionalTestCase(base.BaseTestCase,
+                             metaclass=_CatchTimeoutMetaclass):
     """Base class for functional tests."""
 
     COMPONENT_NAME = 'os_vif'

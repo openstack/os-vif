@@ -22,7 +22,6 @@ from oslo_serialization import jsonutils
 from oslo_utils import excutils
 from oslo_utils import uuidutils
 from ovsdbapp import api as ovsdb_api
-import six
 
 from vif_plug_ovs.ovsdb import api
 from vif_plug_ovs import privsep
@@ -379,7 +378,7 @@ def _set_colval_args(*col_values):
             args += ["%s:%s%s%s" % (
                 col, k, op, _py_to_val(v)) for k, v in val.items()]
         elif (isinstance(val, collections.Sequence) and
-                not isinstance(val, six.string_types)):
+                not isinstance(val, str)):
             if len(val) == 0:
                 args.append("%s%s%s" % (col, op, "[]"))
             else:

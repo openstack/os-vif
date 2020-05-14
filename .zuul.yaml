@@ -129,6 +129,7 @@
       - openstack-python3-victoria-jobs
       - publish-openstack-docs-pti
       - release-notes-jobs-python3
+      - openstack-cover-jobs
     check:
       jobs:
         - kuryr-kubernetes-tempest:

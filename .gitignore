@@ -29,6 +29,7 @@ nosetests.xml
 .testrepository
 .venv
 .stestr
+cover
 
 # Translations
 *.mo

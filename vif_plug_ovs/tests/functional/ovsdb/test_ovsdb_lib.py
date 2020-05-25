@@ -10,14 +10,16 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import mock
 import random
+
+from unittest import mock
+
+import testscenarios
 
 from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_utils import uuidutils
 from ovsdbapp.schema.open_vswitch import impl_idl
-import testscenarios
 
 from vif_plug_ovs import constants
 from vif_plug_ovs import linux_net

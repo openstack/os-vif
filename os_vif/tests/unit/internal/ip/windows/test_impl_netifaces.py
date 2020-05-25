@@ -10,7 +10,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import mock
+from unittest import mock
+
 import netifaces
 
 from os_vif.internal.ip.windows import impl_netifaces as ip_lib

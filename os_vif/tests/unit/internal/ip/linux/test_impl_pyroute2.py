@@ -134,9 +134,11 @@ class TestIpCommand(base.TestCase):
         self.ip_link.assert_called_once_with(
             'add', ifname=self.DEVICE, kind=self.TYPE_VETH, peer='peer')
 
-        self.assertRaises(ipexc.NetlinkError, self.ip.add, self.DEVICE,
-                          self.TYPE_VLAN, peer='peer',
-                          check_exit_code=[self.OTHER_ERROR_CODE])
+        self.assertRaises(
+            exception.NetworkInterfaceNotFound,
+            self.ip.add, self.DEVICE,
+            self.TYPE_VLAN, peer='peer',
+            check_exit_code=[self.OTHER_ERROR_CODE])
 
     def test_delete(self):
         with mock.patch.object(iproute.IPRoute, 'link_lookup',

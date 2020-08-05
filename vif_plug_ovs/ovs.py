@@ -64,7 +64,15 @@ class OvsPlugin(plugin.PluginBase):
                    'the ovsdb endpoint used.'),
         cfg.StrOpt('ovsdb_interface',
                    choices=list(ovsdb_api.interface_map),
-                   default='vsctl',
+                   default='native',
+                   deprecated_for_removal=True,
+                   deprecated_since='2.2.0',
+                   deprecated_reason="""
+                   os-vif has supported ovsdb access via python bindings
+                   since Stein (1.15.0), starting in Victoria (2.2.0) the
+                   ovs-vsctl driver is now deprecated for removal and
+                   in future releases it will be be removed.
+                   """,
                    help='The interface for interacting with the OVSDB'),
         # NOTE(sean-k-mooney): This value is a bool for two reasons.
         # First I want to allow this config option to be reusable with

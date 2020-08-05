@@ -28,7 +28,18 @@ class BaseOVS(object):
         self.timeout = config.ovs_vsctl_timeout
         self.connection = config.ovsdb_connection
         self.interface = config.ovsdb_interface
-        self.ovsdb = ovsdb_api.get_instance(self)
+        self._ovsdb = None
+
+    # NOTE(sean-k-mooney): when using the native ovsdb bindings
+    # creating an instance of the ovsdb api connects to the ovsdb
+    # to initialize the library based on the schema version
+    # of the ovsdb. To avoid that we lazy load the ovsdb
+    # instance the first time we need it via a property.
+    @property
+    def ovsdb(self):
+        if not self._ovsdb:
+            self._ovsdb = ovsdb_api.get_instance(self)
+        return self._ovsdb
 
     def _ovs_supports_mtu_requests(self):
         return self.ovsdb.has_table_column('Interface', 'mtu_request')

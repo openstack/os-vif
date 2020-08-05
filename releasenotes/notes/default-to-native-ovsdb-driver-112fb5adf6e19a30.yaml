@@ -1,0 +1,16 @@
+---
+deprecations:
+  - |
+    The ``vsctl`` ovsdb driver is now deprecated for removal.
+    The default ovsdb interface has now been updated to ``native``.
+    This will use the ovs python binding instead of invoking
+    the ``ovs-vsctl`` CLI. The ``native`` backend both outperforms
+    the ``vsctl`` backend and require no elevated privileges to
+    configure the ovsdb. This both improves security and
+    reduces plug and unplug time.
+upgrade:
+  - |
+    os-vif now uses the ``native`` ovsdb driver instead of ``vsctl`` driver.
+    This reduces the number of privileged call that os-vif need to make
+    and generally improves plugging performance. In future release the
+    ``vsctl`` backend will be removed.

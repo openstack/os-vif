@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Linux kernel 5.8 changed the sysfs interface that is used to
+    discover the interfaces used for OVS offloads for certain NIC
+    models. This results in network plugging failure, as described
+    in `bug #1892132`_. This release fixes the plugging issue by
+    properly handling the new sysfs structure.
+
+    .. _bug #1892132: https://bugs.launchpad.net/os-vif/+bug/1892132

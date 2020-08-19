@@ -30,6 +30,7 @@ class Netifaces(ip_command.IpCommand):
             return bool(netifaces.ifaddresses(device))
         except ValueError:
             LOG.warning("The device does not exist on the system: %s", device)
+            return False
         except OSError:
             LOG.error("Failed to get interface addresses: %s", device)
             return False

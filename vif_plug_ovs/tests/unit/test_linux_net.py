@@ -261,25 +261,63 @@ class LinuxNetTest(testtools.TestCase):
 
     @mock.patch.object(os, 'listdir')
     @mock.patch.object(linux_net, '_get_phys_switch_id')
+    @mock.patch.object(linux_net, "_get_phys_port_name")
     def test_physical_function_interface_name(
-            self, mock__get_phys_switch_id, mock_listdir):
+            self, mock__get_phys_port_name, mock__get_phys_switch_id,
+            mock_listdir):
         mock_listdir.return_value = ['foo', 'bar']
         mock__get_phys_switch_id.side_effect = (
             ['', 'valid_switch'])
+        mock__get_phys_port_name.side_effect = (["p1"])
         ifname = linux_net.get_ifname_by_pci_address(
             '0000:00:00.1', pf_interface=True, switchdev=False)
         self.assertEqual(ifname, 'foo')
 
     @mock.patch.object(os, 'listdir')
-    @mock.patch.object(linux_net, '_get_phys_switch_id')
+    @mock.patch.object(linux_net, "_get_phys_switch_id")
+    @mock.patch.object(linux_net, "_get_phys_port_name")
     def test_physical_function_interface_name_with_switchdev(
-            self, mock__get_phys_switch_id, mock_listdir):
+            self, mock__get_phys_port_name, mock__get_phys_switch_id,
+            mock_listdir):
         mock_listdir.return_value = ['foo', 'bar']
         mock__get_phys_switch_id.side_effect = (
             ['', 'valid_switch'])
+        mock__get_phys_port_name.side_effect = (["p1s0"])
         ifname = linux_net.get_ifname_by_pci_address(
             '0000:00:00.1', pf_interface=True, switchdev=True)
         self.assertEqual(ifname, 'bar')
+
+    @mock.patch.object(os, 'listdir')
+    @mock.patch.object(linux_net, "_get_phys_switch_id")
+    @mock.patch.object(linux_net, "_get_phys_port_name")
+    def test_physical_function_interface_name_with_representors(
+            self, mock__get_phys_port_name, mock__get_phys_switch_id,
+            mock_listdir):
+        # Get the PF that matches the phys_port_name regex
+        mock_listdir.return_value = ['enp2s0f0_0', 'enp2s0f0_1', 'enp2s0f0']
+        mock__get_phys_switch_id.side_effect = (
+            ['valid_switch', 'valid_switch', 'valid_switch'])
+        mock__get_phys_port_name.side_effect = (["pf0vf0", "pf0vf1", "p0"])
+        ifname = linux_net.get_ifname_by_pci_address(
+            '0000:00:00.1', pf_interface=True, switchdev=True)
+        self.assertEqual(ifname, 'enp2s0f0')
+
+    @mock.patch.object(os, 'listdir')
+    @mock.patch.object(linux_net, "_get_phys_switch_id")
+    @mock.patch.object(linux_net, "_get_phys_port_name")
+    def test_physical_function_interface_name_with_fallback_To_first_netdev(
+            self, mock__get_phys_port_name, mock__get_phys_switch_id,
+            mock_listdir):
+        # Try with switchdev mode to get PF but fail because there is no match
+        # for the phys_port_name then fallback to first interface found
+        mock_listdir.return_value = ['enp2s0f0_0', 'enp2s0f0_1', 'enp2s0f0']
+        mock__get_phys_switch_id.side_effect = (['valid_switch',
+                                                 'valid_switch',
+                                                 'valid_switch'])
+        mock__get_phys_port_name.side_effect = (["pf0vf0", "pf0vf1", "pf0vf2"])
+        ifname = linux_net.get_ifname_by_pci_address(
+            '0000:00:00.1', pf_interface=True, switchdev=True)
+        self.assertEqual(ifname, 'enp2s0f0_0')
 
     @mock.patch.object(os, 'listdir')
     def test_get_ifname_by_pci_address_exception(self, mock_listdir):

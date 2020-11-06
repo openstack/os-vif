@@ -239,46 +239,35 @@ def get_representor_port(pf_ifname, vf_num):
     VF number in the phys_port_name. That interface is the representor for
     the requested VF.
     """
-    pf_path = "/sys/class/net/%s" % pf_ifname
-    pf_sw_id_file = os.path.join(pf_path, "phys_switch_id")
 
     pf_sw_id = None
     try:
-        with open(pf_sw_id_file, 'r') as fd:
-            pf_sw_id = fd.readline().rstrip()
+        pf_sw_id = _get_phys_switch_id(pf_ifname)
     except (OSError, IOError):
         raise exception.RepresentorNotFound(ifname=pf_ifname, vf_num=vf_num)
 
-    pf_subsystem_file = os.path.join(pf_path, "subsystem")
+    pf_subsystem_file = "/sys/class/net/%s/subsystem" % pf_ifname
     try:
         devices = os.listdir(pf_subsystem_file)
     except (OSError, IOError):
         raise exception.RepresentorNotFound(ifname=pf_ifname, vf_num=vf_num)
 
-    for device in devices:
-        address_str, pf = get_function_by_ifname(device)
-        if pf:
-            continue
+    ifname_pf_func = _get_pf_func(pf_ifname)
+    if ifname_pf_func is None:
+        raise exception.RepresentorNotFound(ifname=pf_ifname, vf_num=vf_num)
 
-        device_path = "/sys/class/net/%s" % device
-        device_sw_id_file = os.path.join(device_path, "phys_switch_id")
+    for device in devices:
         try:
-            with open(device_sw_id_file, 'r') as fd:
-                device_sw_id = fd.readline().rstrip()
+            device_sw_id = _get_phys_switch_id(device)
+            if not device_sw_id or device_sw_id != pf_sw_id:
+                continue
         except (OSError, IOError):
             continue
 
-        if device_sw_id != pf_sw_id:
-            continue
-        device_port_name_file = (
-            os.path.join(device_path, 'phys_port_name'))
-
-        if not os.path.isfile(device_port_name_file):
-            continue
-
         try:
-            with open(device_port_name_file, 'r') as fd:
-                phys_port_name = fd.readline().rstrip()
+            phys_port_name = _get_phys_port_name(device)
+            if phys_port_name is None:
+                continue
         except (OSError, IOError):
             continue
 
@@ -287,9 +276,6 @@ def get_representor_port(pf_ifname, vf_num):
         # the PCI func number of pf_ifname.
         rep_parent_pf_func = _parse_pf_number(phys_port_name)
         if rep_parent_pf_func is not None:
-            ifname_pf_func = _get_pf_func(pf_ifname)
-            if ifname_pf_func is None:
-                continue
             if int(rep_parent_pf_func) != int(ifname_pf_func):
                 continue
 
@@ -321,9 +307,7 @@ def _get_sysfs_netdev_path(pci_addr, pf_interface):
 def _is_switchdev(netdev):
     """Returns True if a netdev has a readable phys_switch_id"""
     try:
-        sw_id_file = "/sys/class/net/%s/phys_switch_id" % netdev
-        with open(sw_id_file, 'r') as fd:
-            phys_switch_id = fd.readline().rstrip()
+        phys_switch_id = _get_phys_switch_id(netdev)
         if phys_switch_id != "" and phys_switch_id is not None:
             return True
     except (OSError, IOError):
@@ -389,3 +373,33 @@ def get_pf_pci_from_vf(vf_pci):
     """
     physfn_path = os.readlink("/sys/bus/pci/devices/%s/physfn" % vf_pci)
     return os.path.basename(physfn_path)
+
+
+def _get_phys_port_name(ifname):
+    """Get the interface name and return its phys_port_name
+
+    :param ifname: The interface name
+    :return: The phys_port_name of the given ifname
+    """
+    phys_port_name_path = "/sys/class/net/%s/phys_port_name" % ifname
+
+    if not os.path.isfile(phys_port_name_path):
+        return None
+
+    with open(phys_port_name_path, 'r') as fd:
+        return fd.readline().strip()
+
+
+def _get_phys_switch_id(ifname):
+    """Get the interface name and return its phys_switch_id
+
+    :param ifname: The interface name
+    :return: The phys_switch_id of the given ifname
+    """
+    phys_port_name_path = "/sys/class/net/%s/phys_switch_id" % ifname
+
+    if not os.path.isfile(phys_port_name_path):
+        return None
+
+    with open(phys_port_name_path, 'r') as fd:
+        return fd.readline().strip()

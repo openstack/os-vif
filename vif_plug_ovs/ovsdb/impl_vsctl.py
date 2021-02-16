@@ -12,7 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import collections
+import collections.abc
 import itertools
 import uuid
 
@@ -32,7 +32,7 @@ LOG = logging.getLogger(__name__)
 
 def _val_to_py(val):
     """Convert a json ovsdb return value to native python object"""
-    if isinstance(val, collections.Sequence) and len(val) == 2:
+    if isinstance(val, collections.abc.Sequence) and len(val) == 2:
         if val[0] == "uuid":
             return uuid.UUID(val[1])
         elif val[0] == "set":
@@ -282,7 +282,7 @@ class OvsdbVsctl(ovsdb_api.API, api.ImplAPI):
     def db_add(self, table, record, column, *values):
         args = [table, record, column]
         for value in values:
-            if isinstance(value, collections.Mapping):
+            if isinstance(value, collections.abc.Mapping):
                 args += ["{}={}".format(_py_to_val(k), _py_to_val(v))
                          for k, v in value.items()]
             else:
@@ -374,10 +374,10 @@ def _set_colval_args(*col_values):
             col, op, val = entry[0], '=', entry[1]
         else:
             col, op, val = entry
-        if isinstance(val, collections.Mapping):
+        if isinstance(val, collections.abc.Mapping):
             args += ["%s:%s%s%s" % (
                 col, k, op, _py_to_val(v)) for k, v in val.items()]
-        elif (isinstance(val, collections.Sequence) and
+        elif (isinstance(val, collections.abc.Sequence) and
                 not isinstance(val, str)):
             if len(val) == 0:
                 args.append("%s%s%s" % (col, op, "[]"))

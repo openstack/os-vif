@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    We now create entrypoints for oslo.config options to allow automated
+    documentation and validation of the configurable options for all the
+    plugins.

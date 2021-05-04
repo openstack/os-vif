@@ -18,6 +18,7 @@ from stevedore import extension
 import os_vif
 from os_vif import exception
 from os_vif import objects
+from os_vif import opts
 from os_vif import plugin
 from os_vif.tests.unit import base
 
@@ -170,3 +171,10 @@ class TestOSVIF(base.TestCase):
         vif_info = info.plugin_info[0].vif_info
         self.assertEqual(len(vif_info), 1)
         self.assertEqual(vif_info[0].vif_object_name, "VIFOpenVSwitch")
+
+    def test_list_opts_entrypoints(self):
+        list_opts = opts.list_plugins_opts()
+        for group in list_opts:
+            for opt in group[1]:
+                self.assertTrue("oslo_config.cfg" == opt.__module__)
+        self.assertGreaterEqual(len(list_opts), 3)

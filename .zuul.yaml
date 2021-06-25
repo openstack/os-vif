@@ -9,12 +9,12 @@
 - job:
     name: os-vif-tempest-base
     parent: devstack-tempest
+    timeout: 7800
     description: |
       Base integration test with Neutron networking and py3.
       This is derived from tempest-full-py3 and adapted for
       use in os-vif
     required-projects:
-      - openstack/devstack-gate
       - openstack/nova
       - openstack/os-vif
       - openstack/neutron
@@ -43,12 +43,35 @@
 - job:
     name: os-vif-ovs-base
     parent: os-vif-tempest-base
-    timeout: 7800
     description: |
       os-vif ovs base job, this should not be used directly.
     vars:
+      devstack_services:
+        # Disable OVN services
+        br-ex-tcpdump: false
+        br-int-flows: false
+        ovn-controller: false
+        ovn-northd: false
+        ovs-vswitchd: false
+        ovsdb-server: false
+        q-ovn-metadata-agent: false
+        # Neutron services
+        q-agt: true
+        q-dhcp: true
+        q-l3: true
+        q-meta: true
+        q-metering: true
+      devstack_localrc:
+        Q_AGENT: openvswitch
+        Q_ML2_PLUGIN_MECHANISM_DRIVERS: openvswitch
+        Q_DVR_MODE: dvr_snat
+        Q_ML2_TENANT_NETWORK_TYPE: vxlan
       devstack_local_conf:
         post-config:
+          $NEUTRON_CONF:
+            DEFAULT:
+              enable_dvr: yes
+              l3_ha: yes
           $NEUTRON_L3_CONF:
             agent:
               availability_zone: nova
@@ -59,47 +82,19 @@
             ml2_type_vlan:
               network_vlan_ranges: foo:1:10
             agent:
-              enable_distributed_routing: true
-              l2_population: true
-              tunnel_types: vxlan,gre
-        test-config:
-          $TEMPEST_CONFIG:
-            neutron_plugin_options:
-              provider_vlans: foo,
-              agent_availability_zone: nova
-              image_is_advanced: true
-              available_type_drivers: flat,vlan,gre,local,vxlan
-
-- job:
-    name: os-vif-ovs
-    parent: os-vif-ovs-base
-    description: |
-      os-vif ovs job with ovs firewall driver
-    vars:
-      devstack_local_conf:
-        post-config:
-          # NOTE(sean-k-mooney): i do not believe that the devstack role
-          # will merge the base /$NEUTRON_CORE_PLUGIN_CONF with the parent
-          # job so we redefine the entire section
-          "/$NEUTRON_CORE_PLUGIN_CONF":
-            ml2_type_vlan:
-              network_vlan_ranges: foo:1:10
-            agent:
-              enable_distributed_routing: true
-              l2_population: true
-              tunnel_types: vxlan,gre
-            securitygroup:
-              firewall_driver: openvswitch
+              tunnel_types: vxlan
 
 - job:
     name: os-vif-ovs-iptables
     parent: os-vif-ovs-base
     description: |
-      os-vif iptables job derived from neutron-tempest-iptables_hybrid
+      os-vif ovs iptables job (tests hybrid-plug=true)
     vars:
-      tox_envlist: full
       devstack_local_conf:
         post-config:
+          $NOVA_CONF:
+            os_vif_ovs:
+              isolate_vif: true
           # NOTE(sean-k-mooney): i do not believe that the devstack role
           # will merge the base /$NEUTRON_CORE_PLUGIN_CONF with the parent
           # job so we redefine the entire section
@@ -107,20 +102,53 @@
             ml2_type_vlan:
               network_vlan_ranges: foo:1:10
             agent:
-              enable_distributed_routing: true
-              l2_population: true
-              tunnel_types: vxlan,gre
+              tunnel_types: vxlan
             securitygroup:
               firewall_driver: iptables_hybrid
+              enable_ipset: false
+
+- job:
+    name: os-vif-ovn
+    parent: os-vif-tempest-base
+    description: |
+      os-vif ovn job (tests hybrid-plug=false)
+
 - job:
     name: os-vif-linuxbridge
     parent: os-vif-tempest-base
-    timeout: 10800
     description: |
       os-vif linux bridge job derived from neutron-tempest-linuxbridge
     vars:
+      devstack_services:
+        # Disable OVN services
+        br-ex-tcpdump: false
+        br-int-flows: false
+        ovn-controller: false
+        ovn-northd: false
+        ovs-vswitchd: false
+        ovsdb-server: false
+        q-ovn-metadata-agent: false
+        # Neutron services
+        q-agt: true
+        q-dhcp: true
+        q-l3: true
+        q-meta: true
+        q-metering: true
       devstack_localrc:
         Q_AGENT: linuxbridge
+        Q_ML2_PLUGIN_MECHANISM_DRIVERS: linuxbridge
+        Q_ML2_TENANT_NETWORK_TYPE: vxlan
+      devstack_local_conf:
+        post-config:
+          "/$NEUTRON_CORE_PLUGIN_CONF":
+            ml2:
+              type_drivers: flat,vlan,local,vxlan
+            ml2_type_vlan:
+              network_vlan_ranges: foo:1:10
+            agent:
+              tunnel_types: vxlan
+            securitygroup:
+              firewall_driver: iptables
 
 - project:
     templates:
@@ -135,12 +163,12 @@
         - kuryr-kubernetes-tempest:
             voting: false
         - openstack-tox-functional-ovs-with-sudo
-        - os-vif-ovs
+        - os-vif-ovn
         - os-vif-ovs-iptables
         - os-vif-linuxbridge
     gate:
       jobs:
         - openstack-tox-functional-ovs-with-sudo
-        - os-vif-ovs
+        - os-vif-ovn
         - os-vif-ovs-iptables
         - os-vif-linuxbridge

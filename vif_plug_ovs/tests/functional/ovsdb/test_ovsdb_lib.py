@@ -152,3 +152,40 @@ class TestOVSDBLib(testscenarios.WithScenarios,
         self.ovs.ensure_ovs_bridge(bridge_name, constants.OVS_DATAPATH_SYSTEM)
         self.assertTrue(self._check_bridge(bridge_name))
         self.addCleanup(self._del_bridge, bridge_name)
+
+    def test_create_patch_port_pair(self):
+        port_bridge = 'fake-pb'
+        port_bridge_port = 'fake-pbp'
+        int_bridge = 'pb-int'
+        int_bridge_port = 'fake-ibp'
+        iface_id = 'iface_id'
+        mac = 'ca:fe:ca:fe:ca:fe'
+        instance_id = uuidutils.generate_uuid()
+
+        # deleting a bridge deletes all ports on bridges so we register the
+        # bridge cleanup first so if we fail anywhere it runs.
+        self.addCleanup(self._del_bridge, port_bridge)
+        self.addCleanup(self._del_bridge, int_bridge)
+        self.ovs.ensure_ovs_bridge(port_bridge, constants.OVS_DATAPATH_SYSTEM)
+        self.ovs.ensure_ovs_bridge(int_bridge, constants.OVS_DATAPATH_SYSTEM)
+        self.ovs.create_patch_port_pair(
+            port_bridge, port_bridge_port, int_bridge, int_bridge_port,
+            iface_id, mac, instance_id, tag=2000)
+        self.assertTrue(self._check_bridge(port_bridge))
+        self.assertTrue(self._check_bridge(int_bridge))
+
+        expected_external_ids = {'iface-status': 'active',
+                                 'iface-id': iface_id,
+                                 'attached-mac': mac,
+                                 'vm-uuid': instance_id}
+        self._check_parameter(
+            'Interface', int_bridge_port, 'external_ids',
+            expected_external_ids)
+        self._check_parameter('Interface', int_bridge_port, 'type', 'patch')
+        port_opts = {'peer': port_bridge_port}
+        self._check_parameter(
+            'Interface', int_bridge_port, 'options', port_opts)
+        self._check_parameter('Port', int_bridge_port, 'tag', 2000)
+        port_opts = {'peer': int_bridge_port}
+        self._check_parameter(
+            'Interface', port_bridge_port, 'options', port_opts)

@@ -19,16 +19,22 @@
 
 import sys
 
+from oslo_config import cfg
+from oslo_log import log as logging
+
+from os_vif import exception as osv_exception
 from os_vif.internal.ip.api import ip as ip_lib
 from os_vif import objects
 from os_vif import plugin
-from oslo_config import cfg
+
 
 from vif_plug_ovs import constants
 from vif_plug_ovs import exception
 from vif_plug_ovs import linux_net
 from vif_plug_ovs.ovsdb import api as ovsdb_api
 from vif_plug_ovs.ovsdb import ovsdb_lib
+
+LOG = logging.getLogger(__name__)
 
 
 class OvsPlugin(plugin.PluginBase):
@@ -90,7 +96,13 @@ class OvsPlugin(plugin.PluginBase):
         cfg.BoolOpt('isolate_vif', default=False,
                     help='Controls if VIF should be isolated when plugged '
                     'to the ovs bridge. This should only be set to True '
-                    'when using the neutron ovs ml2 agent.')
+                    'when using the neutron ovs ml2 agent.'),
+        cfg.BoolOpt('per_port_bridge', default=False,
+                    help='Controls if VIF should be plugged into a per-port '
+                    'bridge. This is experimental and controls the plugging '
+                    'behavior when not using hybrid-plug.'
+                    'This is only used on linux and should be set to false '
+                    'in all other cases such as ironic smartnic ports.')
     )
 
     def __init__(self, config):
@@ -98,8 +110,8 @@ class OvsPlugin(plugin.PluginBase):
         self.ovsdb = ovsdb_lib.BaseOVS(self.config)
 
     @staticmethod
-    def gen_port_name(prefix, id):
-        return ("%s%s" % (prefix, id))[:OvsPlugin.NIC_NAME_LEN]
+    def gen_port_name(prefix, vif_id, max_length=NIC_NAME_LEN):
+        return ("%s%s" % (prefix, vif_id))[:max_length]
 
     @staticmethod
     def get_veth_pair_names(vif):
@@ -163,12 +175,13 @@ class OvsPlugin(plugin.PluginBase):
         # can be enabled automatically in the future.
         if self.config.isolate_vif:
             kwargs['tag'] = constants.DEAD_VLAN
+        bridge = kwargs.pop('bridge', vif.network.bridge)
         self.ovsdb.create_ovs_vif_port(
-            vif.network.bridge,
+            bridge,
             vif_name,
             vif.port_profile.interface_id,
             vif.address, instance_info.uuid,
-            mtu,
+            mtu=mtu,
             **kwargs)
 
     def _update_vif_port(self, vif, vif_name):
@@ -232,6 +245,37 @@ class OvsPlugin(plugin.PluginBase):
                                          self._get_vif_datapath_type(vif))
             self._create_vif_port(vif, vif.id, instance_info)
 
+    def _plug_port_bridge(self, vif, instance_info):
+        """Create a per-VIF OVS bridge and patch pair."""
+
+        # NOTE(sean-k-mooney): the port name prefix should not be
+        # changed to avoid losing ports on upgrade.
+        port_bridge_name = self.gen_port_name('pb', vif.id)
+        port_bridge_patch = self.gen_port_name('pbp', vif.id, max_length=64)
+        int_bridge_name = vif.network.bridge
+        int_bridge_patch = self.gen_port_name('ibp', vif.id, max_length=64)
+
+        self.ovsdb.ensure_ovs_bridge(
+             int_bridge_name, self._get_vif_datapath_type(vif))
+        self.ovsdb.ensure_ovs_bridge(
+            port_bridge_name, self._get_vif_datapath_type(vif))
+        self._create_vif_port(
+            vif, vif.vif_name, instance_info, bridge=port_bridge_name,
+            set_ids=False
+        )
+        tag = constants.DEAD_VLAN if self.config.isolate_vif else None
+        iface_id = vif.id
+        mac = vif.address
+        instance_id = instance_info.uuid
+        LOG.debug(
+            'creating patch port pair \n'
+            f'{port_bridge_name}:({port_bridge_patch}) -> '
+            f'{int_bridge_name}:({int_bridge_patch})'
+        )
+        self.ovsdb.create_patch_port_pair(
+            port_bridge_name, port_bridge_patch, int_bridge_name,
+            int_bridge_patch, iface_id, mac, instance_id, tag=tag)
+
     def _plug_vif_generic(self, vif, instance_info):
         """Create a per-VIF OVS port."""
         self.ovsdb.ensure_ovs_bridge(vif.network.bridge,
@@ -289,20 +333,30 @@ class OvsPlugin(plugin.PluginBase):
             raise exception.WrongPortProfile(
                 profile=vif.port_profile.__class__.__name__)
 
-        if isinstance(vif, objects.vif.VIFOpenVSwitch):
-            if sys.platform != constants.PLATFORM_WIN32:
+        if sys.platform == constants.PLATFORM_WIN32:
+            if type(vif) not in (
+                objects.vif.VIFOpenVSwitch, objects.vif.VIFBridge
+            ):
+                raise osv_exception.PlugException(
+                    vif=vif, err="This vif type is not supported on Windows")
+
+            self._plug_vif_windows(vif, instance_info)
+        elif isinstance(vif, objects.vif.VIFOpenVSwitch):
+            if self.config.per_port_bridge:
+                self._plug_port_bridge(vif, instance_info)
+            else:
                 self._plug_vif_generic(vif, instance_info)
-            else:
-                self._plug_vif_windows(vif, instance_info)
         elif isinstance(vif, objects.vif.VIFBridge):
-            if sys.platform != constants.PLATFORM_WIN32:
-                self._plug_bridge(vif, instance_info)
-            else:
-                self._plug_vif_windows(vif, instance_info)
+            self._plug_bridge(vif, instance_info)
         elif isinstance(vif, objects.vif.VIFVHostUser):
             self._plug_vhostuser(vif, instance_info)
         elif isinstance(vif, objects.vif.VIFHostDevice):
             self._plug_vf(vif, instance_info)
+        else:
+            # This should never be raised.
+            raise osv_exception.PlugException(
+                vif=vif,
+                err="This vif type is not supported by this plugin")
 
     def _unplug_vhostuser(self, vif, instance_info):
         self.ovsdb.delete_ovs_vif_port(vif.network.bridge,
@@ -327,6 +381,18 @@ class OvsPlugin(plugin.PluginBase):
         """Remove port from OVS."""
         self.ovsdb.delete_ovs_vif_port(vif.network.bridge, vif.id,
                                        delete_netdev=False)
+
+    def _unplug_port_bridge(self, vif, instance_info):
+        """Create a per-VIF OVS bridge and patch pair."""
+        # NOTE(sean-k-mooney): the port name prefix should not be
+        # changed to avoid loosing ports on upgrade.
+        port_bridge_name = self.gen_port_name('pb', vif.id)
+        port_bridge_patch = self.gen_port_name('pbp', vif.id, max_length=64)
+        int_bridge_patch = self.gen_port_name('ibp', vif.id, max_length=64)
+        self.ovsdb.delete_ovs_vif_port(vif.network.bridge, int_bridge_patch)
+        self.ovsdb.delete_ovs_vif_port(port_bridge_name, port_bridge_patch)
+        self.ovsdb.delete_ovs_vif_port(port_bridge_name, vif.vif_name)
+        self.ovsdb.delete_ovs_bridge(port_bridge_name)
 
     def _unplug_vif_generic(self, vif, instance_info):
         """Remove port from OVS."""
@@ -363,18 +429,26 @@ class OvsPlugin(plugin.PluginBase):
                           objects.vif.VIFPortProfileOpenVSwitch):
             raise exception.WrongPortProfile(
                 profile=vif.port_profile.__class__.__name__)
-
-        if isinstance(vif, objects.vif.VIFOpenVSwitch):
-            if sys.platform != constants.PLATFORM_WIN32:
+        if sys.platform == constants.PLATFORM_WIN32:
+            if type(vif) not in (
+                objects.vif.VIFOpenVSwitch, objects.vif.VIFBridge
+            ):
+                raise osv_exception.UnplugException(
+                    vif=vif, err="This vif type is not supported on windows.")
+            self._unplug_vif_windows(vif, instance_info)
+        elif isinstance(vif, objects.vif.VIFOpenVSwitch):
+            if self.config.per_port_bridge:
+                self._unplug_port_bridge(vif, instance_info)
+            else:
                 self._unplug_vif_generic(vif, instance_info)
-            else:
-                self._unplug_vif_windows(vif, instance_info)
         elif isinstance(vif, objects.vif.VIFBridge):
-            if sys.platform != constants.PLATFORM_WIN32:
-                self._unplug_bridge(vif, instance_info)
-            else:
-                self._unplug_vif_windows(vif, instance_info)
+            self._unplug_bridge(vif, instance_info)
         elif isinstance(vif, objects.vif.VIFVHostUser):
             self._unplug_vhostuser(vif, instance_info)
         elif isinstance(vif, objects.vif.VIFHostDevice):
             self._unplug_vf(vif)
+        else:
+            # this should never be raised.
+            raise osv_exception.UnplugException(
+                vif=vif,
+                err="This vif type is not supported by this plugin")

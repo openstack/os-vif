@@ -112,6 +112,12 @@
     parent: os-vif-tempest-base
     description: |
       os-vif ovn job (tests hybrid-plug=false)
+    vars:
+      devstack_local_conf:
+        post-config:
+          $NOVA_CONF:
+            os_vif_ovs:
+              per_port_bridge: true
 
 - job:
     name: os-vif-linuxbridge

@@ -71,10 +71,75 @@ class BaseOVS(object):
         return self.ovsdb.add_br(bridge, may_exist=True,
                                  datapath_type=datapath_type).execute()
 
-    def create_ovs_vif_port(self, bridge, dev, iface_id, mac, instance_id,
-                            mtu=None, interface_type=None,
-                            vhost_server_path=None, tag=None,
-                            pf_pci=None, vf_num=None):
+    def delete_ovs_bridge(self, bridge):
+        """Delete ovs brdige by name
+
+        :param bridge: bridge name as a string
+
+        .. note:: Do Not call with br-int !!!
+        """
+        # TODO(sean-k-mooney): when we fix bug: #1914886
+        # add a guard against deleting the integration bridge
+        # after adding a config option to store its name.
+        return self.ovsdb.del_br(bridge).execute()
+
+    def create_patch_port_pair(
+        self, port_bridge, port_bridge_port, int_bridge, int_bridge_port,
+        iface_id, mac, instance_id, tag=None
+    ):
+        """Create a patch port pair between any two bridges.
+
+        :param port_bridge: the source bridge name for the patch port pair.
+        :param port_bridge_port: the name of the patch port on the
+        source bridge.
+        :param int_bridge: the target bridge name, typically br-int.
+        :param int_bridge_port: the name of the patch port on the
+        target bridge.
+        :param iface_id: neutron port ID.
+        :param mac: port MAC.
+        :param instance_id: instance uuid.
+        :param mtu: port MTU.
+        :param tag: OVS interface tag used for vlan isolation.
+        """
+
+        # NOTE(sean-k-mooney): we use a transaction here for 2 reasons:
+        # 1.) if using the vsctl client its faster
+        # 2.) in all cases we either want to fully create the patch port
+        # pair or not create it atomicly. By using a transaction we know
+        # that we will never be in a mixed state where it was partly created.
+        with self.ovsdb.transaction() as txn:
+            # create integration bridge patch peer
+            external_ids = {
+                'iface-id': iface_id, 'iface-status': 'active',
+                'attached-mac': mac, 'vm-uuid': instance_id
+            }
+            col_values = [
+                ('external_ids', external_ids),
+                ('type', 'patch'),
+                ('options', {'peer': port_bridge_port})
+            ]
+
+            txn.add(self.ovsdb.add_port(int_bridge, int_bridge_port))
+            if tag:
+                txn.add(
+                    self.ovsdb.db_set('Port', int_bridge_port, ('tag', tag)))
+            txn.add(
+                self.ovsdb.db_set('Interface', int_bridge_port, *col_values))
+
+            # create port bidge patch peer
+            col_values = [
+                ('type', 'patch'),
+                ('options', {'peer': int_bridge_port})
+            ]
+            txn.add(self.ovsdb.add_port(port_bridge, port_bridge_port))
+            txn.add(
+                self.ovsdb.db_set('Interface', port_bridge_port, *col_values))
+
+    def create_ovs_vif_port(
+        self, bridge, dev, iface_id, mac, instance_id,
+        mtu=None, interface_type=None, vhost_server_path=None,
+        tag=None, pf_pci=None, vf_num=None, set_ids=True
+    ):
         """Create OVS port
 
         :param bridge: bridge name to create the port on.
@@ -88,6 +153,7 @@ class BaseOVS(object):
         :param tag: OVS interface tag.
         :param pf_pci: PCI address of PF for dpdk representor port.
         :param vf_num: VF number of PF for dpdk representor port.
+        :param set_ids: set external ids on port (bool).
 
         .. note:: create DPDK representor port by setting all three values:
             `interface_type`, `pf_pci` and `vf_num`. if interface type is
@@ -98,7 +164,7 @@ class BaseOVS(object):
                         'iface-status': 'active',
                         'attached-mac': mac,
                         'vm-uuid': instance_id}
-        col_values = [('external_ids', external_ids)]
+        col_values = [('external_ids', external_ids)] if set_ids else []
         if interface_type:
             col_values.append(('type', interface_type))
         if vhost_server_path:
@@ -114,7 +180,8 @@ class BaseOVS(object):
             txn.add(self.ovsdb.add_port(bridge, dev))
             if tag:
                 txn.add(self.ovsdb.db_set('Port', dev, ('tag', tag)))
-            txn.add(self.ovsdb.db_set('Interface', dev, *col_values))
+            if col_values:
+                txn.add(self.ovsdb.db_set('Interface', dev, *col_values))
         self.update_device_mtu(dev, mtu, interface_type=interface_type)
 
     def update_ovs_vif_port(self, dev, mtu=None, interface_type=None):

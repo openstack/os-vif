@@ -1,0 +1,25 @@
+---
+fixes:
+  - |
+    The os-vif OVS plugin now supports using per-port OVS bridges when hybrid plug
+    is not used. This is disabled by default and can be enabled by defining
+    ``[os_vif_ovs]/per_port_bridge=True`` in the compute service nova.conf.
+    This capability should only be enabled if you are deploying with ml2/ovn
+    and experience packet loss during live migrations. This is not supported
+    on windows or when using ironic smartnic ports. This option was introduced
+    to address bug: #1933517. When using OVN as a network backend OVN
+    requires the OVS interface to both have an ofport-id and the neutron port
+    uuid defined in the external_ids field. When the port is plugged if
+    ``[os_vif_ovs]/per_port_bridge`` is not enabled then the OVS port will not
+    be assigned an openflow port id until the tap device is created on the host.
+    On loaded system with many flows and ports it can take a few second for OVN
+    to detect the creation of the tap device and install the correct flows.
+    During that interval packets can be dropped.
+    When ``[os_vif_ovs]/per_port_bridge`` is enabled, os-vif will add the VM tap
+    device to a new bridge that is connected to the integration bridge via a
+    patch port. This enables OVN to install the openflow rules on the
+    integration bridge before the tap is created reducing the possibility for
+    packet loss during a live migration. By default per port bridges are disabled
+    and this feature is considered experimental, however it will likely be enabled
+    by default in the future after we gain experience with how this bridge topology
+    scales in larger deployments.

@@ -10,7 +10,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import functools
+import socket
+
 from ovs.db import idl
+from ovs import socket_util
+from ovs import stream
 from ovsdbapp.backend.ovs_idl import connection
 from ovsdbapp.backend.ovs_idl import idlutils
 from ovsdbapp.backend.ovs_idl import vlog
@@ -49,3 +54,43 @@ class NeutronOvsdbIdl(impl_idl.OvsdbIdl, api.ImplAPI):
 
     def has_table_column(self, table, column):
         return column in self._get_table_columns(table)
+
+
+# this is derived form https://review.opendev.org/c/openstack/neutron/+/794892
+def add_keepalives(fn):
+    @functools.wraps(fn)
+    def _open(*args, **kwargs):
+        error, sock = fn(*args, **kwargs)
+        try:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+        except socket.error as e:
+            sock.close()
+            return socket_util.get_exception_errno(e), None
+        return error, sock
+    return _open
+
+
+class NoProbesMixin:
+    @staticmethod
+    def needs_probes():
+        # If we are using keepalives, we can force probe_interval=0
+        return False
+
+
+class TCPStream(stream.TCPStream, NoProbesMixin):
+    @classmethod
+    @add_keepalives
+    def _open(cls, suffix, dscp):
+        return super()._open(suffix, dscp)
+
+
+class SSLStream(stream.SSLStream, NoProbesMixin):
+    @classmethod
+    @add_keepalives
+    def _open(cls, suffix, dscp):
+        return super()._open(suffix, dscp)
+
+
+# Overwriting globals in a library is clearly a good idea
+stream.Stream.register_method("tcp", TCPStream)
+stream.Stream.register_method("ssl", SSLStream)

@@ -23,12 +23,15 @@ from ovsdbapp.schema.open_vswitch import impl_idl
 
 from vif_plug_ovs.ovsdb import api
 
+REQUIRED_TABLES = ('Interface', 'Port', 'Bridge', 'Open_vSwitch')
+
 
 def idl_factory(config):
     conn = config.connection
     schema_name = 'Open_vSwitch'
     helper = idlutils.get_schema_helper(conn, schema_name)
-    helper.register_all()
+    for table in REQUIRED_TABLES:
+        helper.register_table(table)
     return idl.Idl(conn, helper)
 
 

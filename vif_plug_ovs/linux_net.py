@@ -45,6 +45,8 @@ VF_RE = re.compile(r"vf(\d+)", re.IGNORECASE)
 PF_RE = re.compile(r"pf(\d+)", re.IGNORECASE)
 # bus_info (bdf) contains <bus>:<dev>.<func>
 PF_FUNC_RE = re.compile(r"\.(\d+)", 0)
+# phys_port_name contains p##
+UPLINK_PORT_RE = re.compile(r"p(\d+)", re.IGNORECASE)
 
 _SRIOV_TOTALVFS = "sriov_totalvfs"
 NIC_NAME_LEN = 14
@@ -327,12 +329,28 @@ def get_ifname_by_pci_address(pci_addr, pf_interface=False, switchdev=False):
     itself based on the argument of pf_interface.
     """
     dev_path = _get_sysfs_netdev_path(pci_addr, pf_interface)
-    # make the if statement later more readable
-    ignore_switchdev = not switchdev
     try:
-        for netdev in os.listdir(dev_path):
-            if ignore_switchdev or _is_switchdev(netdev):
-                return netdev
+        devices = os.listdir(dev_path)
+
+        # Return the first netdev in case of switchdev=False
+        if not switchdev:
+            return devices[0]
+        elif pf_interface:
+            fallback_netdev = None
+            for netdev in devices:
+                # Return the uplink representor in case of switchdev=True
+                if _is_switchdev(netdev):
+                    fallback_netdev = netdev if fallback_netdev is None \
+                        else fallback_netdev
+                    phys_port_name = _get_phys_port_name(netdev)
+                    if phys_port_name is not None and \
+                            UPLINK_PORT_RE.search(phys_port_name):
+                        return netdev
+
+            # Fallback to first switchdev netdev in case of switchdev=True
+            if fallback_netdev is not None:
+                return fallback_netdev
+
     except Exception:
         raise exception.PciDeviceNotFoundById(id=pci_addr)
     raise exception.PciDeviceNotFoundById(id=pci_addr)

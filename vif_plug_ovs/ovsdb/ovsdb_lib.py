@@ -72,7 +72,7 @@ class BaseOVS(object):
                                  datapath_type=datapath_type).execute()
 
     def delete_ovs_bridge(self, bridge):
-        """Delete ovs brdige by name
+        """Delete ovs bridge by name
 
         :param bridge: bridge name as a string
 
@@ -105,7 +105,7 @@ class BaseOVS(object):
         # NOTE(sean-k-mooney): we use a transaction here for 2 reasons:
         # 1.) if using the vsctl client its faster
         # 2.) in all cases we either want to fully create the patch port
-        # pair or not create it atomicly. By using a transaction we know
+        # pair or not create it atomically. By using a transaction we know
         # that we will never be in a mixed state where it was partly created.
         with self.ovsdb.transaction() as txn:
             # create integration bridge patch peer
@@ -126,7 +126,7 @@ class BaseOVS(object):
             txn.add(
                 self.ovsdb.db_set('Interface', int_bridge_port, *col_values))
 
-            # create port bidge patch peer
+            # create port bridge patch peer
             col_values = [
                 ('type', 'patch'),
                 ('options', {'peer': int_bridge_port})

@@ -102,7 +102,7 @@ def _disable_ipv6(bridge):
        privsep context.
     """
     # NOTE(sean-k-mooney): os-vif disables ipv6 to ensure the Bridge
-    # does not aquire an ipv6 auto config or link local adress.
+    # does not acquire an ipv6 auto config or link local address.
     # This is required to prevent bug 1302080.
     # https://bugs.launchpad.net/neutron/+bug/1302080
     disv6 = ('/proc/sys/net/ipv6/conf/%s/disable_ipv6' %
@@ -147,7 +147,7 @@ def delete_bridge(bridge, dev):
         # Note(sean-k-mooney): this will detach all ports on
         # the bridge before deleting the bridge.
         ip_lib.delete(bridge, check_exit_code=[0, 2, 254])
-        # howver it will not set the detached interface down
+        # however it will not set the detached interface down
         # so we set the dev down if dev is not None and exists.
         if dev and ip_lib.exists(dev):
             set_interface_state(dev, "down")

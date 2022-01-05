@@ -46,7 +46,7 @@ class OvsPlugin(plugin.PluginBase):
 
     If given a VIFBridge, then it will create connect the VM via
     a regular Linux bridge device to allow security group rules to
-    be applied to VM traiffic.
+    be applied to VM traffic.
     """
 
     NIC_NAME_LEN = 14
@@ -291,8 +291,8 @@ class OvsPlugin(plugin.PluginBase):
         # was written it was understood by me that libvirt would not
         # modify ovs if the port exists but in fact it deletes and
         # recreates the port. This both undoes the effort to resolve
-        # bug #1734320 and intoduces other issues for neutron.
-        # this comment will be removed when we actully fix #1734320 in
+        # bug #1734320 and introduces other issues for neutron.
+        # this comment will be removed when we actually fix #1734320 in
         # all cases.
 
         # NOTE(hamdyk): As a WA to the above note, one can use

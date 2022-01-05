@@ -81,7 +81,7 @@ def _ensure_vlan_privileged(vlan_num, bridge_interface, mac_address, mtu):
                        check_exit_code=[0, 2, 254])
         ip_lib.set(interface, state='up', check_exit_code=[0, 2, 254])
         # NOTE(vish): set mtu every time to ensure that changes to mtu get
-        #             propogated
+        #             propagated
         _set_device_mtu(interface, mtu)
 
     return interface
@@ -204,7 +204,7 @@ def _ensure_bridge_privileged(bridge, interface, net_attrs, gateway,
         _set_device_mtu(interface, mtu)
         _update_bridge_routes(interface, bridge)
         # NOTE(sean-k-mooney):
-        # The bridge mtu cannont be set until after an
+        # The bridge mtu cannot be set until after an
         # interface is added due to bug:
         # https://bugs.launchpad.net/ubuntu/+source/linux/+bug/1399064
         _set_device_mtu(bridge, mtu)

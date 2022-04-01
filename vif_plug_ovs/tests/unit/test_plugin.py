@@ -362,47 +362,37 @@ class PluginTest(testtools.TestCase):
     def test_unplug_ovs_bridge_windows(self):
         self._check_unplug_ovs_windows(self.vif_ovs_hybrid)
 
-    @mock.patch.object(ovsdb_lib.BaseOVS, 'ensure_ovs_bridge')
     @mock.patch.object(ovs.OvsPlugin, '_create_vif_port')
-    def test_plug_ovs_vhostuser(self, _create_vif_port, ensure_ovs_bridge):
+    def test_plug_ovs_vhostuser(self, _create_vif_port):
         dp_type = ovs.OvsPlugin._get_vif_datapath_type(self.vif_vhostuser)
-        calls = {
-
-            '_create_vif_port': [mock.call(
-                                 self.vif_vhostuser, 'vhub679325f-ca',
-                                 self.instance,
-                                 interface_type='dpdkvhostuser')],
-            'ensure_ovs_bridge': [mock.call('br0', dp_type)]
-        }
+        calls = [mock.call(
+                self.vif_vhostuser, 'vhub679325f-ca',
+                self.instance,
+                interface_type='dpdkvhostuser',
+                datapath_type=dp_type)]
 
         plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
         plugin.plug(self.vif_vhostuser, self.instance)
-        _create_vif_port.assert_has_calls(calls['_create_vif_port'])
-        ensure_ovs_bridge.assert_has_calls(calls['ensure_ovs_bridge'])
+        _create_vif_port.assert_has_calls(calls)
 
-    @mock.patch.object(ovsdb_lib.BaseOVS, 'ensure_ovs_bridge')
     @mock.patch.object(ovsdb_lib.BaseOVS, 'create_ovs_vif_port')
-    def test_plug_ovs_vhostuser_client(self, create_ovs_vif_port,
-                                       ensure_ovs_bridge):
+    def test_plug_ovs_vhostuser_client(self, create_ovs_vif_port):
         dp_type = ovs.OvsPlugin._get_vif_datapath_type(
             self.vif_vhostuser_client)
-        calls = {
-            'create_ovs_vif_port': [
+        calls = [
                  mock.call(
                      'br0', 'vhub679325f-ca',
                      'e65867e0-9340-4a7f-a256-09af6eb7a3aa',
                      'ca:fe:de:ad:be:ef',
                      'f0000000-0000-0000-0000-000000000001',
                      mtu=1500, interface_type='dpdkvhostuserclient',
-                     vhost_server_path='/var/run/openvswitch/vhub679325f-ca'
-                 )],
-            'ensure_ovs_bridge': [mock.call('br0', dp_type)]
-        }
+                     vhost_server_path='/var/run/openvswitch/vhub679325f-ca',
+                     datapath_type=dp_type
+                 )]
 
         plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
         plugin.plug(self.vif_vhostuser_client, self.instance)
-        create_ovs_vif_port.assert_has_calls(calls['create_ovs_vif_port'])
-        ensure_ovs_bridge.assert_has_calls(calls['ensure_ovs_bridge'])
+        create_ovs_vif_port.assert_has_calls(calls)
 
     @mock.patch.object(ovsdb_lib.BaseOVS, 'delete_ovs_vif_port')
     def test_unplug_ovs_vhostuser(self, delete_ovs_vif_port):

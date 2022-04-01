@@ -138,7 +138,7 @@ class BaseOVS(object):
     def create_ovs_vif_port(
         self, bridge, dev, iface_id, mac, instance_id,
         mtu=None, interface_type=None, vhost_server_path=None,
-        tag=None, pf_pci=None, vf_num=None, set_ids=True
+        tag=None, pf_pci=None, vf_num=None, set_ids=True, datapath_type=None
     ):
         """Create OVS port
 
@@ -154,6 +154,7 @@ class BaseOVS(object):
         :param pf_pci: PCI address of PF for dpdk representor port.
         :param vf_num: VF number of PF for dpdk representor port.
         :param set_ids: set external ids on port (bool).
+        :param datapath_type: datapath type for port's bridge
 
         .. note:: create DPDK representor port by setting all three values:
             `interface_type`, `pf_pci` and `vf_num`. if interface type is
@@ -177,6 +178,9 @@ class BaseOVS(object):
             col_values.append(('options',
                               {'dpdk-devargs': devargs_string}))
         with self.ovsdb.transaction() as txn:
+            if datapath_type:
+                txn.add(self.ovsdb.add_br(bridge, may_exist=True,
+                                          datapath_type=datapath_type))
             txn.add(self.ovsdb.add_port(bridge, dev))
             if tag:
                 txn.add(self.ovsdb.db_set('Port', dev, ('tag', tag)))

@@ -196,12 +196,11 @@ class OvsPlugin(plugin.PluginBase):
         return profile.datapath_type
 
     def _plug_vhostuser(self, vif, instance_info):
-        self.ovsdb.ensure_ovs_bridge(
-            vif.network.bridge, self._get_vif_datapath_type(
-                vif, datapath=constants.OVS_DATAPATH_NETDEV))
         vif_name = OvsPlugin.gen_port_name(
             constants.OVS_VHOSTUSER_PREFIX, vif.id)
         args = {}
+        args['datapath_type'] = self._get_vif_datapath_type(vif,
+                datapath=constants.OVS_DATAPATH_NETDEV)
         if vif.mode == "client":
             args['interface_type'] = \
                 constants.OVS_VHOSTUSER_INTERFACE_TYPE

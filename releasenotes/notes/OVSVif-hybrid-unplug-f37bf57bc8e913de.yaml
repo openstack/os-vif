@@ -1,0 +1,10 @@
+---
+
+feature:
+  - |
+    The unplug() method for VIFOpenVSwitch type now checks for existence of
+    linux bridge used in hybrid plugging mechanism. In case it exists, the
+    interfaces related to the hybrid plugging are deleted too. This is useful
+    in particular for cold migration use case when target node has updated
+    port binding that doesn't use hybrid plugging, while the original plugging
+    was hybrid.

@@ -51,6 +51,12 @@ class PluginTest(testtools.TestCase):
             subnets=self.subnets,
             vlan=99)
 
+        self.network_ovs_trunk = objects.network.Network(
+            id='437c6db5-4e6f-4b43-b64b-ed6a11ee5ba7',
+            bridge='%s01' % constants.TRUNK_BR_PREFIX,
+            subnets=self.subnets,
+            vlan=99)
+
         self.network_ovs_mtu = objects.network.Network(
             id='437c6db5-4e6f-4b43-b64b-ed6a11ee5ba7',
             bridge='br0',
@@ -102,6 +108,14 @@ class PluginTest(testtools.TestCase):
             id='b679325f-ca89-4ee0-a8be-6db1409b69ea',
             address='ca:fe:de:ad:be:ef',
             network=self.network_ovs,
+            path='/var/run/openvswitch/vhub679325f-ca',
+            mode='client',
+            port_profile=self.profile_ovs)
+
+        self.vif_vhostuser_trunk = objects.vif.VIFVHostUser(
+            id='b679325f-ca89-4ee0-a8be-6db1409b69ea',
+            address='ca:fe:de:ad:be:ef',
+            network=self.network_ovs_trunk,
             path='/var/run/openvswitch/vhub679325f-ca',
             mode='client',
             port_profile=self.profile_ovs)
@@ -308,35 +322,44 @@ class PluginTest(testtools.TestCase):
     def test_plug_ovs_bridge_windows(self):
         self._check_plug_ovs_windows(self.vif_ovs_hybrid)
 
+    @mock.patch.object(ovsdb_lib.BaseOVS, 'delete_ovs_bridge')
     @mock.patch.object(ovs, 'sys')
     @mock.patch.object(ovs.OvsPlugin, '_unplug_vif_generic')
-    def test_unplug_ovs_port_bridge_false(self, unplug, mock_sys):
+    def test_unplug_ovs_port_bridge_false(self, unplug, mock_sys,
+                                          delete_ovs_bridge):
         mock_sys.platform = 'linux'
         plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
         with mock.patch.object(plugin.config, 'per_port_bridge', False):
             plugin.unplug(self.vif_ovs, self.instance)
             unplug.assert_called_once_with(self.vif_ovs, self.instance)
+        delete_ovs_bridge.assert_not_called()
 
+    @mock.patch.object(ovsdb_lib.BaseOVS, 'delete_ovs_bridge')
     @mock.patch.object(ovs, 'sys')
     @mock.patch.object(ovs.OvsPlugin, '_unplug_port_bridge')
-    def test_unplug_ovs_port_bridge_true(self, unplug, mock_sys):
+    def test_unplug_ovs_port_bridge_true(self, unplug, mock_sys,
+                                         delete_ovs_bridge):
         mock_sys.platform = 'linux'
         plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
         with mock.patch.object(plugin.config, 'per_port_bridge', True):
             plugin.unplug(self.vif_ovs, self.instance)
             unplug.assert_called_once_with(self.vif_ovs, self.instance)
+        delete_ovs_bridge.assert_not_called()
 
+    @mock.patch.object(ovsdb_lib.BaseOVS, 'delete_ovs_bridge')
     @mock.patch.object(ovs.OvsPlugin, '_unplug_vif_generic')
-    def test_unplug_vif_generic(self, delete_port):
+    def test_unplug_vif_generic(self, delete_port, delete_ovs_bridge):
         plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
         plugin._unplug_vif_generic(self.vif_ovs, self.instance)
         delete_port.assert_called_once()
+        delete_ovs_bridge.assert_not_called()
 
+    @mock.patch.object(ovsdb_lib.BaseOVS, 'delete_ovs_bridge')
     @mock.patch.object(ovsdb_lib.BaseOVS, 'delete_ovs_vif_port')
     @mock.patch.object(linux_net, 'delete_bridge')
     @mock.patch.object(ovs, 'sys')
     def test_unplug_ovs_bridge(self, mock_sys, delete_bridge,
-                               delete_ovs_vif_port):
+                               delete_ovs_vif_port, delete_ovs_bridge):
         calls = {
             'delete_bridge': [mock.call('qbrvif-xxx-yyy', 'qvbb679325f-ca')],
             'delete_ovs_vif_port': [mock.call('br0', 'qvob679325f-ca')]
@@ -346,6 +369,7 @@ class PluginTest(testtools.TestCase):
         plugin.unplug(self.vif_ovs_hybrid, self.instance)
         delete_bridge.assert_has_calls(calls['delete_bridge'])
         delete_ovs_vif_port.assert_has_calls(calls['delete_ovs_vif_port'])
+        delete_ovs_bridge.assert_not_called()
 
     @mock.patch.object(ovsdb_lib.BaseOVS, 'delete_ovs_vif_port')
     @mock.patch.object(ovs, 'sys')
@@ -356,11 +380,15 @@ class PluginTest(testtools.TestCase):
         delete_ovs_vif_port.assert_called_once_with('br0', vif.id,
                                                     delete_netdev=False)
 
-    def test_unplug_ovs_windows(self):
+    @mock.patch.object(ovsdb_lib.BaseOVS, 'delete_ovs_bridge')
+    def test_unplug_ovs_windows(self, delete_ovs_bridge):
         self._check_unplug_ovs_windows(self.vif_ovs)
+        delete_ovs_bridge.assert_not_called()
 
-    def test_unplug_ovs_bridge_windows(self):
+    @mock.patch.object(ovsdb_lib.BaseOVS, 'delete_ovs_bridge')
+    def test_unplug_ovs_bridge_windows(self, delete_ovs_bridge):
         self._check_unplug_ovs_windows(self.vif_ovs_hybrid)
+        delete_ovs_bridge.assert_not_called()
 
     @mock.patch.object(ovs.OvsPlugin, '_create_vif_port')
     def test_plug_ovs_vhostuser(self, _create_vif_port):
@@ -394,14 +422,30 @@ class PluginTest(testtools.TestCase):
         plugin.plug(self.vif_vhostuser_client, self.instance)
         create_ovs_vif_port.assert_has_calls(calls)
 
+    @mock.patch.object(ovsdb_lib.BaseOVS, 'delete_ovs_bridge')
     @mock.patch.object(ovsdb_lib.BaseOVS, 'delete_ovs_vif_port')
-    def test_unplug_ovs_vhostuser(self, delete_ovs_vif_port):
+    def test_unplug_ovs_vhostuser(self, delete_ovs_vif_port,
+                                  delete_ovs_bridge):
         calls = {
             'delete_ovs_vif_port': [mock.call('br0', 'vhub679325f-ca')]
         }
         plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
         plugin.unplug(self.vif_vhostuser, self.instance)
         delete_ovs_vif_port.assert_has_calls(calls['delete_ovs_vif_port'])
+        delete_ovs_bridge.assert_not_called()
+
+    @mock.patch.object(ovsdb_lib.BaseOVS, 'delete_ovs_bridge')
+    @mock.patch.object(ovsdb_lib.BaseOVS, 'delete_ovs_vif_port')
+    def test_unplug_ovs_vhostuser_trunk(self, delete_ovs_vif_port,
+                                        delete_ovs_bridge):
+        bridge_name = '%s01' % constants.TRUNK_BR_PREFIX
+        calls = {
+            'delete_ovs_vif_port': [mock.call(bridge_name, 'vhub679325f-ca')]
+        }
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
+        plugin.unplug(self.vif_vhostuser_trunk, self.instance)
+        delete_ovs_vif_port.assert_has_calls(calls['delete_ovs_vif_port'])
+        delete_ovs_bridge.assert_called_once_with(bridge_name)
 
     @mock.patch.object(ovsdb_lib.BaseOVS, 'ensure_ovs_bridge')
     @mock.patch.object(linux_net, 'get_ifname_by_pci_address')
@@ -446,6 +490,7 @@ class PluginTest(testtools.TestCase):
         set_interface_state.assert_has_calls(calls['set_interface_state'])
         _create_vif_port.assert_has_calls(calls['_create_vif_port'])
 
+    @mock.patch.object(ovsdb_lib.BaseOVS, 'delete_ovs_bridge')
     @mock.patch.object(linux_net, 'get_ifname_by_pci_address')
     @mock.patch.object(linux_net, 'get_vf_num_by_pci_address')
     @mock.patch.object(linux_net, 'get_representor_port')
@@ -455,7 +500,8 @@ class PluginTest(testtools.TestCase):
                                      set_interface_state,
                                      get_representor_port,
                                      get_vf_num_by_pci_address,
-                                     get_ifname_by_pci_address):
+                                     get_ifname_by_pci_address,
+                                     delete_ovs_bridge):
         calls = {
 
             'get_ifname_by_pci_address': [mock.call('0002:24:12.3',
@@ -481,6 +527,7 @@ class PluginTest(testtools.TestCase):
             calls['get_representor_port'])
         delete_ovs_vif_port.assert_has_calls(calls['delete_ovs_vif_port'])
         set_interface_state.assert_has_calls(calls['set_interface_state'])
+        delete_ovs_bridge.assert_not_called()
 
     @mock.patch.object(ovsdb_lib.BaseOVS, 'ensure_ovs_bridge')
     @mock.patch.object(ovs.OvsPlugin, "_create_vif_port")
@@ -491,12 +538,14 @@ class PluginTest(testtools.TestCase):
             ensure_bridge.assert_called_once()
             create_port.assert_called_once()
 
+    @mock.patch.object(ovsdb_lib.BaseOVS, 'delete_ovs_bridge')
     @mock.patch.object(ovs.OvsPlugin, '_unplug_vif_generic')
-    def test_unplug_vif_ovs_smart_nic(self, delete_port):
+    def test_unplug_vif_ovs_smart_nic(self, delete_port, delete_ovs_bridge):
         plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
         with mock.patch.object(plugin.config, 'per_port_bridge', False):
             plugin.unplug(self.vif_ovs_smart_nic, self.instance)
             delete_port.assert_called_once()
+        delete_ovs_bridge.assert_not_called()
 
     @mock.patch.object(linux_net, 'get_dpdk_representor_port_name')
     @mock.patch.object(ovsdb_lib.BaseOVS, 'ensure_ovs_bridge')
@@ -542,10 +591,12 @@ class PluginTest(testtools.TestCase):
         _create_vif_port.assert_has_calls(
             calls['_create_vif_port'])
 
+    @mock.patch.object(ovsdb_lib.BaseOVS, 'delete_ovs_bridge')
     @mock.patch.object(linux_net, 'get_dpdk_representor_port_name')
     @mock.patch.object(ovsdb_lib.BaseOVS, 'delete_ovs_vif_port')
     def test_unplug_ovs_vf_dpdk(self, delete_ovs_vif_port,
-                                get_dpdk_representor_port_name):
+                                get_dpdk_representor_port_name,
+                                delete_ovs_bridge):
         devname = 'vfrb679325f-ca'
         get_dpdk_representor_port_name.return_value = devname
         calls = {
@@ -558,6 +609,7 @@ class PluginTest(testtools.TestCase):
         get_dpdk_representor_port_name.assert_has_calls(
             calls['get_dpdk_representor_port_name'])
         delete_ovs_vif_port.assert_has_calls(calls['delete_ovs_vif_port'])
+        delete_ovs_bridge.assert_not_called()
 
     @mock.patch.object(ovsdb_lib.BaseOVS, 'create_patch_port_pair')
     @mock.patch.object(ovsdb_lib.BaseOVS, 'ensure_ovs_bridge')

@@ -1,0 +1,8 @@
+---
+other:
+  - |
+    The yoga release of OpenStack was the final release to support python 3.6
+    as a result os-vif has now dropped support for python 3.6. The final release
+    of os-vif to support python 3.6 was 2.8.0. os-vif now requires python 3.8
+    and is tested with 3.8, 3.9 and 3.10. newer versions may work but will
+    not be tested in the zed cycle.

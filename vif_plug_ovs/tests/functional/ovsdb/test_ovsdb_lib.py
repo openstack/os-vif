@@ -81,17 +81,6 @@ class TestOVSDBLib(testscenarios.WithScenarios,
     def _list_ports_in_bridge(self, bridge):
         return self._ovsdb.list_ports(bridge).execute()
 
-    def _check_bridge(self, name):
-        return self._ovsdb.br_exists(name).execute()
-
-    def _add_bridge(self, name, may_exist=True, datapath_type=None):
-        self._ovsdb.add_br(name, may_exist=may_exist,
-                           datapath_type=datapath_type).execute()
-        self.assertTrue(self._check_bridge(name))
-
-    def _del_bridge(self, name):
-        self._ovsdb.del_br(name).execute()
-
     def test__set_mtu_request(self):
         port_name = 'port1-' + self.interface
         self._add_bridge(self.brname)

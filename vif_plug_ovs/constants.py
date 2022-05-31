@@ -26,3 +26,5 @@ OVS_DPDK_INTERFACE_TYPE = 'dpdk'
 
 # Neutron dead VLAN.
 DEAD_VLAN = 4095
+
+TRUNK_BR_PREFIX = 'tbr-'

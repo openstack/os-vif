@@ -357,11 +357,19 @@ class OvsPlugin(plugin.PluginBase):
                 vif=vif,
                 err="This vif type is not supported by this plugin")
 
+    def _is_trunk_bridge(self, bridge_name):
+        return bridge_name.startswith(constants.TRUNK_BR_PREFIX)
+
+    def _delete_bridge_if_trunk(self, vif):
+        if self._is_trunk_bridge(vif.network.bridge):
+            self.ovsdb.delete_ovs_bridge(vif.network.bridge)
+
     def _unplug_vhostuser(self, vif, instance_info):
         self.ovsdb.delete_ovs_vif_port(vif.network.bridge,
             OvsPlugin.gen_port_name(
                 constants.OVS_VHOSTUSER_PREFIX,
                 vif.id))
+        self._delete_bridge_if_trunk(vif)
 
     def _unplug_bridge(self, vif, instance_info):
         """UnPlug using hybrid strategy
@@ -375,11 +383,13 @@ class OvsPlugin(plugin.PluginBase):
         linux_net.delete_bridge(vif.bridge_name, v1_name)
 
         self.ovsdb.delete_ovs_vif_port(vif.network.bridge, v2_name)
+        self._delete_bridge_if_trunk(vif)
 
     def _unplug_vif_windows(self, vif, instance_info):
         """Remove port from OVS."""
         self.ovsdb.delete_ovs_vif_port(vif.network.bridge, vif.id,
                                        delete_netdev=False)
+        self._delete_bridge_if_trunk(vif)
 
     def _unplug_port_bridge(self, vif, instance_info):
         """Create a per-VIF OVS bridge and patch pair."""
@@ -392,6 +402,7 @@ class OvsPlugin(plugin.PluginBase):
         self.ovsdb.delete_ovs_vif_port(port_bridge_name, port_bridge_patch)
         self.ovsdb.delete_ovs_vif_port(port_bridge_name, vif.vif_name)
         self.ovsdb.delete_ovs_bridge(port_bridge_name)
+        self._delete_bridge_if_trunk(vif)
 
     def _unplug_vif_generic(self, vif, instance_info):
         """Remove port from OVS."""
@@ -399,6 +410,7 @@ class OvsPlugin(plugin.PluginBase):
         # Iaf15fa7a678ec2624f7c12f634269c465fbad930 this should be correct
         # so this is not removed.
         self.ovsdb.delete_ovs_vif_port(vif.network.bridge, vif.vif_name)
+        self._delete_bridge_if_trunk(vif)
 
     def _unplug_vf(self, vif):
         """Remove port from OVS."""
@@ -420,6 +432,7 @@ class OvsPlugin(plugin.PluginBase):
             vif.network.bridge, representor, delete_netdev=False)
         if datapath == constants.OVS_DATAPATH_SYSTEM:
             linux_net.set_interface_state(representor, 'down')
+        self._delete_bridge_if_trunk(vif)
 
     def unplug(self, vif, instance_info):
         if not hasattr(vif, "port_profile"):

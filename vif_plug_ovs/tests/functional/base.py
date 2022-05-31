@@ -21,3 +21,14 @@ class VifPlugOvsBaseFunctionalTestCase(os_vif_base.BaseFunctionalTestCase):
 
     COMPONENT_NAME = 'vif_plug_ovs'
     PRIVILEGED_GROUP = 'vif_plug_ovs_privileged'
+
+    def _check_bridge(self, name):
+        return self._ovsdb.br_exists(name).execute()
+
+    def _add_bridge(self, name, may_exist=True, datapath_type=None):
+        self._ovsdb.add_br(name, may_exist=may_exist,
+                           datapath_type=datapath_type).execute()
+        self.assertTrue(self._check_bridge(name))
+
+    def _del_bridge(self, name):
+        self._ovsdb.del_br(name).execute()

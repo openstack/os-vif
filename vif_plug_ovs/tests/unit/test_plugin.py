@@ -640,3 +640,17 @@ class PluginTest(testtools.TestCase):
         ]
         delete_ovs_vif_port.assert_has_calls(calls)
         delete_ovs_bridge.assert_called_once_with('pbb679325f-ca8')
+
+    @mock.patch.object(ip_lib, 'exists', return_value=True)
+    @mock.patch.object(ovs.OvsPlugin, '_unplug_bridge')
+    def test_unplug_hybrid_bridge(self, m_unplug_bridge, m_ip_lib_exists):
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
+        plugin.unplug(self.vif_ovs, self.instance)
+        m_unplug_bridge.assert_called_once()
+
+    @mock.patch.object(ip_lib, 'exists', return_value=False)
+    @mock.patch.object(ovs.OvsPlugin, '_unplug_vif_generic')
+    def test_unplug_ovs(self, m_unplug_generic, m_ip_lib_exists):
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
+        plugin.unplug(self.vif_ovs, self.instance)
+        m_unplug_generic.assert_called_once()

@@ -371,7 +371,7 @@ class OvsPlugin(plugin.PluginBase):
                 vif.id))
         self._delete_bridge_if_trunk(vif)
 
-    def _unplug_bridge(self, vif, instance_info):
+    def _unplug_bridge(self, vif, instance_info, linux_bridge_name):
         """UnPlug using hybrid strategy
 
         Unhook port from OVS, unhook port from bridge, delete
@@ -380,7 +380,7 @@ class OvsPlugin(plugin.PluginBase):
 
         v1_name, v2_name = self.get_veth_pair_names(vif)
 
-        linux_net.delete_bridge(vif.bridge_name, v1_name)
+        linux_net.delete_bridge(linux_bridge_name, v1_name)
 
         self.ovsdb.delete_ovs_vif_port(vif.network.bridge, v2_name)
         self._delete_bridge_if_trunk(vif)
@@ -452,9 +452,13 @@ class OvsPlugin(plugin.PluginBase):
             if self.config.per_port_bridge:
                 self._unplug_port_bridge(vif, instance_info)
             else:
-                self._unplug_vif_generic(vif, instance_info)
+                linux_bridge_name = self.gen_port_name('qbr', vif.id)
+                if ip_lib.exists(linux_bridge_name):
+                    self._unplug_bridge(vif, instance_info, linux_bridge_name)
+                else:
+                    self._unplug_vif_generic(vif, instance_info)
         elif isinstance(vif, objects.vif.VIFBridge):
-            self._unplug_bridge(vif, instance_info)
+            self._unplug_bridge(vif, instance_info, vif.bridge_name)
         elif isinstance(vif, objects.vif.VIFVHostUser):
             self._unplug_vhostuser(vif, instance_info)
         elif isinstance(vif, objects.vif.VIFHostDevice):

@@ -147,6 +147,8 @@
       devstack_local_conf:
         post-config:
           "/$NEUTRON_CORE_PLUGIN_CONF":
+            experimental:
+              linuxbridge: true
             ml2:
               type_drivers: flat,vlan,local,vxlan
             ml2_type_vlan:

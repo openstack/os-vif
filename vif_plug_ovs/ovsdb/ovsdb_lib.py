@@ -44,10 +44,14 @@ class BaseOVS(object):
     def _ovs_supports_mtu_requests(self):
         return self.ovsdb.has_table_column('Interface', 'mtu_request')
 
-    def _set_mtu_request(self, dev, mtu):
-        self.ovsdb.db_set('Interface', dev, ('mtu_request', mtu)).execute()
+    def _set_mtu_request(self, txn, dev, mtu):
+        txn.add(
+            self.ovsdb.db_set(
+                'Interface', dev, ('mtu_request', mtu)
+            )
+        )
 
-    def update_device_mtu(self, dev, mtu, interface_type=None):
+    def update_device_mtu(self, txn, dev, mtu, interface_type=None):
         if not mtu:
             return
         if interface_type not in [
@@ -60,7 +64,7 @@ class BaseOVS(object):
                 # programming the MTU and fallback to DHCP advertisement.
                 linux_net.set_device_mtu(dev, mtu)
         elif self._ovs_supports_mtu_requests():
-            self._set_mtu_request(dev, mtu)
+            self._set_mtu_request(txn, dev, mtu)
         else:
             LOG.debug("MTU not set on %(interface_name)s interface "
                       "of type %(interface_type)s.",
@@ -186,10 +190,15 @@ class BaseOVS(object):
                 txn.add(self.ovsdb.db_set('Port', dev, ('tag', tag)))
             if col_values:
                 txn.add(self.ovsdb.db_set('Interface', dev, *col_values))
-        self.update_device_mtu(dev, mtu, interface_type=interface_type)
+            self.update_device_mtu(
+                txn, dev, mtu, interface_type=interface_type
+            )
 
     def update_ovs_vif_port(self, dev, mtu=None, interface_type=None):
-        self.update_device_mtu(dev, mtu, interface_type=interface_type)
+        with self.ovsdb.transaction() as txn:
+            self.update_device_mtu(
+                txn, dev, mtu, interface_type=interface_type
+            )
 
     def delete_ovs_vif_port(self, bridge, dev, delete_netdev=True):
         self.ovsdb.del_port(dev, bridge=bridge, if_exists=True).execute()

@@ -87,9 +87,11 @@ class TestOVSDBLib(testscenarios.WithScenarios,
         self.addCleanup(self._del_bridge, self.brname)
         self._add_port(self.brname, port_name)
         if self.ovs._ovs_supports_mtu_requests():
-            self.ovs._set_mtu_request(port_name, 1000)
+            with self._ovsdb.transaction() as txn:
+                self.ovs._set_mtu_request(txn, port_name, 1000)
             self._check_parameter('Interface', port_name, 'mtu', 1000)
-            self.ovs._set_mtu_request(port_name, 1500)
+            with self._ovsdb.transaction() as txn:
+                self.ovs._set_mtu_request(txn, port_name, 1500)
             self._check_parameter('Interface', port_name, 'mtu', 1500)
         else:
             self.skipTest('Current version of Open vSwitch does not support '

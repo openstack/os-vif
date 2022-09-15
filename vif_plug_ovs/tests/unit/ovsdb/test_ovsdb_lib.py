@@ -49,7 +49,7 @@ class BaseOVSTest(testtools.TestCase):
                                                   'transaction').start()
 
     def test__set_mtu_request(self):
-        self.br._set_mtu_request('device', 1500)
+        self.br._set_mtu_request(self.mock_transaction, 'device', 1500)
         calls = [mock.call('Interface', 'device', ('mtu_request', 1500))]
         self.mock_db_set.assert_has_calls(calls)
 
@@ -57,14 +57,18 @@ class BaseOVSTest(testtools.TestCase):
     @mock.patch.object(linux_net, 'set_device_mtu')
     def test__update_device_mtu_interface_not_vhostuser_linux(self,
             mock_set_device_mtu):
-        self.br.update_device_mtu('device', 1500, 'not_vhost')
+        self.br.update_device_mtu(
+            self.mock_transaction, 'device', 1500, 'not_vhost'
+        )
         mock_set_device_mtu.assert_has_calls([mock.call('device', 1500)])
 
     @mock.patch('sys.platform', constants.PLATFORM_WIN32)
     @mock.patch.object(linux_net, 'set_device_mtu')
     def test__update_device_mtu_interface_not_vhostuser_windows(self,
             mock_set_device_mtu):
-        self.br.update_device_mtu('device', 1500, 'not_vhost')
+        self.br.update_device_mtu(
+            self.mock_transaction, 'device', 1500, 'not_vhost'
+        )
         mock_set_device_mtu.assert_not_called()
 
     def test__update_device_mtu_interface_vhostuser_supports_mtu_req(self):
@@ -72,17 +76,27 @@ class BaseOVSTest(testtools.TestCase):
                 return_value=True), \
                 mock.patch.object(self.br, '_set_mtu_request') as \
                 mock_set_mtu_request:
-            self.br.update_device_mtu('device', 1500,
-                                       constants.OVS_VHOSTUSER_INTERFACE_TYPE)
-            mock_set_mtu_request.assert_has_calls([mock.call('device', 1500)])
+            self.br.update_device_mtu(
+                self.mock_transaction, 'device', 1500,
+                constants.OVS_VHOSTUSER_INTERFACE_TYPE
+            )
+            mock_set_mtu_request.assert_has_calls(
+                [
+                    mock.call(
+                        self.mock_transaction, 'device', 1500
+                    )
+                ]
+            )
 
     def test__update_device_mtu_interface_vhostuser_not_supports_mtu_req(self):
         with mock.patch.object(self.br, '_ovs_supports_mtu_requests',
                 return_value=False), \
                 mock.patch.object(self.br, '_set_mtu_request') as \
                 mock_set_mtu_request:
-            self.br.update_device_mtu('device', 1500,
-                                       constants.OVS_VHOSTUSER_INTERFACE_TYPE)
+            self.br.update_device_mtu(
+                self.mock_transaction, 'device', 1500,
+                constants.OVS_VHOSTUSER_INTERFACE_TYPE
+            )
             mock_set_mtu_request.assert_not_called()
 
     def test_create_ovs_vif_port(self):
@@ -115,8 +129,14 @@ class BaseOVSTest(testtools.TestCase):
             self.mock_db_set.assert_has_calls(
                 [mock.call('Port', device, ('tag', 4000)),
                  mock.call('Interface', device, *values)])
-            mock_update_device_mtu.assert_has_calls(
-                [mock.call(device, mtu, interface_type=interface_type)])
+            with self.br._ovsdb.transaction() as txn:
+                mock_update_device_mtu.assert_has_calls(
+                    [
+                        mock.call(
+                            txn, device, mtu, interface_type=interface_type
+                        )
+                    ]
+                )
 
     def test_create_ovs_vif_port_type_dpdk(self):
         iface_id = 'iface_id'
@@ -147,17 +167,23 @@ class BaseOVSTest(testtools.TestCase):
             self.mock_add_port.assert_has_calls([mock.call(bridge, device)])
             self.mock_db_set.assert_has_calls(
                 [mock.call('Interface', device, *values)])
-            mock_update_device_mtu.assert_has_calls(
-                [mock.call(device, mtu, interface_type=interface_type)])
+            with self.br._ovsdb.transaction() as txn:
+                mock_update_device_mtu.assert_has_calls(
+                    [
+                        mock.call(
+                            txn, device, mtu, interface_type=interface_type
+                        )
+                    ]
+                )
 
     def test_update_ovs_vif_port(self):
         with mock.patch.object(self.br, 'update_device_mtu') as \
                 mock_update_device_mtu:
             self.br.update_ovs_vif_port('device', mtu=1500,
                 interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE)
-            mock_update_device_mtu.assert_has_calls(
-                [mock.call(
-                    'device', 1500,
+            with self.br._ovsdb.transaction() as txn:
+                mock_update_device_mtu.assert_has_calls([mock.call(
+                    txn, 'device', 1500,
                     interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE)])
 
     @mock.patch.object(linux_net, 'delete_net_dev')

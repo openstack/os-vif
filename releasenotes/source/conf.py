@@ -30,7 +30,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-copyright = u'2017, OpenStack Foundation'
+copyright = '2017, OpenStack Foundation'
 
 # Release notes do not need a version in the title, they span
 # multiple versions.

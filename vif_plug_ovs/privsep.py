@@ -20,5 +20,16 @@ vif_plug = priv_context.PrivContext(
     "vif_plug_ovs",
     cfg_section="vif_plug_ovs_privileged",
     pypath=__name__ + ".vif_plug",
-    capabilities=[c.CAP_NET_ADMIN],
+    capabilities=[
+        c.CAP_NET_ADMIN,
+    ],
+)
+
+vif_plug_test = priv_context.PrivContext(
+    "vif_plug_ovs",
+    cfg_section="vif_plug_ovs_privileged",
+    pypath=__name__ + ".vif_plug_test",
+    capabilities=[
+        c.CAP_NET_ADMIN, c.CAP_DAC_OVERRIDE,
+    ],
 )

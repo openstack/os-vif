@@ -32,7 +32,7 @@ from vif_plug_ovs.tests.functional import base
 CONF = cfg.CONF
 
 
-@privsep.vif_plug.entrypoint
+@privsep.vif_plug_test.entrypoint
 def run_privileged(*full_args):
     return processutils.execute(*full_args)[0].rstrip()
 

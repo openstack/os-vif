@@ -17,5 +17,5 @@ os_vif_pctxt = priv_context.PrivContext(
     'os_vif',
     cfg_section='os_vif_privileged',
     pypath=__name__ + '.os_vif_pctxt',
-    capabilities=[c.CAP_NET_ADMIN],
+    capabilities=[c.CAP_NET_ADMIN, c.CAP_DAC_OVERRIDE],
 )

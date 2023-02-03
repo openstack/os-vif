@@ -21,6 +21,7 @@
       - openstack/tempest
     vars:
       tempest_concurrency: 4
+      configure_swap_size: 8192
       tox_envlist: full
       devstack_plugins:
         neutron: https://opendev.org/openstack/neutron.git

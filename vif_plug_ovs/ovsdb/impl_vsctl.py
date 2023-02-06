@@ -116,6 +116,15 @@ class BaseCommand(ovsdb_api.Command):
         self.cmd = cmd
         self.opts = [] if opts is None else opts
         self.args = [] if args is None else args
+        self._result = None
+
+    @property
+    def result(self):
+        return self._result
+
+    @result.setter
+    def result(self, value):
+        self._result = value
 
     def execute(self, check_error=False, log_errors=True):
         with Transaction(self.context, check_error=check_error,

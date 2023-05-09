@@ -1,0 +1,33 @@
+---
+upgrade:
+  - |
+    A new config option has been added to the OpenvSwitch plugin
+    ``[os_vif_ovs]default_qos_type``. This option controls
+    the Default tc qdisc applied to a kernel interface attached to OpenvSwitch
+    on Linux hosts. As of this release, the default tc qdisc is ``linux-noop``
+    other supported values are ``linux-htb``, ``linux-hfsc``,
+    ``linux-sfq``, ``linux-codel`` and  ``linux-fq_codel``.
+    before this release the default qdisc was undefined. older kernels did not
+    apply  /proc/sys/net/core/default_qdisc to tap devices. newer kernels such
+    as the one found in rhel 9 do. This can significantly impact performance.
+    See bug https://bugs.launchpad.net/os-vif/+bug/2017868 for more details.
+    The default ``linux-noop`` should perform well for all use-cases so no
+    explicit action is required on upgrade however it should be noted that
+    the default_qos_type is only set when a port is first created. As such
+    this fix will not take effect until the next time the vm interface is
+    recreated. If you change this value for an existing port it will only
+    take effect after a hard reboot of the VM or a move operation.
+
+fixes:
+  - |
+    A significant performance regression was observed on a subset of Linux
+    kernels and sysctl configurations resulting in a reduction of throughput
+    to between 10% of the prior performance for small packets and 50% for
+    large packets. This has now been resolved by setting a default
+    qos_type on ovs interfaces when they are first created. To mimic libvirt's
+    undocumented behavior the ``linux-noop`` type is set on the ovs port when
+    it is first created. This will be overridden by neutron if a qos policy
+    is defined for a port and is simply the initial value to use when first
+    adding a port to OpenvSwitch. The default QoS type applied can be
+    controlled by the ``[os_vif_ovs]default_qos_type`` config operation.
+    See bug https://bugs.launchpad.net/os-vif/+bug/2017868 for more details.

@@ -10,7 +10,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import fixtures
 import random
+
 
 from unittest import mock
 
@@ -19,7 +21,6 @@ import testscenarios
 from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_utils import uuidutils
-from ovsdbapp.schema.open_vswitch import impl_idl
 
 from vif_plug_ovs import constants
 from vif_plug_ovs import linux_net
@@ -59,17 +60,17 @@ class TestOVSDBLib(testscenarios.WithScenarios,
                        self.interface)
 
         # Make sure exceptions pass through by calling do_post_commit directly
-        mock.patch.object(
-            impl_idl.OvsVsctlTransaction, 'post_commit',
-            side_effect=impl_idl.OvsVsctlTransaction.do_post_commit).start()
+        post_commit = (
+            'ovsdbapp.schema.open_vswitch.impl_idl.'
+            'OvsVsctlTransaction.post_commit'
+        )
+        # "this" is the self parmater which is a reference to the
+        # OvsVsctlTransaction instance on which do_post_commit is defiend.
 
-    def _check_parameter(self, table, port, parameter, expected_value):
-        def check_value():
-            return (self._ovsdb.db_get(
-                table, port, parameter).execute() == expected_value)
+        def direct_post_commit(this, transaction):
+            this.do_post_commit(transaction)
 
-        self.assertTrue(base.wait_until_true(check_value, timeout=2,
-                                             sleep=0.5))
+        self.useFixture(fixtures.MonkeyPatch(post_commit, direct_post_commit))
 
     def _add_port(self, bridge, port, may_exist=True):
         with self._ovsdb.transaction() as txn:
@@ -122,11 +123,11 @@ class TestOVSDBLib(testscenarios.WithScenarios,
                               expected_external_ids)
         self._check_parameter('Interface', port_name, 'type', interface_type)
         expected_vhost_server_path = {'vhost-server-path': vhost_server_path}
-        self._check_parameter('Interface', port_name, 'options',
-                              expected_vhost_server_path)
-        self._check_parameter('Interface', port_name, 'options',
-                              expected_vhost_server_path)
+        self._check_parameter(
+            'Interface', port_name, 'options', expected_vhost_server_path
+        )
         self._check_parameter('Port', port_name, 'tag', 2000)
+        self._check_parameter('Port', port_name, 'qos', [])
 
     @mock.patch.object(linux_net, 'delete_net_dev')
     def test_delete_ovs_vif_port(self, *mock):
@@ -180,3 +181,156 @@ class TestOVSDBLib(testscenarios.WithScenarios,
         port_opts = {'peer': int_bridge_port}
         self._check_parameter(
             'Interface', port_bridge_port, 'options', port_opts)
+
+    def test_create_ovs_vif_port_with_default_qos(self):
+        port_name = 'qos-port-' + self.interface
+        iface_id = 'iface_id'
+        mac = 'ca:fe:ca:fe:ca:fe'
+        instance_id = uuidutils.generate_uuid()
+        mtu = 1500
+        interface_type = 'internal'
+        qos_type = CONF.os_vif_ovs.default_qos_type
+
+        self.addCleanup(self._del_bridge, self.brname)
+        self._add_bridge(self.brname)
+
+        self.addCleanup(
+            self.ovs.delete_ovs_vif_port, self.brname, port_name,
+            delete_netdev=False, qos_type=qos_type
+        )
+        self.ovs.create_ovs_vif_port(
+            self.brname, port_name, iface_id, mac,
+            instance_id, mtu=mtu, interface_type=interface_type,
+            tag=2000, qos_type=qos_type
+        )
+
+        # first we assert that the standard parameters are set correctly
+        expected_external_ids = {'iface-status': 'active',
+                                 'iface-id': iface_id,
+                                 'attached-mac': mac,
+                                 'vm-uuid': instance_id}
+        self._check_parameter('Interface', port_name, 'external_ids',
+                              expected_external_ids)
+        self._check_parameter('Interface', port_name, 'type', interface_type)
+        self._check_parameter('Port', port_name, 'tag', 2000)
+
+        # now we check that the port has a qos policy attached
+        qos_uuid = self.ovs.get_qos(
+            port_name, qos_type
+        )[0]['_uuid']
+        self._check_parameter('Port', port_name, 'qos', qos_uuid)
+
+        # finally we check that the qos policy has the correct parameters
+        self._check_parameter(
+            'QoS', str(qos_uuid), 'type', qos_type
+        )
+
+    def test_delete_qos_if_exists(self):
+        port_name = 'del-qos-port-' + self.interface
+        iface_id = 'iface_id'
+        mac = 'ca:fe:ca:fe:ca:fe'
+        instance_id = uuidutils.generate_uuid()
+        interface_type = 'internal'
+        qos_type = CONF.os_vif_ovs.default_qos_type
+
+        # setup test by creating a bridge and port, and register
+        # cleanup funcitons to avoid leaking them.
+        self.addCleanup(self._del_bridge, self.brname)
+        self._add_bridge(self.brname)
+        self.addCleanup(
+            self.ovs.delete_ovs_vif_port, self.brname, port_name,
+            delete_netdev=False, qos_type=qos_type
+        )
+        self.ovs.create_ovs_vif_port(
+            self.brname, port_name, iface_id, mac,
+            instance_id, interface_type=interface_type,
+            qos_type=qos_type
+        )
+
+        # now we check that the port has a qos policy attached
+        qos_uuid = self.ovs.get_qos(
+            port_name, CONF.os_vif_ovs.default_qos_type
+        )[0]['_uuid']
+        self._check_parameter('Port', port_name, 'qos', qos_uuid)
+
+        # finally we check that the qos policy has the correct parameters
+        self._check_parameter(
+            'QoS', str(qos_uuid), 'type', qos_type
+        )
+
+        # we need to delete the port directly in the db to remove
+        # any references to the qos policy
+        self.ovs.ovsdb.del_port(
+            port_name, bridge=self.brname, if_exists=True).execute()
+        # then we can delete the qos policy
+        self.ovs.delete_qos_if_exists(port_name, qos_type)
+        self._check_parameter(
+            'QoS', str(qos_uuid), 'type', None
+        )
+        # invoking the delete when the policy does not exist
+        # should not result in an error
+        self.ovs.delete_qos_if_exists(port_name, qos_type)
+        self._check_parameter(
+            'QoS', str(qos_uuid), 'type', None
+        )
+
+    def test_get_qos(self):
+        port_name = 'get-qos-' + self.interface
+        iface_id = 'iface_id'
+        mac = 'ca:fe:ca:fe:ca:fe'
+        instance_id = uuidutils.generate_uuid()
+        interface_type = 'internal'
+        qos_type = CONF.os_vif_ovs.default_qos_type
+        # initally no qos policy should exist
+        self.assertEqual(0, len(self.ovs.get_qos(port_name, qos_type)))
+
+        # if we create a port with a qos policy get_qos should
+        # return the policy
+        self.addCleanup(self._del_bridge, self.brname)
+        self._add_bridge(self.brname)
+        self.addCleanup(
+            self.ovs.delete_ovs_vif_port, self.brname, port_name,
+            delete_netdev=False, qos_type=qos_type
+        )
+        self.ovs.create_ovs_vif_port(
+            self.brname, port_name, iface_id, mac,
+            instance_id, interface_type=interface_type,
+            qos_type=qos_type
+        )
+        # result should be a list of lenght 1 containing the
+        # qos policy created for the port we defied.
+        result = self.ovs.get_qos(port_name, qos_type)
+        self.assertEqual(1, len(result))
+        self.assertIn('_uuid', result[0])
+        self._check_parameter(
+            'Port', port_name, 'qos', result[0]['_uuid']
+        )
+        # if we delete the port and its qos policy get_qos should
+        # not return it.
+        self.ovs.delete_ovs_vif_port(
+            self.brname, port_name,
+            delete_netdev=False, qos_type=qos_type
+        )
+        self.assertEqual(0, len(self.ovs.get_qos(port_name, qos_type)))
+
+    def test_port_exists(self):
+        port_name = 'port-exists-' + self.interface
+        iface_id = 'iface_id'
+        mac = 'ca:fe:ca:fe:ca:fe'
+        instance_id = uuidutils.generate_uuid()
+        interface_type = 'internal'
+
+        self.assertFalse(self.ovs.port_exists(port_name, self.brname))
+
+        self.addCleanup(self._del_bridge, self.brname)
+        self._add_bridge(self.brname)
+        self.addCleanup(
+            self.ovs.delete_ovs_vif_port, self.brname, port_name,
+            delete_netdev=False,
+        )
+        self.ovs.create_ovs_vif_port(
+            self.brname, port_name, iface_id, mac,
+            instance_id, interface_type=interface_type,
+        )
+
+        self.assertTrue(self.ovs.port_exists(port_name, self.brname))

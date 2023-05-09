@@ -11,6 +11,7 @@
 #    under the License.
 
 import sys
+import uuid
 
 from oslo_log import log as logging
 
@@ -20,6 +21,7 @@ from vif_plug_ovs.ovsdb import api as ovsdb_api
 
 
 LOG = logging.getLogger(__name__)
+QOS_UUID_NAMESPACE = uuid.UUID("68da264a-847f-42a8-8ab0-5e774aee3d95")
 
 
 class BaseOVS(object):
@@ -142,7 +144,8 @@ class BaseOVS(object):
     def create_ovs_vif_port(
         self, bridge, dev, iface_id, mac, instance_id,
         mtu=None, interface_type=None, vhost_server_path=None,
-        tag=None, pf_pci=None, vf_num=None, set_ids=True, datapath_type=None
+        tag=None, pf_pci=None, vf_num=None, set_ids=True, datapath_type=None,
+        qos_type=None
     ):
         """Create OVS port
 
@@ -159,6 +162,7 @@ class BaseOVS(object):
         :param vf_num: VF number of PF for dpdk representor port.
         :param set_ids: set external ids on port (bool).
         :param datapath_type: datapath type for port's bridge
+        :param qos_type: qos type for a port
 
         .. note:: create DPDK representor port by setting all three values:
             `interface_type`, `pf_pci` and `vf_num`. if interface type is
@@ -181,6 +185,24 @@ class BaseOVS(object):
                 PF_PCI=pf_pci, VF_NUM=vf_num)
             col_values.append(('options',
                               {'dpdk-devargs': devargs_string}))
+        # create qos record if qos type is specified
+        # and get the qos id. This is done outside of the transaction
+        # because we need the qos id to set the qos on the port.
+        # The qos uuid cannot be set when creating the record so we
+        # have to look it up after the record is created. this means
+        # we need to create the qos record outside of the transaction
+        # that creates the port.
+        qid = None
+        if qos_type:
+            self.delete_qos_if_exists(dev, qos_type)
+            qos_id = uuid.uuid5(QOS_UUID_NAMESPACE, dev)
+            qos_external_ids = {'id': str(qos_id), '_type': qos_type}
+            self.ovsdb.db_create(
+                'QoS', type=qos_type, external_ids=qos_external_ids
+                ).execute(check_error=True)
+            record = self.get_qos(dev, qos_type)
+            qid = record[0]['_uuid']
+
         with self.ovsdb.transaction() as txn:
             if datapath_type:
                 txn.add(self.ovsdb.add_br(bridge, may_exist=True,
@@ -188,11 +210,34 @@ class BaseOVS(object):
             txn.add(self.ovsdb.add_port(bridge, dev))
             if tag:
                 txn.add(self.ovsdb.db_set('Port', dev, ('tag', tag)))
+            if qid:
+                txn.add(self.ovsdb.db_set('Port', dev, ('qos', qid)))
             if col_values:
                 txn.add(self.ovsdb.db_set('Interface', dev, *col_values))
             self.update_device_mtu(
                 txn, dev, mtu, interface_type=interface_type
             )
+
+    def port_exists(self, port_name, bridge):
+        ports = self.ovsdb.list_ports(bridge).execute()
+        return ports is not None and port_name in ports
+
+    def get_qos(self, dev, qos_type):
+        qos_id = uuid.uuid5(QOS_UUID_NAMESPACE, dev)
+        external_ids = {'id': str(qos_id), '_type': qos_type}
+        return self.ovsdb.db_find(
+            'QoS', ('external_ids', '=', external_ids),
+            colmuns=['_uuid']
+        ).execute()
+
+    def delete_qos_if_exists(self, dev, qos_type):
+        qos_ids = self.get_qos(dev, qos_type)
+        if qos_ids is not None and len(qos_ids) > 0:
+            for qos_id in qos_ids:
+                if '_uuid' in qos_id:
+                    self.ovsdb.db_destroy(
+                        'QoS', str(qos_id['_uuid'])
+                    ).execute()
 
     def update_ovs_vif_port(self, dev, mtu=None, interface_type=None):
         with self.ovsdb.transaction() as txn:
@@ -200,7 +245,11 @@ class BaseOVS(object):
                 txn, dev, mtu, interface_type=interface_type
             )
 
-    def delete_ovs_vif_port(self, bridge, dev, delete_netdev=True):
+    def delete_ovs_vif_port(
+            self, bridge, dev, delete_netdev=True, qos_type=None
+    ):
         self.ovsdb.del_port(dev, bridge=bridge, if_exists=True).execute()
+        if qos_type:
+            self.delete_qos_if_exists(dev, qos_type)
         if delete_netdev:
             linux_net.delete_net_dev(dev)

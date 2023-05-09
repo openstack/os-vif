@@ -12,6 +12,7 @@
 
 import os
 import re
+import time
 
 from oslo_concurrency import processutils
 from oslo_utils import excutils
@@ -39,6 +40,12 @@ class ShellIpCommands(object):
                              'peer', 'name', peer)
         elif 'dummy' == dev_type:
             _execute_command('ip', 'link', 'add', device, 'type', dev_type)
+        # ensure that the device exists to prevent racing
+        # with other ip commands
+        for _ in range(10):
+            if self.exist_device(device):
+                return
+            time.sleep(0.1)
 
     def del_device(self, device):
         if self.exist_device(device):

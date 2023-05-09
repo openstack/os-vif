@@ -25,6 +25,22 @@ class VifPlugOvsBaseFunctionalTestCase(os_vif_base.BaseFunctionalTestCase):
     def _check_bridge(self, name):
         return self._ovsdb.br_exists(name).execute()
 
+    def _check_port(self, name, bridge):
+        return self.ovs.port_exists(name, bridge)
+
+    def _check_parameter(self, table, port, parameter, expected_value):
+        def get_value():
+            return self._ovsdb.db_get(table, port, parameter).execute()
+
+        def check_value():
+            val = get_value()
+            return val == expected_value
+        self.assertTrue(
+            wait_until_true(check_value, timeout=2, sleep=0.5),
+            f"Parameter {parameter} of {table} {port} is {get_value()} "
+            f"not {expected_value}"
+        )
+
     def _add_bridge(self, name, may_exist=True, datapath_type=None):
         self._ovsdb.add_br(name, may_exist=may_exist,
                            datapath_type=datapath_type).execute()

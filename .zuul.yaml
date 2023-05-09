@@ -120,16 +120,6 @@
             os_vif_ovs:
               per_port_bridge: true
 
-# TODO(gmann): As per the 2023.1 testing runtime, we need to run at least
-# one job on Focal. This job can be removed as per the future testing
-# runtime (whenever we drop the Ubuntu Focal testing).
-- job:
-    name: os-vif-ovn-ubuntu-focal
-    description: |
-      os-vif ovn job (tests hybrid-plug=false) testing on Ubuntu Focal(20.04)
-    parent: os-vif-ovn
-    nodeset: openstack-single-node-focal
-
 - job:
     name: os-vif-linuxbridge
     parent: os-vif-tempest-base
@@ -182,13 +172,11 @@
             voting: false
         - openstack-tox-functional-ovs-with-sudo
         - os-vif-ovn
-        - os-vif-ovn-ubuntu-focal
         - os-vif-ovs-iptables
         - os-vif-linuxbridge
     gate:
       jobs:
         - openstack-tox-functional-ovs-with-sudo
         - os-vif-ovn
-        - os-vif-ovn-ubuntu-focal
         - os-vif-ovs-iptables
         - os-vif-linuxbridge

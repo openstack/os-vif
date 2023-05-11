@@ -11,6 +11,7 @@
 # under the License.
 
 import testscenarios
+import time
 
 from oslo_concurrency import processutils
 from oslo_config import cfg
@@ -31,6 +32,41 @@ CONF = cfg.CONF
 @privsep.vif_plug.entrypoint
 def run_privileged(*full_args):
     return processutils.execute(*full_args)[0].rstrip()
+
+
+# derived from test_impl_pyroute2
+
+def exist_device(device):
+    try:
+        run_privileged('ip', 'link', 'show', device)
+        return True
+    except processutils.ProcessExecutionError as e:
+        if e.exit_code == 1:
+            return False
+        raise
+
+
+def add_device(device, dev_type, peer=None, link=None,
+                   vlan_id=None):
+    if 'vlan' == dev_type:
+        run_privileged('ip', 'link', 'add', 'link', link,
+                         'name', device, 'type', dev_type, 'vlan', 'id',
+                         vlan_id)
+    elif 'veth' == dev_type:
+        run_privileged('ip', 'link', 'add', device, 'type', dev_type,
+                         'peer', 'name', peer)
+    elif 'dummy' == dev_type:
+        run_privileged('ip', 'link', 'add', device, 'type', dev_type)
+    # ensure that the device exists to prevent racing with other ip commands
+    for _ in range(10):
+        if exist_device(device):
+            return
+        time.sleep(0.1)
+
+
+def del_device(device):
+    if exist_device(device):
+        run_privileged('ip', 'link', 'del', device)
 
 
 class TestOVSPlugin(testscenarios.WithScenarios,
@@ -82,6 +118,24 @@ class TestOVSPlugin(testscenarios.WithScenarios,
             mode='client',
             port_profile=self.profile_ovs)
 
+        self.profile_ovs_system = objects.vif.VIFPortProfileOpenVSwitch(
+            interface_id='e65867e0-9340-4a7f-a256-09af6eb7a3aa',
+            datapath_type='system',
+            create_port=True)
+
+        self.network_ovs = objects.network.Network(
+            id='437c6db5-4e6f-4b43-b64b-ed6a11ee5ba7',
+            bridge='br-qos-' + self.interface,
+            subnets=self.subnets,
+            vlan=99)
+
+        self.vif_ovs_port = objects.vif.VIFOpenVSwitch(
+            id='b679325f-ca89-4ee0-a8be-6db1409b69ea',
+            address='ca:fe:de:ad:be:ef',
+            network=self.network_ovs,
+            port_profile=self.profile_ovs_system,
+            vif_name="qos-port-" + self.interface)
+
         self.instance = objects.instance_info.InstanceInfo(
             name='demo',
             uuid='f0000000-0000-0000-0000-000000000001')
@@ -98,3 +152,34 @@ class TestOVSPlugin(testscenarios.WithScenarios,
         self.plugin.unplug(self.vif_vhostuser_trunk, self.instance)
         self.assertTrue(self._check_bridge(other_bridge))
         self.assertFalse(self._check_bridge(trunk_bridge))
+
+    def test_plug_unplug_ovs_port_with_qos(self):
+        bridge = 'br-qos-' + self.interface
+        vif_name = "qos-port-" + self.interface
+        qos_type = CONF.os_vif_ovs.default_qos_type
+        self.addCleanup(self._del_bridge, bridge)
+        self.addCleanup(
+            self.ovs.delete_ovs_vif_port, bridge, vif_name,
+            delete_netdev=False, qos_type=qos_type
+        )
+        self.addCleanup(del_device, vif_name)
+        add_device(vif_name, 'dummy')
+        # pluging a vif will create the port and bridge
+        # if either does not exist
+        self.plugin.plug(self.vif_ovs_port, self.instance)
+        self.assertTrue(self._check_bridge(bridge))
+        self.assertTrue(self._check_port(vif_name, bridge))
+        qos_uuid = self.ovs.get_qos(
+            vif_name, qos_type
+        )[0]['_uuid']
+        self._check_parameter('Port', vif_name, 'qos', qos_uuid)
+        self._check_parameter(
+            'QoS', str(qos_uuid), 'type', qos_type
+        )
+        # unpluging a port will not delete the bridge.
+        self.plugin.unplug(self.vif_ovs_port, self.instance)
+        self.assertTrue(self._check_bridge(bridge))
+        self.assertFalse(self._check_port(vif_name, bridge))
+        self._check_parameter(
+            'QoS', str(qos_uuid), 'type', None
+        )

@@ -362,7 +362,9 @@ class PluginTest(testtools.TestCase):
                                delete_ovs_vif_port, delete_ovs_bridge):
         calls = {
             'delete_bridge': [mock.call('qbrvif-xxx-yyy', 'qvbb679325f-ca')],
-            'delete_ovs_vif_port': [mock.call('br0', 'qvob679325f-ca')]
+            'delete_ovs_vif_port': [mock.call(
+                'br0', 'qvob679325f-ca', qos_type='linux-noop'
+            )]
         }
         mock_sys.platform = 'linux'
         plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
@@ -510,8 +512,12 @@ class PluginTest(testtools.TestCase):
             'get_vf_num_by_pci_address': [mock.call('0002:24:12.3')],
             'get_representor_port': [mock.call('eth0', '2')],
             'set_interface_state': [mock.call('eth0_2', 'down')],
-            'delete_ovs_vif_port': [mock.call('br0', 'eth0_2',
-                                              delete_netdev=False)]
+            'delete_ovs_vif_port': [
+                mock.call(
+                    'br0', 'eth0_2', delete_netdev=False,
+                    qos_type='linux-noop'
+                )
+            ]
         }
 
         get_ifname_by_pci_address.return_value = 'eth0'
@@ -602,8 +608,13 @@ class PluginTest(testtools.TestCase):
         calls = {
             'get_dpdk_representor_port_name': [mock.call(
                 self.vif_ovs_vf_dpdk.id)],
-            'delete_ovs_vif_port': [mock.call('br0', devname,
-                                              delete_netdev=False)]}
+            'delete_ovs_vif_port': [
+                mock.call(
+                    'br0', devname, delete_netdev=False,
+                    qos_type=None
+                )
+            ]
+        }
         plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
         plugin.unplug(self.vif_ovs_vf_dpdk, self.instance)
         get_dpdk_representor_port_name.assert_has_calls(
@@ -636,7 +647,7 @@ class PluginTest(testtools.TestCase):
             mock.call('br0', 'ibpb679325f-ca89-4ee0-a8be-6db1409b69ea'),
             mock.call(
                 'pbb679325f-ca8', 'pbpb679325f-ca89-4ee0-a8be-6db1409b69ea'),
-            mock.call('pbb679325f-ca8', 'tap-xxx-yyy-zzz')
+            mock.call('pbb679325f-ca8', 'tap-xxx-yyy-zzz', qos_type=None)
         ]
         delete_ovs_vif_port.assert_has_calls(calls)
         delete_ovs_bridge.assert_called_once_with('pbb679325f-ca8')

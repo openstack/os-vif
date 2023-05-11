@@ -23,7 +23,7 @@ from ovsdbapp.schema.open_vswitch import impl_idl
 
 from vif_plug_ovs.ovsdb import api
 
-REQUIRED_TABLES = ('Interface', 'Port', 'Bridge', 'Open_vSwitch')
+REQUIRED_TABLES = ('Interface', 'Port', 'Bridge', 'Open_vSwitch', 'QoS')
 
 
 def idl_factory(config):
@@ -48,6 +48,7 @@ class NeutronOvsdbIdl(impl_idl.OvsdbIdl, api.ImplAPI):
     This class provides an OVSDB IDL (Open vSwitch Database Interface
     Definition Language) interface to the OVS back-end.
     """
+
     def __init__(self, conn):
         vlog.use_python_logger()
         super(NeutronOvsdbIdl, self).__init__(conn)

@@ -102,7 +102,26 @@ class OvsPlugin(plugin.PluginBase):
                     'bridge. This is experimental and controls the plugging '
                     'behavior when not using hybrid-plug.'
                     'This is only used on linux and should be set to false '
-                    'in all other cases such as ironic smartnic ports.')
+                    'in all other cases such as ironic smartnic ports.'),
+        cfg.StrOpt('default_qos_type',
+                   choices=[
+                       'linux-htb', 'linux-hfsc', 'linux-sfq', 'linux-codel',
+                       'linux-fq_codel', 'linux-noop'
+                       ],
+                   default='linux-noop',
+                   help="""
+                   The default qos type to apply to ovs ports.
+                   linux-noop is the default. ovs will not modify
+                   the qdisc on the port if linux-noop is specified.
+                   This allows operators to manage QOS out of band
+                   of OVS. For more information see the ovs man pages
+                   https://manpages.debian.org/testing/openvswitch-common/ovs-vswitchd.conf.db.5.en.html#type~4
+
+                   Note: This will only be set when a port is first created
+                   on the ovs bridge to ensure that the qos type can be
+                   managed via neutron if required for bandwidth limiting
+                   and other use-cases.
+                   """),
     )
 
     def __init__(self, config):
@@ -159,6 +178,14 @@ class OvsPlugin(plugin.PluginBase):
             return vif.network.mtu
         return self.config.network_device_mtu
 
+    def supports_tc_qdisc(self, vif) -> bool:
+        if self._get_vif_datapath_type(vif) != constants.OVS_DATAPATH_SYSTEM:
+            return False
+        if sys.platform == constants.PLATFORM_WIN32:
+            return False
+
+        return True
+
     def _create_vif_port(self, vif, vif_name, instance_info, **kwargs):
         mtu = self._get_mtu(vif)
         # NOTE(sean-k-mooney): As part of a partial fix to bug #1734320
@@ -175,6 +202,19 @@ class OvsPlugin(plugin.PluginBase):
         # can be enabled automatically in the future.
         if self.config.isolate_vif:
             kwargs['tag'] = constants.DEAD_VLAN
+        qos_type = self._get_qos_type(vif)
+        if qos_type is not None:
+            # NOTE(sean-k-mooney): If the port is not already created
+            # on the bridge we need to set the default qos type to
+            # ensure that the port is created with the correct qos
+            # type. This is only needed for the linux kernel datapath
+            # as the qos type is not managed by neutron for the other
+            # datapaths.
+            # This is a mitigation for the performance regression
+            # introduced by the fix for bug #1734320. See bug #2017868
+            # for more details.
+            if not self.ovsdb.port_exists(vif_name, vif.network.bridge):
+                kwargs['qos_type'] = qos_type
         bridge = kwargs.pop('bridge', vif.network.bridge)
         self.ovsdb.create_ovs_vif_port(
             bridge,
@@ -382,8 +422,17 @@ class OvsPlugin(plugin.PluginBase):
 
         linux_net.delete_bridge(linux_bridge_name, v1_name)
 
-        self.ovsdb.delete_ovs_vif_port(vif.network.bridge, v2_name)
+        qos_type = self._get_qos_type(vif)
+        self.ovsdb.delete_ovs_vif_port(
+            vif.network.bridge, v2_name, qos_type=qos_type
+        )
         self._delete_bridge_if_trunk(vif)
+
+    def _get_qos_type(self, vif):
+        qos_type = None
+        if self.supports_tc_qdisc(vif):
+            qos_type = self.config.default_qos_type
+        return qos_type
 
     def _unplug_vif_windows(self, vif, instance_info):
         """Remove port from OVS."""
@@ -400,7 +449,10 @@ class OvsPlugin(plugin.PluginBase):
         int_bridge_patch = self.gen_port_name('ibp', vif.id, max_length=64)
         self.ovsdb.delete_ovs_vif_port(vif.network.bridge, int_bridge_patch)
         self.ovsdb.delete_ovs_vif_port(port_bridge_name, port_bridge_patch)
-        self.ovsdb.delete_ovs_vif_port(port_bridge_name, vif.vif_name)
+        qos_type = self._get_qos_type(vif)
+        self.ovsdb.delete_ovs_vif_port(
+            port_bridge_name, vif.vif_name, qos_type=qos_type
+        )
         self.ovsdb.delete_ovs_bridge(port_bridge_name)
         self._delete_bridge_if_trunk(vif)
 
@@ -409,7 +461,10 @@ class OvsPlugin(plugin.PluginBase):
         # NOTE(sean-k-mooney): even with the partial revert of change
         # Iaf15fa7a678ec2624f7c12f634269c465fbad930 this should be correct
         # so this is not removed.
-        self.ovsdb.delete_ovs_vif_port(vif.network.bridge, vif.vif_name)
+        qos_type = self._get_qos_type(vif)
+        self.ovsdb.delete_ovs_vif_port(
+            vif.network.bridge, vif.vif_name, qos_type=qos_type
+        )
         self._delete_bridge_if_trunk(vif)
 
     def _unplug_vf(self, vif):
@@ -428,8 +483,11 @@ class OvsPlugin(plugin.PluginBase):
         # The representor interface can't be deleted because it bind the
         # SR-IOV VF, therefore we just need to remove it from the ovs bridge
         # and set the status to down
+        qos_type = self._get_qos_type(vif)
         self.ovsdb.delete_ovs_vif_port(
-            vif.network.bridge, representor, delete_netdev=False)
+            vif.network.bridge, representor, delete_netdev=False,
+            qos_type=qos_type
+        )
         if datapath == constants.OVS_DATAPATH_SYSTEM:
             linux_net.set_interface_state(representor, 'down')
         self._delete_bridge_if_trunk(vif)

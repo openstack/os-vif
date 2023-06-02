@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    An issue when after nova-compute service restart configured with
+    `isolate_vif=True` instances lost connectivity unless neutron
+    rebinds ports. Which is normally happening by agent restart or port
+    update.

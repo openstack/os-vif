@@ -186,6 +186,13 @@ class OvsPlugin(plugin.PluginBase):
 
         return True
 
+    def _isolate_vif(self, vif_name, bridge):
+        # NOTE(vsaienko): don't break traffic if port already exists,
+        # we assume it is called when nova-compute is initialized and
+        # since port is present it should be bound already.
+        return (self.config.isolate_vif and
+                not self.ovsdb.port_exists(vif_name, bridge))
+
     def _create_vif_port(self, vif, vif_name, instance_info, **kwargs):
         mtu = self._get_mtu(vif)
         # NOTE(sean-k-mooney): As part of a partial fix to bug #1734320
@@ -200,7 +207,8 @@ class OvsPlugin(plugin.PluginBase):
         # TODO(sean-k-mooney): Extend neutron to record what ml2 driver
         # bound the interface in the vif binding details so isolation
         # can be enabled automatically in the future.
-        if self.config.isolate_vif:
+        bridge = kwargs.pop('bridge', vif.network.bridge)
+        if self._isolate_vif(vif_name, bridge):
             kwargs['tag'] = constants.DEAD_VLAN
         qos_type = self._get_qos_type(vif)
         if qos_type is not None:
@@ -215,7 +223,6 @@ class OvsPlugin(plugin.PluginBase):
             # for more details.
             if not self.ovsdb.port_exists(vif_name, vif.network.bridge):
                 kwargs['qos_type'] = qos_type
-        bridge = kwargs.pop('bridge', vif.network.bridge)
         self.ovsdb.create_ovs_vif_port(
             bridge,
             vif_name,
@@ -302,7 +309,9 @@ class OvsPlugin(plugin.PluginBase):
             vif, vif.vif_name, instance_info, bridge=port_bridge_name,
             set_ids=False
         )
-        tag = constants.DEAD_VLAN if self.config.isolate_vif else None
+        tag = (constants.DEAD_VLAN
+               if self._isolate_vif(int_bridge_patch, int_bridge_name)
+               else None)
         iface_id = vif.id
         mac = vif.address
         instance_id = instance_info.uuid

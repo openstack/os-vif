@@ -187,8 +187,28 @@ class PluginTest(testtools.TestCase):
             interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE)
 
     @mock.patch.object(ovsdb_lib.BaseOVS, 'create_ovs_vif_port')
-    def test_create_vif_port_isolate(self, mock_create_ovs_vif_port):
+    @mock.patch.object(ovsdb_lib.BaseOVS, 'port_exists')
+    def test_create_vif_port_isolate_port_no_isolate_vif_no_port(
+            self, mock_port_exists, mock_create_ovs_vif_port):
         plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
+        mock_port_exists.return_value = False
+        with mock.patch.object(plugin.config, 'isolate_vif', False):
+            plugin._create_vif_port(
+                self.vif_ovs, mock.sentinel.vif_name, self.instance,
+                interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE)
+            mock_create_ovs_vif_port.assert_called_once_with(
+                self.vif_ovs.network.bridge, mock.sentinel.vif_name,
+                self.vif_ovs.port_profile.interface_id,
+                self.vif_ovs.address, self.instance.uuid,
+                mtu=plugin.config.network_device_mtu,
+                interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE)
+
+    @mock.patch.object(ovsdb_lib.BaseOVS, 'create_ovs_vif_port')
+    @mock.patch.object(ovsdb_lib.BaseOVS, 'port_exists')
+    def test_create_vif_port_isolate_port_isolate_vif_no_port(
+            self, mock_port_exists, mock_create_ovs_vif_port):
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
+        mock_port_exists.return_value = False
         with mock.patch.object(plugin.config, 'isolate_vif', True):
             plugin._create_vif_port(
                 self.vif_ovs, mock.sentinel.vif_name, self.instance,
@@ -200,6 +220,23 @@ class PluginTest(testtools.TestCase):
                 mtu=plugin.config.network_device_mtu,
                 interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE,
                 tag=constants.DEAD_VLAN)
+
+    @mock.patch.object(ovsdb_lib.BaseOVS, 'create_ovs_vif_port')
+    @mock.patch.object(ovsdb_lib.BaseOVS, 'port_exists')
+    def test_create_vif_port_isolate_port_isolate_vif_port_exists(
+            self, mock_port_exists, mock_create_ovs_vif_port):
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
+        mock_port_exists.return_value = True
+        with mock.patch.object(plugin.config, 'isolate_vif', True):
+            plugin._create_vif_port(
+                self.vif_ovs, mock.sentinel.vif_name, self.instance,
+                interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE)
+            mock_create_ovs_vif_port.assert_called_once_with(
+                self.vif_ovs.network.bridge, mock.sentinel.vif_name,
+                self.vif_ovs.port_profile.interface_id,
+                self.vif_ovs.address, self.instance.uuid,
+                mtu=plugin.config.network_device_mtu,
+                interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE)
 
     @mock.patch.object(ovs, 'sys')
     @mock.patch.object(ovs.OvsPlugin, '_plug_vif_generic')

@@ -11,10 +11,13 @@
 #    under the License.
 
 import os
+import warnings
 
 from oslo_log import log as logging
 
 if os.name == 'nt':
+    warnings.warn('Support for Windows OS is deprecated.',
+                  category=DeprecationWarning, stacklevel=3)
     from os_vif.internal.ip.windows.impl_netifaces import \
         Netifaces as ip_lib_class
 else:

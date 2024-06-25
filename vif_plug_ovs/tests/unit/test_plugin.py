@@ -219,7 +219,10 @@ class PluginTest(testtools.TestCase):
                 self.vif_ovs.address, self.instance.uuid,
                 mtu=plugin.config.network_device_mtu,
                 interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE,
-                tag=constants.DEAD_VLAN)
+                tag=constants.DEAD_VLAN,
+                vlan_mode='trunk',
+                trunks=constants.DEAD_VLAN
+                )
 
     @mock.patch.object(ovsdb_lib.BaseOVS, 'create_ovs_vif_port')
     @mock.patch.object(ovsdb_lib.BaseOVS, 'port_exists')

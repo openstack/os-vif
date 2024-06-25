@@ -208,8 +208,12 @@ class OvsPlugin(plugin.PluginBase):
         # bound the interface in the vif binding details so isolation
         # can be enabled automatically in the future.
         bridge = kwargs.pop('bridge', vif.network.bridge)
-        if self._isolate_vif(vif_name, bridge):
+        # See bug #2069543.
+        if (self._isolate_vif(vif_name, bridge) and
+                not self._is_trunk_bridge(bridge)):
             kwargs['tag'] = constants.DEAD_VLAN
+            kwargs['vlan_mode'] = 'trunk'
+            kwargs['trunks'] = constants.DEAD_VLAN
         qos_type = self._get_qos_type(vif)
         if qos_type is not None:
             # NOTE(sean-k-mooney): If the port is not already created

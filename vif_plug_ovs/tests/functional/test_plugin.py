@@ -12,6 +12,7 @@
 
 import testscenarios
 import time
+from unittest import mock
 
 from oslo_concurrency import processutils
 from oslo_config import cfg
@@ -183,3 +184,37 @@ class TestOVSPlugin(testscenarios.WithScenarios,
         self._check_parameter(
             'QoS', str(qos_uuid), 'type', None
         )
+
+    def test_plug_br_int_isolate_vif_dead_vlan(self):
+        with mock.patch.object(self.plugin.config, 'isolate_vif', True):
+            network = objects.network.Network(
+                id='5449523c-3a08-11ef-86d6-17149687aa4d',
+                bridge='br-5449523c',
+                subnets=self.subnets,
+                vlan=99)
+            vif = objects.vif.VIFOpenVSwitch(
+                id='85cb9bc6-3a08-11ef-b2d4-9b7c38edd677',
+                address='ca:fe:de:ad:be:ef',
+                network=network,
+                port_profile=self.profile_ovs_system,
+                vif_name="port-85cb9bc6")
+            self.plugin.plug(vif, self.instance)
+            self.addCleanup(self._del_bridge, 'br-5449523c')
+            self._check_parameter('Port', vif.vif_name, 'tag', 4095)
+
+    def test_plug_trunk_bridge_ignores_isolate_vif(self):
+        with mock.patch.object(self.plugin.config, 'isolate_vif', True):
+            network = objects.network.Network(
+                id='ef98b384-3a0f-11ef-9009-47345fca266f',
+                bridge='tbr-ef98b384',
+                subnets=self.subnets,
+                vlan=99)
+            vif = objects.vif.VIFOpenVSwitch(
+                id='631f52bc-3a07-11ef-a006-1319ef9d6edd',
+                address='ca:fe:de:ad:be:ef',
+                network=network,
+                port_profile=self.profile_ovs_system,
+                vif_name='port-631f52bc')
+            self.plugin.plug(vif, self.instance)
+            self.addCleanup(self._del_bridge, 'tbr-ef98b384')
+            self._check_parameter('Port', vif.vif_name, 'tag', [])

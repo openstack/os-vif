@@ -10,21 +10,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import os
-import warnings
-
 from oslo_log import log as logging
 
-if os.name == 'nt':
-    warnings.warn('Support for Windows OS is deprecated.',
-                  category=DeprecationWarning)
-    from os_vif.internal.ip.windows.impl_netifaces import \
-        Netifaces as ip_lib_class
-else:
-    from os_vif.internal.ip.linux.impl_pyroute2 import \
-        PyRoute2 as ip_lib_class
-
+from os_vif.internal.ip.linux.impl_pyroute2 import PyRoute2
 
 LOG = logging.getLogger(__name__)
 
-ip = ip_lib_class()
+ip = PyRoute2()

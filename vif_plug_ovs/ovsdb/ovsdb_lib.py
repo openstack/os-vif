@@ -10,7 +10,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import sys
 import uuid
 
 from oslo_log import log as logging
@@ -59,12 +58,7 @@ class BaseOVS(object):
         if interface_type not in [
             constants.OVS_VHOSTUSER_INTERFACE_TYPE,
             constants.OVS_VHOSTUSER_CLIENT_INTERFACE_TYPE]:
-            if sys.platform != constants.PLATFORM_WIN32:
-                # Hyper-V with OVS does not support external programming of
-                # virtual interface MTUs via netsh or other Windows tools.
-                # When plugging an interface on Windows, we therefore skip
-                # programming the MTU and fallback to DHCP advertisement.
-                linux_net.set_device_mtu(dev, mtu)
+            linux_net.set_device_mtu(dev, mtu)
         elif self._ovs_supports_mtu_requests():
             self._set_mtu_request(txn, dev, mtu)
         else:

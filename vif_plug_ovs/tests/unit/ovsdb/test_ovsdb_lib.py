@@ -53,23 +53,13 @@ class BaseOVSTest(testtools.TestCase):
         calls = [mock.call('Interface', 'device', ('mtu_request', 1500))]
         self.mock_db_set.assert_has_calls(calls)
 
-    @mock.patch('sys.platform', constants.PLATFORM_LINUX)
     @mock.patch.object(linux_net, 'set_device_mtu')
-    def test__update_device_mtu_interface_not_vhostuser_linux(self,
+    def test__update_device_mtu_interface_not_vhostuser(self,
             mock_set_device_mtu):
         self.br.update_device_mtu(
             self.mock_transaction, 'device', 1500, 'not_vhost'
         )
         mock_set_device_mtu.assert_has_calls([mock.call('device', 1500)])
-
-    @mock.patch('sys.platform', constants.PLATFORM_WIN32)
-    @mock.patch.object(linux_net, 'set_device_mtu')
-    def test__update_device_mtu_interface_not_vhostuser_windows(self,
-            mock_set_device_mtu):
-        self.br.update_device_mtu(
-            self.mock_transaction, 'device', 1500, 'not_vhost'
-        )
-        mock_set_device_mtu.assert_not_called()
 
     def test__update_device_mtu_interface_vhostuser_supports_mtu_req(self):
         with mock.patch.object(self.br, '_ovs_supports_mtu_requests',

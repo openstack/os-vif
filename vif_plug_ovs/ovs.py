@@ -17,8 +17,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import sys
-
 from oslo_config import cfg
 from oslo_log import log as logging
 
@@ -26,7 +24,6 @@ from os_vif import exception as osv_exception
 from os_vif.internal.ip.api import ip as ip_lib
 from os_vif import objects
 from os_vif import plugin
-
 
 from vif_plug_ovs import constants
 from vif_plug_ovs import exception
@@ -181,9 +178,6 @@ class OvsPlugin(plugin.PluginBase):
     def supports_tc_qdisc(self, vif) -> bool:
         if self._get_vif_datapath_type(vif) != constants.OVS_DATAPATH_SYSTEM:
             return False
-        if sys.platform == constants.PLATFORM_WIN32:
-            return False
-
         return True
 
     def _isolate_vif(self, vif_name, bridge):
@@ -283,14 +277,6 @@ class OvsPlugin(plugin.PluginBase):
             linux_net.update_veth_pair(v1_name, v2_name, mtu)
             self._update_vif_port(vif, v2_name)
 
-    def _plug_vif_windows(self, vif, instance_info):
-        """Create a per-VIF OVS port."""
-
-        if not ip_lib.exists(vif.id):
-            self.ovsdb.ensure_ovs_bridge(vif.network.bridge,
-                                         self._get_vif_datapath_type(vif))
-            self._create_vif_port(vif, vif.id, instance_info)
-
     def _plug_port_bridge(self, vif, instance_info):
         """Create a per-VIF OVS bridge and patch pair."""
 
@@ -381,15 +367,7 @@ class OvsPlugin(plugin.PluginBase):
             raise exception.WrongPortProfile(
                 profile=vif.port_profile.__class__.__name__)
 
-        if sys.platform == constants.PLATFORM_WIN32:
-            if type(vif) not in (
-                objects.vif.VIFOpenVSwitch, objects.vif.VIFBridge
-            ):
-                raise osv_exception.PlugException(
-                    vif=vif, err="This vif type is not supported on Windows")
-
-            self._plug_vif_windows(vif, instance_info)
-        elif isinstance(vif, objects.vif.VIFOpenVSwitch):
+        if isinstance(vif, objects.vif.VIFOpenVSwitch):
             if self.config.per_port_bridge:
                 self._plug_port_bridge(vif, instance_info)
             else:
@@ -442,12 +420,6 @@ class OvsPlugin(plugin.PluginBase):
         if self.supports_tc_qdisc(vif):
             qos_type = self.config.default_qos_type
         return qos_type
-
-    def _unplug_vif_windows(self, vif, instance_info):
-        """Remove port from OVS."""
-        self.ovsdb.delete_ovs_vif_port(vif.network.bridge, vif.id,
-                                       delete_netdev=False)
-        self._delete_bridge_if_trunk(vif)
 
     def _unplug_port_bridge(self, vif, instance_info):
         """Create a per-VIF OVS bridge and patch pair."""
@@ -508,14 +480,7 @@ class OvsPlugin(plugin.PluginBase):
                           objects.vif.VIFPortProfileOpenVSwitch):
             raise exception.WrongPortProfile(
                 profile=vif.port_profile.__class__.__name__)
-        if sys.platform == constants.PLATFORM_WIN32:
-            if type(vif) not in (
-                objects.vif.VIFOpenVSwitch, objects.vif.VIFBridge
-            ):
-                raise osv_exception.UnplugException(
-                    vif=vif, err="This vif type is not supported on windows.")
-            self._unplug_vif_windows(vif, instance_info)
-        elif isinstance(vif, objects.vif.VIFOpenVSwitch):
+        if isinstance(vif, objects.vif.VIFOpenVSwitch):
             if self.config.per_port_bridge:
                 self._unplug_port_bridge(vif, instance_info)
             else:

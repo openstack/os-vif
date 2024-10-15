@@ -22,14 +22,12 @@
 import glob
 import os
 import re
-import sys
 
 from os_vif.internal.ip.api import ip as ip_lib
 from oslo_concurrency import processutils
 from oslo_log import log as logging
 from oslo_utils import excutils
 
-from vif_plug_ovs import constants
 from vif_plug_ovs import exception
 from vif_plug_ovs import privsep
 
@@ -55,12 +53,7 @@ NIC_NAME_LEN = 14
 def _update_device_mtu(dev, mtu):
     if not mtu:
         return
-    if sys.platform != constants.PLATFORM_WIN32:
-        # Hyper-V with OVS does not support external programming of
-        # virtual interface MTUs via netsh or other Windows tools.
-        # When plugging an interface on Windows, we therefore skip
-        # programming the MTU and fallback to DHCP advertisement.
-        set_device_mtu(dev, mtu)
+    set_device_mtu(dev, mtu)
 
 
 @privsep.vif_plug.entrypoint

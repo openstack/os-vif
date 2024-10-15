@@ -19,9 +19,6 @@ OVS_VHOSTUSER_PREFIX = 'vhu'
 OVS_DATAPATH_SYSTEM = 'system'
 OVS_DATAPATH_NETDEV = 'netdev'
 
-PLATFORM_LINUX = 'linux2'
-PLATFORM_WIN32 = 'win32'
-
 OVS_DPDK_INTERFACE_TYPE = 'dpdk'
 
 # Neutron dead VLAN.

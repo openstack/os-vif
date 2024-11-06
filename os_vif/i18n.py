@@ -15,10 +15,10 @@
 """oslo.i18n integration module.
 
 See https://docs.openstack.org/oslo.i18n/latest/user/usage.html.
-
 """
 
 import oslo_i18n
+
 
 DOMAIN = 'os_vif'
 
@@ -28,9 +28,12 @@ _translators = oslo_i18n.TranslatorFactory(domain=DOMAIN)
 _ = _translators.primary
 
 
-def translate(value, user_locale):
-    return oslo_i18n.translate(value, user_locale)
+def translate(value: str, user_locale: str) -> str:
+    # FIXME(stephenfin): The hints in oslo.i18n are incomplete
+    # https://review.opendev.org/c/openstack/oslo.i18n/+/986066
+    return oslo_i18n.translate(
+        value, user_locale)  # type: ignore[return-value]
 
 
-def get_available_languages():
+def get_available_languages() -> list[str]:
     return oslo_i18n.get_available_languages(DOMAIN)

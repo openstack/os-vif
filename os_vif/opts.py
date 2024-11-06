@@ -12,23 +12,37 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from __future__ import annotations
+
+import copy
+from typing import TYPE_CHECKING
+
+import os_vif
+
+if TYPE_CHECKING:
+    from oslo_config import cfg
+
+    from os_vif import plugin
+
+
 __all__ = [
     'list_plugins_opts',
 ]
 
-from copy import deepcopy
-import os_vif
-
-
 os_vif.initialize()
 
-_EXT_MANAGER = os_vif._EXT_MANAGER
+if os_vif._EXT_MANAGER is None:
+    raise RuntimeError('os_vif is not initialized')
 
+plugins_list: list[tuple[str, plugin.PluginBase | None]]
 plugins_list = [
-    (name, _EXT_MANAGER[name].obj)
-    for name in sorted(_EXT_MANAGER.names())
+    (name, os_vif._EXT_MANAGER[name].obj)
+    for name in sorted(os_vif._EXT_MANAGER.names())
 ]
 
 
-def list_plugins_opts():
-    return [('os_vif_' + g, deepcopy(o.CONFIG_OPTS)) for g, o in plugins_list]
+def list_plugins_opts() -> list[tuple[str, list[cfg.Opt]]]:
+    return [
+        ('os_vif_' + g, copy.deepcopy(o.CONFIG_OPTS))
+        for g, o in plugins_list if o is not None
+    ]

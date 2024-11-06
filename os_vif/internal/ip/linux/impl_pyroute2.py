@@ -10,6 +10,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from typing import Any
+
 from oslo_log import log as logging
 from oslo_utils import excutils
 from pyroute2 import iproute
@@ -25,7 +27,13 @@ LOG = logging.getLogger(__name__)
 
 class PyRoute2(ip_command.IpCommand):
 
-    def _ip_link(self, ip, command, check_exit_code, **kwargs):
+    def _ip_link(
+        self,
+        ip: iproute.IPRoute,
+        command: str,
+        check_exit_code: list[int],
+        **kwargs: Any,
+    ) -> Any:
         try:
             LOG.debug('pyroute2 command %(command)s, arguments %(args)s' %
                       {'command': command, 'args': kwargs})
@@ -37,8 +45,16 @@ class PyRoute2(ip_command.IpCommand):
                               (e.code, str(e)))
                     ctx.reraise = False
 
-    def set(self, device, check_exit_code=None, state=None, mtu=None,
-            address=None, promisc=None, master=None):
+    def set(
+        self,
+        device: str,
+        check_exit_code: list[int] | None = None,
+        state: str | None = None,
+        mtu: int | None = None,
+        address: str | None = None,
+        promisc: bool | None = None,
+        master: str | None = None,
+    ) -> Any:
         check_exit_code = check_exit_code or []
         with iproute.IPRoute() as ip:
             idx = self.lookup_interface(ip, device)
@@ -62,18 +78,31 @@ class PyRoute2(ip_command.IpCommand):
 
             return self._ip_link(ip, 'set', check_exit_code, **args)
 
-    def lookup_interface(self, ip, link):
+    def lookup_interface(
+        self, ip: iproute.IPRoute, link: str | None,
+    ) -> Any:
         idx = ip.link_lookup(ifname=link)
         if not len(idx):
             raise exception.NetworkInterfaceNotFound(interface=link)
         return idx[0]
 
-    def add(self, device, dev_type, check_exit_code=None, peer=None, link=None,
-            vlan_id=None, ageing=None, mode=None, multiqueue=False):
+    def add(
+        self,
+        device: str,
+        dev_type: str,
+        check_exit_code: list[int] | None = None,
+        peer: str | None = None,
+        link: str | None = None,
+        vlan_id: int | None = None,
+        ageing: int | None = None,
+        mode: str | None = None,
+        multiqueue: bool = False,
+    ) -> Any:
         check_exit_code = check_exit_code or []
         with iproute.IPRoute() as ip:
-            args = {'ifname': device,
-                    'kind': dev_type}
+            args: dict[str, Any] = {
+                'ifname': device, 'kind': dev_type,
+            }
             if self.TYPE_VLAN == dev_type:
                 args['vlan_id'] = vlan_id
                 args['link'] = self.lookup_interface(ip, link)
@@ -111,13 +140,17 @@ class PyRoute2(ip_command.IpCommand):
 
             return self._ip_link(ip, 'add', check_exit_code, **args)
 
-    def delete(self, device, check_exit_code=None):
+    def delete(
+        self,
+        device: str,
+        check_exit_code: list[int] | None = None,
+    ) -> Any:
         check_exit_code = check_exit_code or []
         with iproute.IPRoute() as ip:
             idx = self.lookup_interface(ip, device)
             return self._ip_link(ip, 'del', check_exit_code, **{'index': idx})
 
-    def exists(self, device):
+    def exists(self, device: str) -> bool:
         """Return True if the device exists."""
         with iproute.IPRoute() as ip:
             try:

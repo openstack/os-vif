@@ -10,6 +10,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from __future__ import annotations
+
 from oslo_versionedobjects import base
 from oslo_versionedobjects import fields
 
@@ -32,7 +34,7 @@ class Route(osv_base.VersionedObject):
 
 
 @base.VersionedObjectRegistry.register
-class RouteList(osv_base.VersionedObject, base.ObjectListBase):
+class RouteList(osv_base.VersionedObject, base.ObjectListBase[Route]):
     # Version 1.0: Initial version
     VERSION = '1.0'
 

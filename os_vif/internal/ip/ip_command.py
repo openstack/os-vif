@@ -11,6 +11,7 @@
 #    under the License.
 
 import abc
+from typing import Any
 
 
 class IpCommand(metaclass=abc.ABCMeta):
@@ -21,8 +22,16 @@ class IpCommand(metaclass=abc.ABCMeta):
     TYPE_TUNTAP = 'tuntap'
 
     @abc.abstractmethod
-    def set(self, device, check_exit_code=None, state=None, mtu=None,
-            address=None, promisc=None, master=None):
+    def set(
+        self,
+        device: str,
+        check_exit_code: list[int] | None = None,
+        state: str | None = None,
+        mtu: int | None = None,
+        address: str | None = None,
+        promisc: bool | None = None,
+        master: str | None = None,
+    ) -> Any:
         """Method to set a parameter in an interface.
 
         :param   device: A network device (string)
@@ -37,8 +46,18 @@ class IpCommand(metaclass=abc.ABCMeta):
         """
 
     @abc.abstractmethod
-    def add(self, device, dev_type, check_exit_code=None, peer=None, link=None,
-            vlan_id=None, ageing=None, mode=None, multiqueue=False):
+    def add(
+        self,
+        device: str,
+        dev_type: str,
+        check_exit_code: list[int] | None = None,
+        peer: str | None = None,
+        link: str | None = None,
+        vlan_id: int | None = None,
+        ageing: int | None = None,
+        mode: str | None = None,
+        multiqueue: bool = False,
+    ) -> Any:
         """Method to add an interface.
 
         :param   device: A network device (string)
@@ -58,7 +77,9 @@ class IpCommand(metaclass=abc.ABCMeta):
         """
 
     @abc.abstractmethod
-    def delete(self, device, check_exit_code=None):
+    def delete(
+        self, device: str, check_exit_code: list[int] | None = None
+    ) -> Any:
         """Method to delete an interface.
 
         :param   device: A network device (string)
@@ -67,7 +88,7 @@ class IpCommand(metaclass=abc.ABCMeta):
         """
 
     @abc.abstractmethod
-    def exists(self, device):
+    def exists(self, device: str) -> bool:
         """Method to dectect if a device exists.
 
         :param   device: A network device (string)

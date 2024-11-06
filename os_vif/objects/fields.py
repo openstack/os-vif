@@ -12,6 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import netaddr
+
 from oslo_versionedobjects import fields
 
 
@@ -22,9 +24,8 @@ class VIFDirectMode(fields.Enum):
 
     ALL = (VEPA, PASSTHROUGH, BRIDGE)
 
-    def __init__(self):
-        super(VIFDirectMode, self).__init__(
-            valid_values=VIFDirectMode.ALL)
+    def __init__(self) -> None:
+        super().__init__(valid_values=VIFDirectMode.ALL)
 
 
 class VIFDirectModeField(fields.BaseEnumField):
@@ -37,16 +38,15 @@ class VIFVHostUserMode(fields.Enum):
 
     ALL = (CLIENT, SERVER)
 
-    def __init__(self):
-        super(VIFVHostUserMode, self).__init__(
-            valid_values=VIFVHostUserMode.ALL)
+    def __init__(self) -> None:
+        super().__init__(valid_values=VIFVHostUserMode.ALL)
 
 
 class VIFVHostUserModeField(fields.BaseEnumField):
     AUTO_TYPE = VIFVHostUserMode()
 
 
-class ListOfIPAddressField(fields.AutoTypedField):
+class ListOfIPAddressField(fields.AutoTypedField[list[netaddr.IPAddress]]):
     AUTO_TYPE = fields.List(fields.IPAddress())
 
 
@@ -56,9 +56,8 @@ class VIFHostDeviceDevType(fields.Enum):
 
     ALL = (ETHERNET, GENERIC)
 
-    def __init__(self):
-        super(VIFHostDeviceDevType, self).__init__(
-            valid_values=VIFHostDeviceDevType.ALL)
+    def __init__(self) -> None:
+        super().__init__(valid_values=VIFHostDeviceDevType.ALL)
 
 
 class VIFHostDeviceDevTypeField(fields.BaseEnumField):

@@ -25,14 +25,14 @@ from os_vif.tests.unit import base
 
 class DemoPlugin(plugin.PluginBase):
 
-    CONFIG_OPTS = (
+    CONFIG_OPTS = [
         cfg.BoolOpt("make_it_work",
                     default=False,
                     help="Make everything work correctly by setting this"),
         cfg.IntOpt("sleep_time",
                    default=0,
                    help="How long to artifically sleep")
-    )
+    ]
 
     def describe(self):
         pass
@@ -101,8 +101,9 @@ class TestOSVIF(base.TestCase):
 
     @mock.patch.object(DemoPlugin, "plug")
     def test_plug(self, mock_plug):
+        # We don't bother building a fake EntryPoint here
         plg = extension.Extension(name="demo",
-                                  entry_point="os-vif",
+                                  entry_point=None,  # type: ignore
                                   plugin=DemoPlugin,
                                   obj=None)
         with mock.patch(
@@ -122,8 +123,9 @@ class TestOSVIF(base.TestCase):
 
     @mock.patch.object(DemoPlugin, "unplug")
     def test_unplug(self, mock_unplug):
+        # We don't bother building a fake EntryPoint here
         plg = extension.Extension(name="demo",
-                                  entry_point="os-vif",
+                                  entry_point=None,  # type: ignore
                                   plugin=DemoPlugin,
                                   obj=None)
         with mock.patch(

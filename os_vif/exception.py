@@ -10,6 +10,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from typing import Any, cast
+
 from os_vif.i18n import _
 
 
@@ -21,9 +23,11 @@ class ExceptionBase(Exception):
     with the keyword arguments provided to the constructor.
 
     """
-    msg_fmt = _("An unknown exception occurred.")
+    msg_fmt: str = _("An unknown exception occurred.")
 
-    def __init__(self, message=None, **kwargs):
+    def __init__(
+        self, message: str | None = None, **kwargs: Any,
+    ) -> None:
         self.kwargs = kwargs
 
         if not message:
@@ -34,12 +38,12 @@ class ExceptionBase(Exception):
                 message = self.msg_fmt
 
         self.message = message
-        super(ExceptionBase, self).__init__(message)
+        super().__init__(message)
 
-    def format_message(self):
+    def format_message(self) -> str:
         # NOTE(mrodden): use the first argument to the python Exception object
         # which should be our full NovaException message, (see __init__)
-        return self.args[0]
+        return cast(str, self.args[0])
 
 
 class LibraryNotInitialized(ExceptionBase):

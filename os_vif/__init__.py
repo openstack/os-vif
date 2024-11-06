@@ -10,36 +10,46 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from __future__ import annotations
+
+from typing import cast
+
 from oslo_log import log as logging
 from stevedore import extension
 
 import os_vif.exception
 import os_vif.i18n
 import os_vif.objects
+import os_vif.plugin
 
-_EXT_MANAGER = None
+_EXT_MANAGER: extension.ExtensionManager[
+    os_vif.plugin.PluginBase
+] | None = None
 LOG = logging.getLogger(__name__)
 
 
-def initialize(reset=False):
+def initialize(reset: bool = False) -> None:
     """
     Loads all os_vif plugins and initializes them with a dictionary of
     configuration options. These configuration options are passed as-is
     to the individual VIF plugins that are loaded via stevedore.
 
     :param reset: Recreate and load the VIF plugin extensions.
-
     """
     global _EXT_MANAGER
     if _EXT_MANAGER is None:
         os_vif.objects.register_all()
 
     if reset or (_EXT_MANAGER is None):
-        _EXT_MANAGER = extension.ExtensionManager(namespace='os_vif',
-                                                  invoke_on_load=False)
+        _EXT_MANAGER = extension.ExtensionManager(
+            namespace='os_vif', invoke_on_load=False)
         loaded_plugins = []
         for plugin_name in _EXT_MANAGER.names():
-            cls = _EXT_MANAGER[plugin_name].plugin
+            # FIXME(stephenfin): This is a bug in stevedore's typing
+            # https://review.opendev.org/c/openstack/stevedore/+/986059
+            cls = cast(
+                os_vif.plugin.PluginBase, _EXT_MANAGER[plugin_name].plugin
+            )
             obj = cls.load(plugin_name)
             LOG.debug(("Loaded VIF plugin class '%(cls)s' "
                        "with name '%(plugin_name)s'"),
@@ -49,7 +59,10 @@ def initialize(reset=False):
         LOG.info("Loaded VIF plugins: %s", ", ".join(loaded_plugins))
 
 
-def plug(vif, instance_info):
+def plug(
+    vif: os_vif.objects.VIFBase,
+    instance_info: os_vif.objects.InstanceInfo,
+) -> None:
     """
     Given a model of a VIF, perform operations to plug the VIF properly.
 
@@ -72,6 +85,10 @@ def plug(vif, instance_info):
     except KeyError:
         raise os_vif.exception.NoMatchingPlugin(plugin_name=plugin_name)
 
+    # we know this is set since ExtensionManager was invoked with
+    # invoke_on_load
+    assert plugin is not None
+
     try:
         LOG.debug("Plugging vif %s", vif)
         plugin.plug(vif, instance_info)
@@ -82,7 +99,10 @@ def plug(vif, instance_info):
         raise os_vif.exception.PlugException(vif=vif, err=err)
 
 
-def unplug(vif, instance_info):
+def unplug(
+    vif: os_vif.objects.VIFBase,
+    instance_info: os_vif.objects.InstanceInfo,
+) -> None:
     """
     Given a model of a VIF, perform operations to unplug the VIF properly.
 
@@ -105,6 +125,10 @@ def unplug(vif, instance_info):
     except KeyError:
         raise os_vif.exception.NoMatchingPlugin(plugin_name=plugin_name)
 
+    # we know this is set since ExtensionManager was invoked with
+    # invoke_on_load
+    assert plugin is not None
+
     try:
         LOG.debug("Unplugging vif %s", vif)
         plugin.unplug(vif, instance_info)
@@ -115,7 +139,9 @@ def unplug(vif, instance_info):
         raise os_vif.exception.UnplugException(vif=vif, err=err)
 
 
-def host_info(permitted_vif_type_names=None):
+def host_info(
+    permitted_vif_type_names: list[str] | None = None,
+) -> os_vif.objects.HostInfo:
     """
     :param permitted_vif_type_names: list of VIF object names
 
@@ -136,10 +162,13 @@ def host_info(permitted_vif_type_names=None):
     if _EXT_MANAGER is None:
         raise os_vif.exception.LibraryNotInitialized()
 
-    plugins = [
-        _EXT_MANAGER[name].obj.describe()
-        for name in sorted(_EXT_MANAGER.names())
-    ]
+    plugins = []
+    for name in sorted(_EXT_MANAGER.names()):
+        plugin = _EXT_MANAGER[name].obj
+        # We know obj is non-none since we invoked ExtensionManager with
+        # invoke_on_load
+        assert plugin is not None
+        plugins.append(plugin.describe())
 
     info = os_vif.objects.host_info.HostInfo(plugin_info=plugins)
     if permitted_vif_type_names is not None:

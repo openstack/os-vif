@@ -10,6 +10,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from __future__ import annotations
+
 from oslo_versionedobjects import base
 from oslo_versionedobjects import fields
 

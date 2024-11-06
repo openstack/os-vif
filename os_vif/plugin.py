@@ -10,8 +10,15 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from __future__ import annotations
+
 import abc
+from typing import TYPE_CHECKING
+
 from oslo_config import cfg
+
+if TYPE_CHECKING:
+    from os_vif import objects
 
 
 CONF = cfg.CONF
@@ -22,18 +29,18 @@ class PluginBase(metaclass=abc.ABCMeta):
 
     # Override to provide a tuple of oslo_config.Opt instances for
     # the plugin config parameters
-    CONFIG_OPTS = ()
+    CONFIG_OPTS: list[cfg.Opt] = []
 
-    def __init__(self, config):
+    def __init__(self, config: cfg.ConfigOpts.GroupAttr) -> None:
         """
         Initialize the plugin object with the provided config
 
-        :param config: ``oslo_config.ConfigOpts.GroupAttr`` instance:
+        :param config: ``oslo_config.cfg.ConfigOpts.GroupAttr`` instance.
         """
         self.config = config
 
     @abc.abstractmethod
-    def describe(self):
+    def describe(self) -> objects.HostPluginInfo:
         """
         Return an object that describes the plugin's supported vif types and
         the earliest/latest known VIF object versions.
@@ -42,7 +49,9 @@ class PluginBase(metaclass=abc.ABCMeta):
         """
 
     @abc.abstractmethod
-    def plug(self, vif, instance_info):
+    def plug(
+        self, vif: objects.VIFBase, instance_info: objects.InstanceInfo
+    ) -> None:
         """
         Given a model of a VIF, perform operations to plug the VIF properly.
 
@@ -55,7 +64,9 @@ class PluginBase(metaclass=abc.ABCMeta):
         """
 
     @abc.abstractmethod
-    def unplug(self, vif, instance_info):
+    def unplug(
+        self, vif: objects.VIFBase, instance_info: objects.InstanceInfo
+    ) -> None:
         """
         Given a model of a VIF, perform operations to unplug the VIF properly.
 
@@ -68,7 +79,7 @@ class PluginBase(metaclass=abc.ABCMeta):
         """
 
     @classmethod
-    def load(cls, plugin_name):
+    def load(cls, plugin_name: str) -> 'PluginBase':
         """
         Load a plugin, registering its configuration options
 

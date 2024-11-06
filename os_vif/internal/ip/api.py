@@ -10,10 +10,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from oslo_log import log as logging
-
 from os_vif.internal.ip.linux.impl_pyroute2 import PyRoute2
 
-LOG = logging.getLogger(__name__)
 
 ip = PyRoute2()

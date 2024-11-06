@@ -52,7 +52,7 @@ class OvsPlugin(plugin.PluginBase):
 
     NIC_NAME_LEN = 14
 
-    CONFIG_OPTS = (
+    CONFIG_OPTS = [
         cfg.IntOpt('network_device_mtu',
                    default=1500,
                    help='MTU setting for network interface.',
@@ -123,7 +123,7 @@ class OvsPlugin(plugin.PluginBase):
                    managed via neutron if required for bandwidth limiting
                    and other use-cases.
                    """),
-    )
+    ]
 
     def __init__(self, config):
         super(OvsPlugin, self).__init__(config)

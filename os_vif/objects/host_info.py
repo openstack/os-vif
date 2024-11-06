@@ -10,6 +10,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from __future__ import annotations
+
+from typing import Any
+
 from oslo_utils import versionutils
 from oslo_versionedobjects import base
 from oslo_versionedobjects import fields
@@ -18,8 +22,13 @@ from os_vif import exception
 from os_vif.objects import base as osv_base
 
 
-def _get_common_version(object_name, max_version, min_version, exc_notmatch,
-                        exc_notsupported):
+def _get_common_version(
+    object_name: str,
+    max_version: str,
+    min_version: str,
+    exc_notmatch: type[exception.ExceptionBase],
+    exc_notsupported: type[exception.ExceptionBase],
+) -> str:
     """Returns the accepted version from the loaded OVO registry"""
     reg = base.VersionedObjectRegistry.obj_classes()
 
@@ -36,10 +45,12 @@ def _get_common_version(object_name, max_version, min_version, exc_notmatch,
         if minwant <= got <= maxwant:
             return regobj.VERSION
 
-    raise exc_notsupported(name=object_name,
-                           got_versions=",".join(gotvers),
-                           min_version=min_version,
-                           max_version=max_version)
+    raise exc_notsupported(
+        name=object_name,
+        got_versions=",".join(gotvers),
+        min_version=min_version,
+        max_version=max_version,
+    )
 
 
 @base.VersionedObjectRegistry.register
@@ -65,12 +76,14 @@ class HostPortProfileInfo(osv_base.VersionedObject,
         "max_version": fields.StringField(),
     }
 
-    def get_common_version(self):
-        return _get_common_version(self.profile_object_name,
-                                   self.max_version,
-                                   self.min_version,
-                                   exception.NoMatchingPortProfileClass,
-                                   exception.NoSupportedPortProfileVersion)
+    def get_common_version(self) -> str:
+        return _get_common_version(
+            self.profile_object_name,
+            self.max_version,
+            self.min_version,
+            exception.NoMatchingPortProfileClass,
+            exception.NoSupportedPortProfileVersion,
+        )
 
 
 @base.VersionedObjectRegistry.register
@@ -100,18 +113,24 @@ class HostVIFInfo(osv_base.VersionedObject, base.ComparableVersionedObject,
             "HostPortProfileInfo")
     }
 
-    def obj_make_compatible(self, primitive, target_version):
-        target_version = versionutils.convert_version_to_tuple(target_version)
-        if target_version < (1, 1) and 'supported_port_profiles' in primitive:
+    def obj_make_compatible(
+        self,
+        primitive: dict[str, Any],
+        target_version: str,
+    ) -> None:
+        tuple_version = versionutils.convert_version_to_tuple(target_version)
+        if tuple_version < (1, 1) and 'supported_port_profiles' in primitive:
             del primitive['supported_port_profiles']
-        super(HostVIFInfo, self).obj_make_compatible(primitive, '1.0')
+        super().obj_make_compatible(primitive, '1.0')
 
-    def get_common_version(self):
-        return _get_common_version(self.vif_object_name,
-                                   self.max_version,
-                                   self.min_version,
-                                   exception.NoMatchingVIFClass,
-                                   exception.NoSupportedVIFVersion)
+    def get_common_version(self) -> str:
+        return _get_common_version(
+            self.vif_object_name,
+            self.max_version,
+            self.min_version,
+            exception.NoMatchingVIFClass,
+            exception.NoSupportedVIFVersion,
+        )
 
 
 @base.VersionedObjectRegistry.register
@@ -131,20 +150,20 @@ class HostPluginInfo(osv_base.VersionedObject, base.ComparableVersionedObject,
         "vif_info": fields.ListOfObjectsField("HostVIFInfo"),
     }
 
-    def has_vif(self, name):
+    def has_vif(self, name: str) -> bool:
         for vif in self.vif_info:
             if vif.vif_object_name == name:
                 return True
         return False
 
-    def get_vif(self, name):
+    def get_vif(self, name: str) -> HostVIFInfo:
         for vif in self.vif_info:
             if vif.vif_object_name == name:
                 return vif
 
         raise exception.NoMatchingVIFClass(vif_name=name)
 
-    def filter_vif_types(self, permitted_vif_type_names):
+    def filter_vif_types(self, permitted_vif_type_names: list[str]) -> None:
         new_vif_info = []
         for vif in self.vif_info:
             if vif.vif_object_name in permitted_vif_type_names:
@@ -164,20 +183,20 @@ class HostInfo(osv_base.VersionedObject, base.ComparableVersionedObject,
         "plugin_info": fields.ListOfObjectsField("HostPluginInfo"),
     }
 
-    def has_plugin(self, name):
+    def has_plugin(self, name: str) -> bool:
         for plugin in self.plugin_info:
             if name == plugin.plugin_name:
                 return True
         return False
 
-    def get_plugin(self, name):
+    def get_plugin(self, name: str) -> HostPluginInfo:
         for plugin in self.plugin_info:
             if name == plugin.plugin_name:
                 return plugin
 
         raise exception.NoMatchingPlugin(plugin_name=name)
 
-    def filter_vif_types(self, permitted_vif_type_names):
+    def filter_vif_types(self, permitted_vif_type_names: list[str]) -> None:
         new_plugins = []
         for plugin in self.plugin_info:
             plugin.filter_vif_types(permitted_vif_type_names)

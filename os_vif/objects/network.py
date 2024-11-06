@@ -10,6 +10,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from __future__ import annotations
+
+from typing import Any
+
 from oslo_utils import versionutils
 from oslo_versionedobjects import base
 from oslo_versionedobjects import fields
@@ -38,16 +42,18 @@ class Network(osv_base.VersionedObject):
         'mtu': fields.IntegerField(nullable=True),
     }
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         kwargs.setdefault('subnets', objects.subnet.SubnetList(objects=[]))
         kwargs.setdefault('multi_host', False)
         kwargs.setdefault('should_provide_bridge', False)
         kwargs.setdefault('should_provide_vlan', False)
         kwargs.setdefault('mtu', None)
-        super(Network, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
-    def obj_make_compatible(self, primitive, target_version):
-        target_version = versionutils.convert_version_to_tuple(target_version)
-        if target_version < (1, 1) and 'mtu' in primitive:
+    def obj_make_compatible(
+        self, primitive: dict[str, Any], target_version: str
+    ) -> None:
+        tuple_version = versionutils.convert_version_to_tuple(target_version)
+        if tuple_version < (1, 1) and 'mtu' in primitive:
             del primitive['mtu']
         super(Network, self).obj_make_compatible(primitive, '1.0')

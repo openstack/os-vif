@@ -10,8 +10,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from debtcollector import removals
+from __future__ import annotations
 
+from typing import Any
+
+from debtcollector import removals
 from oslo_utils import versionutils
 from oslo_versionedobjects import base
 from oslo_versionedobjects import fields
@@ -195,9 +198,13 @@ class VIFVHostUser(VIFBase):
         'mode': osv_fields.VIFVHostUserModeField(),
     }
 
-    def obj_make_compatible(self, primitive, target_version):
-        target_version = versionutils.convert_version_to_tuple(target_version)
-        if target_version < (1, 1) and 'vif_name' in primitive:
+    def obj_make_compatible(
+        self,
+        primitive: dict[str, Any],
+        target_version: str,
+    ) -> None:
+        tuple_version = versionutils.convert_version_to_tuple(target_version)
+        if tuple_version < (1, 1) and 'vif_name' in primitive:
             del primitive['vif_name']
         super(VIFVHostUser, self).obj_make_compatible(primitive, '1.0')
 
@@ -311,7 +318,7 @@ class VIFPortProfileBase(osv_base.VersionedObject,
     }
 
     obj_relationships = {
-        'datapath_offload': (('1.1', '1.0'),),
+        'datapath_offload': [('1.1', '1.0')],
     }
 
 
@@ -351,18 +358,22 @@ class VIFPortProfileOpenVSwitch(VIFPortProfileBase):
         'multiqueue': fields.BooleanField(default=False),
     }
 
-    def obj_make_compatible(self, primitive, target_version):
-        target_version = versionutils.convert_version_to_tuple(target_version)
-        if target_version < (1, 4):
+    def obj_make_compatible(
+        self,
+        primitive: dict[str, Any],
+        target_version: str,
+    ) -> None:
+        tuple_version = versionutils.convert_version_to_tuple(target_version)
+        if tuple_version < (1, 4):
             if 'create_tap' in primitive:
                 del primitive['create_tap']
             if 'multiqueue' in primitive:
                 del primitive['multiqueue']
-        if target_version < (1, 3) and 'create_port' in primitive:
+        if tuple_version < (1, 3) and 'create_port' in primitive:
             del primitive['create_port']
-        if target_version < (1, 1) and 'datapath_type' in primitive:
+        if tuple_version < (1, 1) and 'datapath_type' in primitive:
             del primitive['datapath_type']
-        if target_version < (1, 2):
+        if tuple_version < (1, 2):
             super(VIFPortProfileOpenVSwitch, self).obj_make_compatible(
                 primitive, '1.0')
         else:
@@ -393,18 +404,22 @@ class VIFPortProfileFPOpenVSwitch(VIFPortProfileOpenVSwitch):
         'hybrid_plug': fields.BooleanField(default=False),
     }
 
-    def obj_make_compatible(self, primitive, target_version):
-        target_version = versionutils.convert_version_to_tuple(target_version)
-        if target_version < (1, 1):
+    def obj_make_compatible(
+        self,
+        primitive: dict[str, Any],
+        target_version: str,
+    ) -> None:
+        tuple_version = versionutils.convert_version_to_tuple(target_version)
+        if tuple_version < (1, 1):
             super(VIFPortProfileFPOpenVSwitch, self).obj_make_compatible(
                 primitive, '1.0')
-        elif target_version < (1, 2):
+        elif tuple_version < (1, 2):
             super(VIFPortProfileFPOpenVSwitch, self).obj_make_compatible(
                 primitive, '1.1')
-        elif target_version < (1, 3):
+        elif tuple_version < (1, 3):
             super(VIFPortProfileFPOpenVSwitch, self).obj_make_compatible(
                 primitive, '1.2')
-        elif target_version < (1, 4):
+        elif tuple_version < (1, 4):
             super(VIFPortProfileFPOpenVSwitch, self).obj_make_compatible(
                 primitive, '1.3')
         else:
@@ -448,18 +463,22 @@ class VIFPortProfileOVSRepresentor(VIFPortProfileOpenVSwitch):
         'representor_address': fields.PCIAddressField(nullable=True),
     }
 
-    def obj_make_compatible(self, primitive, target_version):
-        target_version = versionutils.convert_version_to_tuple(target_version)
-        if target_version < (1, 1):
+    def obj_make_compatible(
+        self,
+        primitive: dict[str, Any],
+        target_version: str,
+    ) -> None:
+        tuple_version = versionutils.convert_version_to_tuple(target_version)
+        if tuple_version < (1, 1):
             super(VIFPortProfileOVSRepresentor, self).obj_make_compatible(
                 primitive, '1.0')
-        elif target_version < (1, 2):
+        elif tuple_version < (1, 2):
             super(VIFPortProfileOVSRepresentor, self).obj_make_compatible(
                 primitive, '1.1')
-        elif target_version < (1, 3):
+        elif tuple_version < (1, 3):
             super(VIFPortProfileOVSRepresentor, self).obj_make_compatible(
                 primitive, '1.2')
-        elif target_version < (1, 4):
+        elif tuple_version < (1, 4):
             super(VIFPortProfileOVSRepresentor, self).obj_make_compatible(
                 primitive, '1.3')
         else:
@@ -484,9 +503,13 @@ class VIFPortProfileFPBridge(VIFPortProfileBase):
         'bridge_name': fields.StringField(),
     }
 
-    def obj_make_compatible(self, primitive, target_version):
-        target_version = versionutils.convert_version_to_tuple(target_version)
-        if target_version < (1, 1):
+    def obj_make_compatible(
+        self,
+        primitive: dict[str, Any],
+        target_version: str,
+    ) -> None:
+        tuple_version = versionutils.convert_version_to_tuple(target_version)
+        if tuple_version < (1, 1):
             super(VIFPortProfileFPBridge, self).obj_make_compatible(
                 primitive, '1.0')
         else:
@@ -511,9 +534,13 @@ class VIFPortProfileFPTap(VIFPortProfileBase):
         'mac_address': fields.MACAddressField(nullable=True),
     }
 
-    def obj_make_compatible(self, primitive, target_version):
-        target_version = versionutils.convert_version_to_tuple(target_version)
-        if target_version < (1, 1):
+    def obj_make_compatible(
+        self,
+        primitive: dict[str, Any],
+        target_version: str,
+    ) -> None:
+        tuple_version = versionutils.convert_version_to_tuple(target_version)
+        if tuple_version < (1, 1):
             super(VIFPortProfileFPTap, self).obj_make_compatible(
                 primitive, '1.0')
         else:
@@ -555,9 +582,13 @@ class VIFPortProfile8021Qbg(VIFPortProfileBase):
         'instance_id': fields.UUIDField(),
     }
 
-    def obj_make_compatible(self, primitive, target_version):
-        target_version = versionutils.convert_version_to_tuple(target_version)
-        if target_version < (1, 1):
+    def obj_make_compatible(
+        self,
+        primitive: dict[str, Any],
+        target_version: str,
+    ) -> None:
+        tuple_version = versionutils.convert_version_to_tuple(target_version)
+        if tuple_version < (1, 1):
             super(VIFPortProfile8021Qbg, self).obj_make_compatible(
                 primitive, '1.0')
         else:
@@ -585,9 +616,13 @@ class VIFPortProfile8021Qbh(VIFPortProfileBase):
         'profile_id': fields.StringField()
     }
 
-    def obj_make_compatible(self, primitive, target_version):
-        target_version = versionutils.convert_version_to_tuple(target_version)
-        if target_version < (1, 1):
+    def obj_make_compatible(
+        self,
+        primitive: dict[str, Any],
+        target_version: str,
+    ) -> None:
+        tuple_version = versionutils.convert_version_to_tuple(target_version)
+        if tuple_version < (1, 1):
             super(VIFPortProfile8021Qbh, self).obj_make_compatible(
                 primitive, '1.0')
         else:
@@ -619,9 +654,13 @@ class VIFPortProfileK8sDPDK(VIFPortProfileBase):
         'resourceversion': fields.StringField()
     }
 
-    def obj_make_compatible(self, primitive, target_version):
-        target_version = versionutils.convert_version_to_tuple(target_version)
-        if target_version < (1, 1):
+    def obj_make_compatible(
+        self,
+        primitive: dict[str, Any],
+        target_version: str,
+    ) -> None:
+        tuple_version = versionutils.convert_version_to_tuple(target_version)
+        if tuple_version < (1, 1):
             super(VIFPortProfileK8sDPDK, self).obj_make_compatible(
                 primitive, '1.0')
         else:

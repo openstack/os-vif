@@ -11,9 +11,9 @@
 #    under the License.
 
 
-def set_mask(data, mask):
+def set_mask(data: int, mask: int) -> int:
     return data | mask
 
 
-def unset_mask(data, mask, bit_size=32):
+def unset_mask(data: int, mask: int, bit_size: int = 32) -> int:
     return data & (((1 << bit_size) - 1) ^ mask)

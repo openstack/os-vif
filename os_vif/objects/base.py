@@ -10,6 +10,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from collections.abc import Callable
+from typing import Any
+
 from oslo_versionedobjects import base as ovo_base
 
 
@@ -25,7 +28,9 @@ class VersionedObjectPrintableMixin(object):
     inherit from this class.
     """
 
-    def __str__(self):
+    obj_to_primitive: Callable[..., Any]
+
+    def __str__(self) -> str:
         if callable(getattr(self, 'obj_to_primitive', None)):
             return str(self.obj_to_primitive())
         return super(VersionedObjectPrintableMixin, self).__str__()

@@ -307,8 +307,8 @@ class OvsPlugin(plugin.PluginBase):
         instance_id = instance_info.uuid
         LOG.debug(
             'creating patch port pair \n'
-            f'{port_bridge_name}:({port_bridge_patch}) -> '
-            f'{int_bridge_name}:({int_bridge_patch})'
+            f'{port_bridge_name}: ({port_bridge_patch}) -> '
+            f'{int_bridge_name}: ({int_bridge_patch})'
         )
         self.ovsdb.create_patch_port_pair(
             port_bridge_name, port_bridge_patch, int_bridge_name,

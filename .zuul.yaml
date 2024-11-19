@@ -120,6 +120,15 @@
             os_vif_ovs:
               per_port_bridge: true
 
+# TODO(gmann): As per the 2025.1 testing runtime, we need to run at least
+# one job on Focal. This job can be removed in the nexy cycle (2025.2)
+- job:
+    name: os-vif-ovn-ubuntu-jammy
+    description: |
+      os-vif ovn job (tests hybrid-plug=false) testing on Ubuntu Focal(20.04)
+    parent: os-vif-ovn
+    nodeset: openstack-single-node-jammy
+
 - project:
     templates:
       - check-requirements
@@ -133,9 +142,11 @@
             voting: false
         - openstack-tox-functional-ovs-with-sudo
         - os-vif-ovn
+        - os-vif-ovn-ubuntu-jammy
         - os-vif-ovs-iptables
     gate:
       jobs:
         - openstack-tox-functional-ovs-with-sudo
         - os-vif-ovn
+        - os-vif-ovn-ubuntu-jammy
         - os-vif-ovs-iptables

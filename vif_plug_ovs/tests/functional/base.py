@@ -9,6 +9,8 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+import functools
+import os
 
 from os_vif.tests.functional import base as os_vif_base
 
@@ -28,6 +30,10 @@ class VifPlugOvsBaseFunctionalTestCase(os_vif_base.BaseFunctionalTestCase):
     def _check_port(self, name, bridge):
         return self.ovs.port_exists(name, bridge)
 
+    @functools.cache
+    def _get_timeout(self):
+        return int(os.environ.get('OS_VIF_CHECK_PARAMETER_TIMEOUT', '10'))
+
     def _check_parameter(self, table, port, parameter, expected_value):
         def get_value():
             return self._ovsdb.db_get(table, port, parameter).execute()
@@ -36,7 +42,8 @@ class VifPlugOvsBaseFunctionalTestCase(os_vif_base.BaseFunctionalTestCase):
             val = get_value()
             return val == expected_value
         self.assertTrue(
-            wait_until_true(check_value, timeout=2, sleep=0.5),
+            wait_until_true(
+                check_value, timeout=self._get_timeout(), sleep=0.5),
             f"Parameter {parameter} of {table} {port} is {get_value()} "
             f"not {expected_value}"
         )

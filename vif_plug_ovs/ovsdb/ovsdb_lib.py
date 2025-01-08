@@ -139,7 +139,7 @@ class BaseOVS(object):
         self, bridge, dev, iface_id, mac, instance_id,
         mtu=None, interface_type=None, vhost_server_path=None,
         tag=None, pf_pci=None, vf_num=None, set_ids=True, datapath_type=None,
-        qos_type=None
+        qos_type=None, vlan_mode=None, trunks=None
     ):
         """Create OVS port
 
@@ -204,6 +204,11 @@ class BaseOVS(object):
             txn.add(self.ovsdb.add_port(bridge, dev))
             if tag:
                 txn.add(self.ovsdb.db_set('Port', dev, ('tag', tag)))
+            if vlan_mode:
+                txn.add(self.ovsdb.db_set('Port', dev,
+                                          ('vlan_mode', vlan_mode)))
+            if trunks:
+                txn.add(self.ovsdb.db_set('Port', dev, ('trunks', trunks)))
             if qid:
                 txn.add(self.ovsdb.db_set('Port', dev, ('qos', qid)))
             if col_values:

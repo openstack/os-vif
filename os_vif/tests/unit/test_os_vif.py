@@ -105,10 +105,13 @@ class TestOSVIF(base.TestCase):
                                   entry_point="os-vif",
                                   plugin=DemoPlugin,
                                   obj=None)
-        with mock.patch('stevedore.extension.ExtensionManager.names',
-                        return_value=['foobar']),\
-                mock.patch('stevedore.extension.ExtensionManager.__getitem__',
-                           return_value=plg):
+        with mock.patch(
+            'stevedore.extension.ExtensionManager.names',
+            return_value=['foobar'],
+        ), mock.patch(
+            'stevedore.extension.ExtensionManager.__getitem__',
+            return_value=plg,
+        ):
             os_vif.initialize()
             info = objects.instance_info.InstanceInfo()
             vif = objects.vif.VIFBridge(
@@ -123,10 +126,13 @@ class TestOSVIF(base.TestCase):
                                   entry_point="os-vif",
                                   plugin=DemoPlugin,
                                   obj=None)
-        with mock.patch('stevedore.extension.ExtensionManager.names',
-                        return_value=['foobar']),\
-                mock.patch('stevedore.extension.ExtensionManager.__getitem__',
-                           return_value=plg):
+        with mock.patch(
+            'stevedore.extension.ExtensionManager.names',
+            return_value=['foobar']
+        ), mock.patch(
+            'stevedore.extension.ExtensionManager.__getitem__',
+            return_value=plg,
+        ):
             os_vif.initialize()
             info = objects.instance_info.InstanceInfo()
             vif = objects.vif.VIFBridge(

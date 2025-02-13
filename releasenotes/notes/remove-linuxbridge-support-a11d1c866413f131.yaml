@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    The LinuxBridgePlugin has been removed from the os_vif library. This plugin
+    was previously used by the Nova compute service to plug virtual interfaces
+    into Linux Bridge bridges when neutron was deployed with ML2/LinuxBridge as
+    the mechanism driver. Neutron removed support for ML2/LinuxBridge in 2025.1
+    (Epoxy).

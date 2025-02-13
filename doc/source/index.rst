@@ -25,7 +25,6 @@ Usage Guide
    user/usage
    user/vif-types
    user/host-info
-   user/plugins/linux-bridge
    user/plugins/noop
    user/plugins/ovs
 

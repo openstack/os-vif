@@ -33,14 +33,12 @@ Repository = "https://opendev.org/openstack/os_vif"
 "oslo.cache" = "os_vif.opts:list_plugins_opts"
 
 [project.entry-points."os_vif"]
-"linux_bridge" = "vif_plug_linux_bridge.linux_bridge:LinuxBridgePlugin"
 "ovs" = "vif_plug_ovs.ovs:OvsPlugin"
 "noop" = "vif_plug_noop.noop:NoOpPlugin"
 
 [tool.setuptools]
 packages = [
     "os_vif",
-    "vif_plug_linux_bridge",
     "vif_plug_noop",
     "vif_plug_ovs",
 ]

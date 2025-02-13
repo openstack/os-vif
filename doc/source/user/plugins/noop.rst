@@ -4,8 +4,7 @@ no-op
 
 The no-op plugin, ``vif_plug_noop``, is an *os-vif* VIF plugin for use with
 network backends that do not require plugging of network interfaces. It is one
-of three plugins provided as part of *os-vif* itself, the others being
-:doc:`ovs` and  :doc:`linux-bridge`.
+of two plugins provided as part of *os-vif* itself, the other being :doc:`ovs`.
 
 Supported VIF Types
 -------------------

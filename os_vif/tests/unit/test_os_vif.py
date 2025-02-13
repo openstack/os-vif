@@ -148,14 +148,11 @@ class TestOSVIF(base.TestCase):
         # NOTE(sean-k-mooney): as out of tree plugins could be
         # visable in path assert only at at least all the in
         # intree plugins are loaded instead of an exact match.
-        self.assertTrue(len(info.plugin_info) >= 3)
+        self.assertTrue(len(info.plugin_info) >= 2)
 
         plugins = {p.plugin_name: p for p in info.plugin_info}
-        in_tree_plugin_names = ("linux_bridge", "ovs", "noop")
+        in_tree_plugin_names = ("ovs", "noop")
         self.assertTrue(all(name in plugins for name in in_tree_plugin_names))
-        lb = plugins["linux_bridge"]
-        self.assertTrue(any("VIFBridge" == vif.vif_object_name
-                            for vif in lb.vif_info))
 
         ovs = plugins["ovs"]
         self.assertTrue(len(ovs.vif_info) >= 4)
@@ -184,4 +181,4 @@ class TestOSVIF(base.TestCase):
         for group in list_opts:
             for opt in group[1]:
                 self.assertTrue("oslo_config.cfg" == opt.__module__)
-        self.assertGreaterEqual(len(list_opts), 3)
+        self.assertGreaterEqual(len(list_opts), 2)

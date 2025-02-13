@@ -10,7 +10,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from vif_plug_linux_bridge import constants as lb_constants
 from vif_plug_ovs import constants as ovs_constants
 
 from os_vif import exception
@@ -27,15 +26,6 @@ class TestHostInfo(base.TestCase):
 
         self.host_info = objects.host_info.HostInfo(
             plugin_info=[
-                objects.host_info.HostPluginInfo(
-                    plugin_name=lb_constants.PLUGIN_NAME,
-                    vif_info=[
-                        objects.host_info.HostVIFInfo(
-                            vif_object_name="VIFBridge",
-                            min_version="1.0",
-                            max_version="3.0"
-                        ),
-                    ]),
                 objects.host_info.HostPluginInfo(
                     plugin_name=ovs_constants.PLUGIN_NAME,
                     vif_info=[
@@ -138,15 +128,6 @@ class TestHostInfo(base.TestCase):
         host_info = objects.host_info.HostInfo(
             plugin_info=[
                 objects.host_info.HostPluginInfo(
-                    plugin_name=lb_constants.PLUGIN_NAME,
-                    vif_info=[
-                        objects.host_info.HostVIFInfo(
-                            vif_object_name="VIFBridge",
-                            min_version="1.0",
-                            max_version="3.0"
-                        ),
-                    ]),
-                objects.host_info.HostPluginInfo(
                     plugin_name=ovs_constants.PLUGIN_NAME,
                     vif_info=[
                         objects.host_info.HostVIFInfo(
@@ -169,14 +150,9 @@ class TestHostInfo(base.TestCase):
 
         host_info.filter_vif_types(["VIFBridge", "VIFOpenVSwitch"])
 
-        self.assertEqual(len(host_info.plugin_info), 2)
+        self.assertEqual(len(host_info.plugin_info), 1)
 
         plugin = host_info.plugin_info[0]
-        self.assertEqual(len(plugin.vif_info), 1)
-        self.assertEqual(plugin.vif_info[0].vif_object_name,
-                         "VIFBridge")
-
-        plugin = host_info.plugin_info[1]
         self.assertEqual(len(plugin.vif_info), 2)
         self.assertEqual(plugin.vif_info[0].vif_object_name,
                          "VIFBridge")

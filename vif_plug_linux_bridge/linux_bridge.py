@@ -17,6 +17,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import debtcollector.removals
 from os_vif import objects
 from os_vif import plugin
 from oslo_config import cfg
@@ -94,6 +95,10 @@ class LinuxBridgePlugin(plugin.PluginBase):
                     supported_port_profiles=[]),
             ])
 
+    @debtcollector.removals.remove(
+        message="LinuxBridgePlugin is deprecated and will be removed in "
+                "a future release",
+        category=DeprecationWarning)
     def plug(self, vif, instance_info):
         """Ensure that the bridge exists, and add VIF to it."""
         network = vif.network
@@ -111,6 +116,10 @@ class LinuxBridgePlugin(plugin.PluginBase):
                 linux_net.ensure_bridge(bridge_name, iface,
                                         filtering=install_filters, mtu=mtu)
 
+    @debtcollector.removals.remove(
+        message="LinuxBridgePlugin is deprecated and will be removed in "
+                "a future release",
+        category=DeprecationWarning)
     def unplug(self, vif, instance_info):
         # Nothing required to unplug a port for a VIF using standard
         # Linux bridge device...

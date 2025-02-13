@@ -1,0 +1,7 @@
+---
+deprecations:
+  - |
+    The LinuxBridge mechanism driver has been removed in neutron. os-vif has a
+    policy of only shipping plugins for in-tree neutron ml2 drivers. As a result
+    the linux_bridge os-vif plugin is now deprecated and will be removed in
+    a future openstack release.

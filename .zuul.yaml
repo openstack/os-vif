@@ -120,45 +120,6 @@
             os_vif_ovs:
               per_port_bridge: true
 
-- job:
-    name: os-vif-linuxbridge
-    parent: os-vif-tempest-base
-    description: |
-      os-vif linux bridge job derived from neutron-tempest-linuxbridge
-    vars:
-      devstack_services:
-        # Disable OVN services
-        br-ex-tcpdump: false
-        br-int-flows: false
-        ovn-controller: false
-        ovn-northd: false
-        ovs-vswitchd: false
-        ovsdb-server: false
-        q-ovn-metadata-agent: false
-        # Neutron services
-        q-agt: true
-        q-dhcp: true
-        q-l3: true
-        q-meta: true
-        q-metering: true
-      devstack_localrc:
-        Q_AGENT: linuxbridge
-        Q_ML2_PLUGIN_MECHANISM_DRIVERS: linuxbridge
-        Q_ML2_TENANT_NETWORK_TYPE: vxlan
-      devstack_local_conf:
-        post-config:
-          "/$NEUTRON_CORE_PLUGIN_CONF":
-            experimental:
-              linuxbridge: true
-            ml2:
-              type_drivers: flat,vlan,local,vxlan
-            ml2_type_vlan:
-              network_vlan_ranges: foo:1:10
-            agent:
-              tunnel_types: vxlan
-            securitygroup:
-              firewall_driver: iptables
-
 - project:
     templates:
       - check-requirements
@@ -173,10 +134,8 @@
         - openstack-tox-functional-ovs-with-sudo
         - os-vif-ovn
         - os-vif-ovs-iptables
-        - os-vif-linuxbridge
     gate:
       jobs:
         - openstack-tox-functional-ovs-with-sudo
         - os-vif-ovn
         - os-vif-ovs-iptables
-        - os-vif-linuxbridge

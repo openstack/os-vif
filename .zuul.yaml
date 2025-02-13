@@ -129,8 +129,6 @@
       - openstack-cover-jobs
     check:
       jobs:
-        - kuryr-kubernetes-tempest:
-            voting: false
         - openstack-tox-functional-ovs-with-sudo
         - os-vif-ovn
         - os-vif-ovs-iptables

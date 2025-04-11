@@ -38,12 +38,14 @@ class TestIpCommand(base.TestCase):
     def setUp(self):
         super(TestIpCommand, self).setUp()
         self.ip = impl_pyroute2.PyRoute2()
-        self.ip_link_p = mock.patch.object(iproute.IPRoute, 'link')
+        self.ip_link_p = mock.patch.object(iproute.IPRoute, 'link',
+                                           create=True)
         self.ip_link = self.ip_link_p.start()
 
     def test_set(self):
-        with mock.patch.object(iproute.IPRoute, 'link_lookup',
-                               return_value=[1]) as mock_link_lookup:
+        with mock.patch.object(
+                iproute.IPRoute, 'link_lookup', return_value=[1],
+                create=True) as mock_link_lookup:
             self.ip_link.return_value = [{'flags': 0x4000}]
             self.ip.set(self.DEVICE, state=self.UP, mtu=self.MTU,
                         address=self.MAC, promisc=True)
@@ -57,8 +59,9 @@ class TestIpCommand(base.TestCase):
             self.ip_link.assert_has_calls(calls)
 
     def test_set_exit_code(self):
-        with mock.patch.object(iproute.IPRoute, 'link_lookup',
-                               return_value=[1]) as mock_link_lookup:
+        with mock.patch.object(
+                iproute.IPRoute, 'link_lookup', return_value=[1],
+                create=True) as mock_link_lookup:
             self.ip_link.side_effect = ipexc.NetlinkError(self.ERROR_CODE,
                                                           msg="Error message")
 
@@ -70,8 +73,9 @@ class TestIpCommand(base.TestCase):
                               check_exit_code=[self.OTHER_ERROR_CODE])
 
     def test_set_no_interface_found(self):
-        with mock.patch.object(iproute.IPRoute, 'link_lookup',
-                               return_value=[]) as mock_link_lookup:
+        with mock.patch.object(
+                iproute.IPRoute, 'link_lookup', return_value=[],
+                create=True) as mock_link_lookup:
             self.assertRaises(exception.NetworkInterfaceNotFound, self.ip.set,
                               self.DEVICE)
             mock_link_lookup.assert_called_once_with(ifname=self.DEVICE)
@@ -83,8 +87,9 @@ class TestIpCommand(base.TestCase):
             'add', ifname=self.DEVICE, kind=self.TYPE_VETH, peer='peer')
 
     def test_add_vlan(self):
-        with mock.patch.object(iproute.IPRoute, 'link_lookup',
-                               return_value=[1]) as mock_link_lookup:
+        with mock.patch.object(
+                iproute.IPRoute, 'link_lookup', return_value=[1],
+                create=True) as mock_link_lookup:
             self.ip.add(self.DEVICE, self.TYPE_VLAN, link=self.LINK,
                         vlan_id=self.VLAN_ID)
             mock_link_lookup.assert_called_once_with(ifname=self.LINK)
@@ -114,8 +119,9 @@ class TestIpCommand(base.TestCase):
         self.ip_link.assert_called_once_with('add', **args)
 
     def test_add_vlan_no_interface_found(self):
-        with mock.patch.object(iproute.IPRoute, 'link_lookup',
-                               return_value=[]) as mock_link_lookup:
+        with mock.patch.object(
+                iproute.IPRoute, 'link_lookup', return_value=[],
+                create=True) as mock_link_lookup:
             self.assertRaises(exception.NetworkInterfaceNotFound, self.ip.add,
                               self.DEVICE, self.TYPE_VLAN, link=self.LINK)
             mock_link_lookup.assert_called_once_with(ifname=self.LINK)
@@ -141,22 +147,25 @@ class TestIpCommand(base.TestCase):
             check_exit_code=[self.OTHER_ERROR_CODE])
 
     def test_delete(self):
-        with mock.patch.object(iproute.IPRoute, 'link_lookup',
-                               return_value=[1]) as mock_link_lookup:
+        with mock.patch.object(
+                iproute.IPRoute, 'link_lookup', return_value=[1],
+                create=True) as mock_link_lookup:
             self.ip.delete(self.DEVICE)
             mock_link_lookup.assert_called_once_with(ifname=self.DEVICE)
             self.ip_link.assert_called_once_with('del', index=1)
 
     def test_delete_no_interface_found(self):
-        with mock.patch.object(iproute.IPRoute, 'link_lookup',
-                               return_value=[]) as mock_link_lookup:
+        with mock.patch.object(
+                iproute.IPRoute, 'link_lookup', return_value=[],
+                create=True) as mock_link_lookup:
             self.assertRaises(exception.NetworkInterfaceNotFound,
                               self.ip.delete, self.DEVICE)
             mock_link_lookup.assert_called_once_with(ifname=self.DEVICE)
 
     def test_delete_exit_code(self):
-        with mock.patch.object(iproute.IPRoute, 'link_lookup',
-                               return_value=[1]) as mock_link_lookup:
+        with mock.patch.object(
+                iproute.IPRoute, 'link_lookup', return_value=[1],
+                create=True) as mock_link_lookup:
             self.ip_link.side_effect = ipexc.NetlinkError(self.ERROR_CODE,
                                                           msg="Error message")
 

@@ -89,19 +89,22 @@ class BaseOVSTest(testtools.TestCase):
             )
             mock_set_mtu_request.assert_not_called()
 
-    def test_create_ovs_vif_port(self):
+    def _test_create_ovs_vif_port(self, bridge_name='bridge',
+                                  check_br_name=False):
         iface_id = 'iface_id'
         mac = 'ca:fe:ca:fe:ca:fe'
         instance_id = uuidutils.generate_uuid()
         interface_type = constants.OVS_VHOSTUSER_INTERFACE_TYPE
         vhost_server_path = '/fake/path'
         device = 'device'
-        bridge = 'bridge'
+        bridge = bridge_name
         mtu = 1500
         external_ids = {'iface-id': iface_id,
                         'iface-status': 'active',
                         'attached-mac': mac,
                         'vm-uuid': instance_id}
+        if check_br_name:
+            external_ids['bridge_name'] = bridge_name
         values = [('external_ids', external_ids),
                   ('type', interface_type),
                   ('options', {'vhost-server-path': vhost_server_path})
@@ -127,6 +130,13 @@ class BaseOVSTest(testtools.TestCase):
                         )
                     ]
                 )
+
+    def test_create_ovs_vif_port(self):
+        self._test_create_ovs_vif_port()
+
+    def test_create_ovs_vif_port_for_trunk(self):
+        self._test_create_ovs_vif_port(bridge_name='tbr-12345',
+                                       check_br_name=True)
 
     def test_create_ovs_vif_port_type_dpdk(self):
         iface_id = 'iface_id'

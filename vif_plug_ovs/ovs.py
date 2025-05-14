@@ -34,6 +34,10 @@ from vif_plug_ovs.ovsdb import ovsdb_lib
 LOG = logging.getLogger(__name__)
 
 
+def is_trunk_bridge(bridge_name):
+    return bridge_name.startswith(constants.TRUNK_BR_PREFIX)
+
+
 class OvsPlugin(plugin.PluginBase):
     """An OVS plugin that can setup VIFs in many ways
 
@@ -204,7 +208,7 @@ class OvsPlugin(plugin.PluginBase):
         bridge = kwargs.pop('bridge', vif.network.bridge)
         # See bug #2069543.
         if (self._isolate_vif(vif_name, bridge) and
-                not self._is_trunk_bridge(bridge)):
+                not is_trunk_bridge(bridge)):
             kwargs['tag'] = constants.DEAD_VLAN
             kwargs['vlan_mode'] = 'trunk'
             kwargs['trunks'] = constants.DEAD_VLAN
@@ -388,11 +392,8 @@ class OvsPlugin(plugin.PluginBase):
                 vif=vif,
                 err="This vif type is not supported by this plugin")
 
-    def _is_trunk_bridge(self, bridge_name):
-        return bridge_name.startswith(constants.TRUNK_BR_PREFIX)
-
     def _delete_bridge_if_trunk(self, vif):
-        if self._is_trunk_bridge(vif.network.bridge):
+        if is_trunk_bridge(vif.network.bridge):
             self.ovsdb.delete_ovs_bridge(vif.network.bridge)
 
     def _unplug_vhostuser(self, vif, instance_info):

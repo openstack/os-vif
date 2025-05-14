@@ -13,6 +13,7 @@
 import testscenarios
 import time
 from unittest import mock
+import uuid
 
 from oslo_concurrency import processutils
 from oslo_config import cfg
@@ -218,3 +219,64 @@ class TestOVSPlugin(testscenarios.WithScenarios,
             self.plugin.plug(vif, self.instance)
             self.addCleanup(self._del_bridge, 'tbr-ef98b384')
             self._check_parameter('Port', vif.vif_name, 'tag', [])
+
+    def test_plug_trunk_bridge_fills_bridge_name(self):
+        mac = 'ca:fe:de:ad:be:ef'
+        iface_id = str(uuid.uuid4())
+        vif_name = 'port-%s' % iface_id[:8]
+        trunk_id = str(uuid.uuid4())
+        bridge_name = 'tbr-%s' % trunk_id[:8]
+
+        network = objects.network.Network(
+            id=trunk_id,
+            bridge=bridge_name,
+            subnets=self.subnets,
+            vlan=99)
+        vif = objects.vif.VIFOpenVSwitch(
+            id=iface_id,
+            address=mac,
+            network=network,
+            port_profile=self.profile_ovs_system,
+            vif_name=vif_name)
+        self.plugin.plug(vif, self.instance)
+        self.addCleanup(self._del_bridge, bridge_name)
+        expected_external_ids = {
+            'attached-mac': mac,
+            'bridge_name': bridge_name,
+            'iface-id': self.profile_ovs.interface_id,
+            'iface-status': 'active',
+            'vm-uuid': self.instance.uuid,
+        }
+
+        self._check_parameter('Interface', vif.vif_name,
+                              'external_ids', expected_external_ids)
+
+    def test_plug_non_trunk_leave_bridge_name_empty(self):
+        mac = 'ca:fe:de:ad:be:ef'
+        iface_id = str(uuid.uuid4())
+        vif_name = 'port-%s' % iface_id[:8]
+        bridge_name = 'br-something'
+
+        network = objects.network.Network(
+            id=str(uuid.uuid4()),
+            bridge=bridge_name,
+            subnets=self.subnets,
+            vlan=99)
+        vif = objects.vif.VIFOpenVSwitch(
+            id=iface_id,
+            address=mac,
+            network=network,
+            port_profile=self.profile_ovs_system,
+            vif_name=vif_name)
+        self.plugin.plug(vif, self.instance)
+        self.addCleanup(self._del_bridge, bridge_name)
+        # bridge_name is filled only in case of trunk plug
+        expected_external_ids = {
+            'attached-mac': mac,
+            'iface-id': self.profile_ovs.interface_id,
+            'iface-status': 'active',
+            'vm-uuid': self.instance.uuid,
+        }
+
+        self._check_parameter('Interface', vif.vif_name,
+                              'external_ids', expected_external_ids)

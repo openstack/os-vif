@@ -17,6 +17,7 @@ from oslo_log import log as logging
 
 from vif_plug_ovs import constants
 from vif_plug_ovs import linux_net
+from vif_plug_ovs import ovs
 from vif_plug_ovs.ovsdb import api as ovsdb_api
 
 
@@ -173,6 +174,21 @@ class BaseOVS(object):
                         'iface-status': 'active',
                         'attached-mac': mac,
                         'vm-uuid': instance_id}
+
+        # Note(lajoskatona): Neutron fills external_ids for trunk, see:
+        # https://opendev.org/openstack/neutron/src/commit/
+        # 1bc4b526e9c743423069ab4cf6ef3883d5e48217/neutron/services/trunk/
+        # drivers/openvswitch/agent/ovsdb_handler.py#L418
+        # The following keys are added there: bridge_name, trunk_id and
+        # subport_ids. These values are used during the cleanup after the
+        # deletion of the trunk. It can happen that Neutron can't fill these
+        # fields.
+        # In os-vif when the plug happens we can use the same transaction to
+        # add bridge_name to external_ids in case of it is a trunk.
+        # By this Neutron can do the cleanup of trunk related interfaces.
+        if ovs.is_trunk_bridge(bridge):
+            external_ids['bridge_name'] = bridge
+
         col_values = [('external_ids', external_ids)] if set_ids else []
         if interface_type:
             col_values.append(('type', interface_type))

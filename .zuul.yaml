@@ -26,7 +26,6 @@
       devstack_plugins:
         neutron: https://opendev.org/openstack/neutron.git
       devstack_localrc:
-        USE_PYTHON3: true
         FORCE_CONFIG_DRIVE: true
         ENABLE_VOLUME_MULTIATTACH: true
         # NOTE(sean-k-mooney) we do not have to set

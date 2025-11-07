@@ -186,6 +186,63 @@ class TestOVSPlugin(testscenarios.WithScenarios,
             'QoS', str(qos_uuid), 'type', None
         )
 
+    def test_plug_unplug_ovs_port_with_qos_per_port_bridge(self):
+        with mock.patch.object(self.plugin.config, 'per_port_bridge', True):
+            bridge = 'br-ppb-' + self.interface
+            vif_name = 'port-ppb-' + self.interface
+            qos_type = CONF.os_vif_ovs.default_qos_type
+
+            network = objects.network.Network(
+                id='6977aa43-b7c3-484a-8bcb-09d77374981b',
+                bridge=bridge,
+                subnets=self.subnets,
+                vlan=99)
+            vif = objects.vif.VIFOpenVSwitch(
+                id='e5cf7112-a72f-43a4-aaa3-48a5cfbdeaca',
+                address='ca:fe:de:ad:be:ef',
+                network=network,
+                port_profile=self.profile_ovs_system,
+                vif_name=vif_name)
+            port_bridge_name = self.plugin.gen_port_name('pb', vif.id)
+
+            self.addCleanup(self._del_bridge, bridge)
+            self.addCleanup(self._del_bridge, port_bridge_name)
+            self.addCleanup(
+                self.ovs.delete_ovs_vif_port, port_bridge_name, vif_name,
+                delete_netdev=False, qos_type=qos_type
+            )
+            self.addCleanup(del_device, vif_name)
+            add_device(vif_name, 'dummy')
+            # plugging a vif will create the port and bridges
+            # if they don't exist
+            self.plugin.plug(vif, self.instance)
+            self.assertTrue(self._check_bridge(bridge))
+            self.assertTrue(self._check_bridge(port_bridge_name))
+            self.assertTrue(self._check_port(vif_name, port_bridge_name))
+
+            # Plugging a second time should succeed
+            self.plugin.plug(vif, self.instance)
+
+            # Check that the 2nd plug did not create a 2nd qos row,
+            # which happened in https://bugs.launchpad.net/os-vif/+bug/2133225
+            qos = self.ovs.get_qos(vif_name, qos_type)
+            self.assertEqual(1, len(qos))
+
+            qos_uuid = qos[0]['_uuid']
+            self._check_parameter('Port', vif_name, 'qos', qos_uuid)
+            self._check_parameter(
+                'QoS', str(qos_uuid), 'type', qos_type
+            )
+            # unplugging a port will not delete the int bridge,
+            # only the per-port bridge.
+            self.plugin.unplug(vif, self.instance)
+            self.assertTrue(self._check_bridge(bridge))
+            self.assertFalse(self._check_bridge(port_bridge_name))
+            self.assertFalse(self._check_port(vif_name, bridge))
+            self._check_parameter(
+                'QoS', str(qos_uuid), 'type', None
+            )
+
     def test_plug_br_int_isolate_vif_dead_vlan(self):
         with mock.patch.object(self.plugin.config, 'isolate_vif', True):
             network = objects.network.Network(

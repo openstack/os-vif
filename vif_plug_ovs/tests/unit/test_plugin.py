@@ -96,6 +96,13 @@ class PluginTest(testtools.TestCase):
             vif_name='tap-xxx-yyy-zzz',
             port_profile=self.profile_ovs)
 
+        self.vif_ovs_system = objects.vif.VIFOpenVSwitch(
+            id='b679325f-ca89-4ee0-a8be-6db1409b69ea',
+            address='ca:fe:de:ad:be:ef',
+            network=self.network_ovs,
+            vif_name='tap-xxx-yyy-zzz',
+            port_profile=self.profile_ovs_system)
+
         # This is used for ironic with vif_type=smartnic
         self.vif_ovs_smart_nic = objects.vif.VIFOpenVSwitch(
             id='b679325f-ca89-4ee0-a8be-6db1409b69ea',
@@ -240,6 +247,88 @@ class PluginTest(testtools.TestCase):
                 self.vif_ovs.address, self.instance.uuid,
                 mtu=plugin.config.network_device_mtu,
                 interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE)
+
+    @mock.patch.object(ovsdb_lib.BaseOVS, 'create_ovs_vif_port')
+    @mock.patch.object(ovsdb_lib.BaseOVS, 'port_exists')
+    def test_create_vif_port_qos_port_bridge_true_port_new(
+            self, mock_port_exists, mock_create_ovs_vif_port):
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
+        mock_port_exists.return_value = False
+        port_bridge_name = "port-bridge-xxx"
+        # _create_vif_port as from _plug_port_bridge
+        plugin._create_vif_port(
+            self.vif_ovs_system, mock.sentinel.vif_name, self.instance,
+            bridge=port_bridge_name, set_ids=False)
+        # port existence should be checked on the per-port bridge
+        mock_port_exists.assert_called_once_with(
+            mock.sentinel.vif_name, port_bridge_name)
+        # qos_type should be set for the new port
+        mock_create_ovs_vif_port.assert_called_once_with(
+            port_bridge_name, mock.sentinel.vif_name,
+            self.vif_ovs_system.port_profile.interface_id,
+            self.vif_ovs_system.address, self.instance.uuid,
+            mtu=plugin.config.network_device_mtu,
+            set_ids=False,
+            qos_type="linux-noop")
+
+    @mock.patch.object(ovsdb_lib.BaseOVS, 'create_ovs_vif_port')
+    @mock.patch.object(ovsdb_lib.BaseOVS, 'port_exists')
+    def test_create_vif_port_qos_port_bridge_true_port_exists(
+            self, mock_port_exists, mock_create_ovs_vif_port):
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
+        mock_port_exists.return_value = True
+        port_bridge_name = "port-bridge-xxx"
+        # _create_vif_port as from _plug_port_bridge
+        plugin._create_vif_port(
+            self.vif_ovs_system, mock.sentinel.vif_name, self.instance,
+            bridge=port_bridge_name, set_ids=False)
+        # port existence should be checked on the per-port bridge
+        mock_port_exists.assert_called_once_with(
+            mock.sentinel.vif_name, port_bridge_name)
+        # qos_type should not be set for the existing port
+        mock_create_ovs_vif_port.assert_called_once_with(
+            port_bridge_name, mock.sentinel.vif_name,
+            self.vif_ovs_system.port_profile.interface_id,
+            self.vif_ovs_system.address, self.instance.uuid,
+            mtu=plugin.config.network_device_mtu,
+            set_ids=False)
+
+    @mock.patch.object(ovsdb_lib.BaseOVS, 'create_ovs_vif_port')
+    @mock.patch.object(ovsdb_lib.BaseOVS, 'port_exists')
+    def test_create_vif_port_qos_port_bridge_false_port_new(
+            self, mock_port_exists, mock_create_ovs_vif_port):
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
+        mock_port_exists.return_value = False
+        # _create_vif_port as from _plug_vif_generic
+        plugin._create_vif_port(
+            self.vif_ovs_system, mock.sentinel.vif_name, self.instance)
+        mock_port_exists.assert_called_once_with(
+            mock.sentinel.vif_name, self.vif_ovs_system.network.bridge)
+        # qos_type should be set for the new port
+        mock_create_ovs_vif_port.assert_called_once_with(
+            self.vif_ovs_system.network.bridge, mock.sentinel.vif_name,
+            self.vif_ovs_system.port_profile.interface_id,
+            self.vif_ovs_system.address, self.instance.uuid,
+            mtu=plugin.config.network_device_mtu,
+            qos_type="linux-noop")
+
+    @mock.patch.object(ovsdb_lib.BaseOVS, 'create_ovs_vif_port')
+    @mock.patch.object(ovsdb_lib.BaseOVS, 'port_exists')
+    def test_create_vif_port_qos_port_bridge_false_port_exists(
+            self, mock_port_exists, mock_create_ovs_vif_port):
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
+        mock_port_exists.return_value = True
+        # _create_vif_port as from _plug_vif_generic
+        plugin._create_vif_port(
+            self.vif_ovs_system, mock.sentinel.vif_name, self.instance)
+        mock_port_exists.assert_called_once_with(
+            mock.sentinel.vif_name, self.vif_ovs_system.network.bridge)
+        # qos_type should not be set for the existing port
+        mock_create_ovs_vif_port.assert_called_once_with(
+            self.vif_ovs_system.network.bridge, mock.sentinel.vif_name,
+            self.vif_ovs_system.port_profile.interface_id,
+            self.vif_ovs_system.address, self.instance.uuid,
+            mtu=plugin.config.network_device_mtu)
 
     @mock.patch.object(ovs.OvsPlugin, '_plug_vif_generic')
     def test_plug_ovs_port_bridge_false(self, plug_vif_generic):

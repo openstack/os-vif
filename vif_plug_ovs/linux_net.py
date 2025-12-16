@@ -90,6 +90,29 @@ def update_veth_pair(dev1_name, dev2_name, mtu):
         _update_device_mtu(dev, mtu)
 
 
+@privsep.vif_plug.entrypoint
+def create_tap(dev, mtu, mac, multiqueue=False):
+    """Create a tap device with the specified configuration.
+
+    Creates a tap device using pyroute2's netlink interface, with optional
+    multiqueue support for better performance with multiple VCPUs.
+
+    :param dev: Device name (string)
+    :param mtu: MTU value (integer)
+    :param mac: MAC address (string)
+    :param multiqueue: Enable multiqueue support (boolean, default False)
+                       Requires Linux kernel 3.8+
+    """
+    # Create the tap device with optional multiqueue support
+    # Use check_exit_code=[0, 17] to handle EEXIST (device already exists)
+    ip_lib.add(dev, 'tuntap', mode='tap', multiqueue=multiqueue,
+               check_exit_code=[0, 17])
+    # Configure the device state and MAC address
+    ip_lib.set(dev, state='up', address=mac, check_exit_code=[0, 2, 254])
+    # Set MTU if specified
+    _update_device_mtu(dev, mtu)
+
+
 def _disable_ipv6(bridge):
     """Disable ipv6 if available for bridge. Must be called from
        privsep context.

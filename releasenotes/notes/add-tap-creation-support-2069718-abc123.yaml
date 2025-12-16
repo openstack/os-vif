@@ -1,0 +1,24 @@
+---
+features:
+  - |
+    Added support for os-vif to pre-create TAP devices when using OVS/OVN.
+    The ``VIFPortProfileOpenVSwitch`` object now supports two new fields:
+
+    * ``create_tap``: When set to ``True``, os-vif will create the TAP device
+      with the correct MAC address and MTU before adding it to OVS.
+    * ``multiqueue``: When set to ``True`` along with ``create_tap``, the TAP
+      device will be created with multiqueue support enabled for improved
+      performance with multiple vCPUs. The multiqueue setting is determined
+      by Nova from the ``hw:vif_multiqueue_enabled`` flavor extra spec or
+      image property.
+
+    When the ``[ovn]/ovs_create_tap`` config option is enabled in
+    Neutron's ML2/OVN mechanism driver, Neutron sets the ``ovs_create_tap``
+    flag in the vif_details during port binding. Nova then reads this value and
+    propagates it to os-vif via the ``create_tap`` field, and configures
+    libvirt with ``managed="no"`` so it uses the pre-created TAP device. This
+    reduces live migration downtime by ensuring the network is fully wired
+    before the VM starts.
+
+    See `bug 2069718 <https://bugs.launchpad.net/neutron/+bug/2069718>`_.
+

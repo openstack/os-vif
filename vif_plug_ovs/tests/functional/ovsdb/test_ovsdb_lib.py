@@ -183,12 +183,7 @@ class TestOVSDBLib(testscenarios.WithScenarios,
             'Interface', port_bridge_port, 'options', port_opts)
 
     def test_create_ovs_vif_port_with_default_qos(self):
-        if self.interface == 'native':
-            self.skipTest(
-                'test_create_ovs_vif_port_with_default_qos is unstable '
-                'when run with the native driver, see: '
-                'https://bugs.launchpad.net/os-vif/+bug/2087982')
-        port_name = 'qos-port-' + self.interface
+        port_name = 'def-qos-port-' + self.interface
         iface_id = 'iface_id'
         mac = 'ca:fe:ca:fe:ca:fe'
         instance_id = uuidutils.generate_uuid()

@@ -223,7 +223,7 @@ class OvsPlugin(plugin.PluginBase):
             # This is a mitigation for the performance regression
             # introduced by the fix for bug #1734320. See bug #2017868
             # for more details.
-            if not self.ovsdb.port_exists(vif_name, vif.network.bridge):
+            if not self.ovsdb.port_exists(vif_name, bridge):
                 kwargs['qos_type'] = qos_type
         self.ovsdb.create_ovs_vif_port(
             bridge,

@@ -12,8 +12,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import collections.abc
+from __future__ import annotations
+
+from collections.abc import Mapping, Sequence
 import itertools
+from typing import Any, TYPE_CHECKING
 import uuid
 
 from oslo_concurrency import processutils
@@ -26,13 +29,16 @@ from ovsdbapp import api as ovsdb_api
 from vif_plug_ovs.ovsdb import api
 from vif_plug_ovs import privsep
 
+if TYPE_CHECKING:
+    from vif_plug_ovs.ovsdb import ovsdb_lib
+
 
 LOG = logging.getLogger(__name__)
 
 
-def _val_to_py(val):
+def _val_to_py(val: Any) -> Any:
     """Convert a json ovsdb return value to native python object"""
-    if isinstance(val, collections.abc.Sequence) and len(val) == 2:
+    if isinstance(val, Sequence) and len(val) == 2:
         if val[0] == "uuid":
             return uuid.UUID(val[1])
         elif val[0] == "set":
@@ -42,7 +48,7 @@ def _val_to_py(val):
     return val
 
 
-def _py_to_val(pyval):
+def _py_to_val(pyval: Any) -> Any:
     """Convert python value to ovs-vsctl value argument"""
     if isinstance(pyval, bool):
         return 'true' if pyval is True else 'false'
@@ -53,12 +59,12 @@ def _py_to_val(pyval):
         return getattr(pyval, "record_id", pyval)
 
 
-def api_factory(context):
+def api_factory(context: ovsdb_lib.BaseOVS) -> OvsdbVsctl:
     return OvsdbVsctl(context)
 
 
 @privsep.vif_plug.entrypoint
-def _run_vsctl(full_args):
+def _run_vsctl(full_args: Sequence[str]) -> str:
     # NOTE(ralonsoh): this function is defined outside the class Transaction
     #                 to allow oslo_privsep.PrivContext.entrypoint to wrap
     #                 the function correctly.
@@ -66,7 +72,13 @@ def _run_vsctl(full_args):
 
 
 class Transaction(ovsdb_api.Transaction):
-    def __init__(self, context, check_error=False, log_errors=True, opts=None):
+    def __init__(
+        self,
+        context: ovsdb_lib.BaseOVS,
+        check_error: bool = False,
+        log_errors: bool = True,
+        opts: Sequence[str] | None = None,
+    ) -> None:
         self.context = context
         self.check_error = check_error
         self.log_errors = log_errors
@@ -76,30 +88,31 @@ class Transaction(ovsdb_api.Transaction):
             self.opts += ['--db=%s' % self.context.connection]
         if opts:
             self.opts += opts
-        self.commands = []
+        self.commands: list[BaseCommand] = []
 
-    def add(self, command):
+    def add(self, command: BaseCommand) -> BaseCommand:
         self.commands.append(command)
         return command
 
-    def commit(self):
+    def commit(self) -> list[str] | None:
         args = []
         for cmd in self.commands:
             cmd.result = None
             args += cmd.vsctl_args()
         res = self.run_vsctl(args)
         if res is None:
-            return
-        res = res.replace(r'\\', '\\').splitlines()
-        for i, record in enumerate(res):
+            return None
+        for i, record in enumerate(
+            res.replace(r'\\', '\\').splitlines()
+        ):
             self.commands[i].result = record
-        return [cmd.result for cmd in self.commands]
+        return [cmd.result for cmd in self.commands if cmd.result]
 
-    def run_vsctl(self, args):
+    def run_vsctl(self, args: list[str]) -> str | None:
         full_args = ["ovs-vsctl"] + self.opts + args
         try:
             # We log our own errors, so never have utils.execute do it
-            return _run_vsctl(full_args)
+            return _run_vsctl(full_args)  # type: ignore
         except Exception as e:
             with excutils.save_and_reraise_exception() as ctxt:
                 if self.log_errors:
@@ -109,46 +122,91 @@ class Transaction(ovsdb_api.Transaction):
                 if not self.check_error:
                     ctxt.reraise = False
 
+            return None
+
 
 class BaseCommand(ovsdb_api.Command):
-    def __init__(self, context, cmd, opts=None, args=None):
+    def __init__(
+        self,
+        context: ovsdb_lib.BaseOVS,
+        cmd: str,
+        opts: list[str] | None = None,
+        args: list[str] | None = None,
+    ) -> None:
         self.context = context
         self.cmd = cmd
         self.opts = [] if opts is None else opts
         self.args = [] if args is None else args
-        self._result = None
+        self._result: Any | None = None
 
     @property
-    def result(self):
+    def result(self) -> Any | None:
         return self._result
 
     @result.setter
-    def result(self, value):
+    def result(self, value: Any) -> None:
         self._result = value
 
-    def execute(self, check_error=False, log_errors=True):
+    def execute(
+        self, check_error: bool = False, log_errors: bool = True
+    ) -> str | None:
         with Transaction(self.context, check_error=check_error,
                          log_errors=log_errors) as txn:
             txn.add(self)
         return self.result
 
-    def vsctl_args(self):
-        return itertools.chain(('--',), self.opts, (self.cmd,), self.args)
+    def vsctl_args(self) -> list[str]:
+        return list(
+            itertools.chain(('--',), self.opts, (self.cmd,), self.args)
+        )
 
 
 class MultiLineCommand(BaseCommand):
     """Command for ovs-vsctl commands that return multiple lines"""
     @property
-    def result(self):
+    def result(self) -> Any | None:
         return self._result
 
     @result.setter
-    def result(self, raw_result):
+    def result(self, raw_result: str) -> None:
         self._result = raw_result.split(r'\n') if raw_result else []
 
 
+def _parse_db_result(raw_result: str) -> list[dict[str, Any]] | None:
+    # If check_error=False, run_vsctl can return None
+    if not raw_result:
+        return None
+
+    try:
+        json = jsonutils.loads(raw_result)
+    except (ValueError, TypeError) as e:
+        # This shouldn't happen, but if it does and we check_errors
+        # log and raise.
+        with excutils.save_and_reraise_exception():
+            LOG.error("Could not parse: %(raw_result)s. Exception: "
+                      "%(exception)s",
+                      {'raw_result': raw_result, 'exception': e})
+
+    headings = json['headings']
+    data = json['data']
+    results = []
+    for record in data:
+        obj = {}
+        for pos, heading in enumerate(headings):
+            obj[heading] = _val_to_py(record[pos])
+        results.append(obj)
+    return results
+
+
 class DbCommand(BaseCommand):
-    def __init__(self, context, cmd, opts=None, args=None, columns=None):
+    def __init__(
+        self,
+        context: ovsdb_lib.BaseOVS,
+        cmd: str,
+        opts: list[str] | None = None,
+        args: list[str] | None = None,
+        columns: list[str] | None = None,
+    ) -> None:
         if opts is None:
             opts = []
         if columns:
@@ -156,97 +214,96 @@ class DbCommand(BaseCommand):
         super(DbCommand, self).__init__(context, cmd, opts, args)
 
     @property
-    def result(self):
+    def result(self) -> Any | None:
         return self._result
 
     @result.setter
-    def result(self, raw_result):
-        # If check_error=False, run_vsctl can return None
-        if not raw_result:
-            self._result = None
-            return
-
-        try:
-            json = jsonutils.loads(raw_result)
-        except (ValueError, TypeError) as e:
-            # This shouldn't happen, but if it does and we check_errors
-            # log and raise.
-            with excutils.save_and_reraise_exception():
-                LOG.error("Could not parse: %(raw_result)s. Exception: "
-                          "%(exception)s",
-                          {'raw_result': raw_result, 'exception': e})
-
-        headings = json['headings']
-        data = json['data']
-        results = []
-        for record in data:
-            obj = {}
-            for pos, heading in enumerate(headings):
-                obj[heading] = _val_to_py(record[pos])
-            results.append(obj)
-        self._result = results
+    def result(self, raw_result: str) -> None:
+        self._result = _parse_db_result(raw_result)
 
 
 class DbGetCommand(DbCommand):
-    @DbCommand.result.setter
-    def result(self, val):
-        # super()'s never worked for setters http://bugs.python.org/issue14965
-        DbCommand.result.fset(self, val)
-        # DbCommand will return [{'column': value}] and we just want value.
-        if self._result:
-            self._result = list(self._result[0].values())[0]
+    @property
+    def result(self) -> Any | None:
+        return self._result
+
+    @result.setter
+    def result(self, raw_result: str) -> None:
+        _result = _parse_db_result(raw_result)
+        if _result:
+            self._result = list(_result[0].values())[0]
 
 
 class DbCreateCommand(BaseCommand):
-    def __init__(self, context, opts=None, args=None):
+    def __init__(
+        self,
+        context: ovsdb_lib.BaseOVS,
+        opts: list[str] | None = None,
+        args: list[str] | None = None,
+    ) -> None:
         super(DbCreateCommand, self).__init__(context, "create", opts, args)
         # NOTE(twilson) pre-commit result used for intra-transaction reference
         self.record_id = "@%s" % uuidutils.generate_uuid()
         self.opts.append("--id=%s" % self.record_id)
 
     @property
-    def result(self):
+    def result(self) -> Any | None:
         return self._result
 
     @result.setter
-    def result(self, val):
+    def result(self, val: str) -> None:
         self._result = uuid.UUID(val) if val else val
 
 
 class BrExistsCommand(DbCommand):
-    @DbCommand.result.setter
-    def result(self, val):
+    @property
+    def result(self) -> Any | None:
+        return self._result
+
+    @result.setter
+    def result(self, val: Any) -> None:
         self._result = val is not None
 
-    def execute(self):
+    def execute(self) -> str | None:  # type: ignore[override]
         return super(BrExistsCommand, self).execute(check_error=False,
                                                     log_errors=False)
 
 
 class OvsdbVsctl(ovsdb_api.API, api.ImplAPI):
-    def __init__(self, context):
+    def __init__(self, context: ovsdb_lib.BaseOVS) -> None:
         super(OvsdbVsctl, self).__init__()
         self.context = context
 
-    def create_transaction(self, check_error=False, log_errors=True, **kwargs):
-        return Transaction(self.context, check_error, log_errors, **kwargs)
+    def create_transaction(
+        self,
+        check_error: bool = False,
+        log_errors: bool = True,
+        *,
+        opts: Sequence[str] | None = None,
+    ) -> Transaction:
+        return Transaction(self.context, check_error, log_errors, opts=opts)
 
-    def add_manager(self, connection_uri):
+    def add_manager(self, connection_uri: str) -> BaseCommand:
         # This will add a new manager without overriding existing ones.
         conn_uri = 'target="%s"' % connection_uri
         args = ['create', 'Manager', conn_uri, '--', 'add', 'Open_vSwitch',
                 '.', 'manager_options', '@manager']
         return BaseCommand(self.context, '--id=@manager', args=args)
 
-    def get_manager(self):
+    def get_manager(self) -> MultiLineCommand:
         return MultiLineCommand(self.context, 'get-manager')
 
-    def remove_manager(self, connection_uri):
+    def remove_manager(self, connection_uri: str) -> BaseCommand:
         args = ['get', 'Manager', connection_uri, '--', 'remove',
                 'Open_vSwitch', '.', 'manager_options', '@manager']
         return BaseCommand(self.context, '--id=@manager', args=args)
 
-    def add_br(self, name, may_exist=True, datapath_type=None):
+    def add_br(
+        self,
+        name: str,
+        may_exist: bool = True,
+        datapath_type: str | None = None
+    ) -> BaseCommand:
         opts = ['--may-exist'] if may_exist else None
         params = [name]
         if datapath_type:
@@ -254,55 +311,65 @@ class OvsdbVsctl(ovsdb_api.API, api.ImplAPI):
                        'datapath_type=%s' % datapath_type]
         return BaseCommand(self.context, 'add-br', opts, params)
 
-    def del_br(self, name, if_exists=True):
+    def del_br(
+        self, name: str, if_exists: bool = True
+    ) -> BaseCommand:
         opts = ['--if-exists'] if if_exists else None
         return BaseCommand(self.context, 'del-br', opts, [name])
 
-    def br_exists(self, name):
+    def br_exists(self, name: str) -> BaseCommand:
         return BrExistsCommand(self.context, 'list', args=['Bridge', name])
 
-    def port_to_br(self, name):
+    def port_to_br(self, name: str) -> BaseCommand:
         return BaseCommand(self.context, 'port-to-br', args=[name])
 
-    def iface_to_br(self, name):
+    def iface_to_br(self, name: str) -> BaseCommand:
         return BaseCommand(self.context, 'iface-to-br', args=[name])
 
-    def list_br(self):
+    def list_br(self) -> MultiLineCommand:
         return MultiLineCommand(self.context, 'list-br')
 
-    def br_get_external_id(self, name, field):
+    def br_get_external_id(self, name: str, field: str) -> BaseCommand:
         return BaseCommand(self.context, 'br-get-external-id',
                            args=[name, field])
 
-    def db_create(self, table, **col_values):
+    def db_create(
+        self, table: str, **col_values: object
+    ) -> DbCreateCommand:
         args = [table]
         args += _set_colval_args(*col_values.items())
         return DbCreateCommand(self.context, args=args)
 
-    def db_destroy(self, table, record):
+    def db_destroy(self, table: str, record: str) -> BaseCommand:
         args = [table, record]
         return BaseCommand(self.context, 'destroy', args=args)
 
-    def db_set(self, table, record, *col_values):
+    def db_set(
+        self, table: str, record: str, *col_values: tuple[str, object]
+    ) -> BaseCommand:
         args = [table, record]
         args += _set_colval_args(*col_values)
         return BaseCommand(self.context, 'set', args=args)
 
-    def db_add(self, table, record, column, *values):
+    def db_add(
+        self, table: str, record: str, column: str, *values: Any
+    ) -> BaseCommand:
         args = [table, record, column]
         for value in values:
-            if isinstance(value, collections.abc.Mapping):
+            if isinstance(value, Mapping):
                 args += ["{}={}".format(_py_to_val(k), _py_to_val(v))
                          for k, v in value.items()]
             else:
                 args.append(_py_to_val(value))
         return BaseCommand(self.context, 'add', args=args)
 
-    def db_clear(self, table, record, column):
+    def db_clear(
+        self, table: str, record: str, column: str
+    ) -> BaseCommand:
         return BaseCommand(self.context, 'clear', args=[table, record,
                                                         column])
 
-    def db_get(self, table, record, column):
+    def db_get(self, table: str, record: str, column: str) -> DbGetCommand:
         # Use the 'list' command as it can return json and 'get' cannot so that
         # we can get real return types instead of treating everything as string
         # NOTE: openvswitch can return a single atomic value for fields that
@@ -311,7 +378,13 @@ class OvsdbVsctl(ovsdb_api.API, api.ImplAPI):
         return DbGetCommand(self.context, 'list', args=[table, record],
                             columns=[column])
 
-    def db_list(self, table, records=None, columns=None, if_exists=False):
+    def db_list(
+        self,
+        table: str,
+        records: list[str] | None = None,
+        columns: list[str] | None = None,
+        if_exists: bool = False
+    ) -> DbCommand:
         opts = ['--if-exists'] if if_exists else None
         args = [table]
         if records:
@@ -319,63 +392,87 @@ class OvsdbVsctl(ovsdb_api.API, api.ImplAPI):
         return DbCommand(self.context, 'list', opts=opts, args=args,
                          columns=columns)
 
-    def db_find(self, table, *conditions, **kwargs):
-        columns = kwargs.pop('columns', None)
-        args = itertools.chain([table],
-                               *[_set_colval_args(c) for c in conditions])
+    def db_find(
+        self,
+        table: str,
+        *conditions: Any,
+        columns: list[str] | None = None,
+        **kwargs: Any
+    ) -> DbCommand:
+        args = list(
+            itertools.chain(
+                [table], *[_set_colval_args(c) for c in conditions])
+        )
         return DbCommand(self.context, 'find', args=args, columns=columns)
 
-    def set_controller(self, bridge, controllers):
+    def set_controller(
+        self, bridge: str, controllers: Sequence[str]
+    ) -> BaseCommand:
         return BaseCommand(self.context, 'set-controller',
                            args=[bridge] + list(controllers))
 
-    def del_controller(self, bridge):
+    def del_controller(self, bridge: str) -> MultiLineCommand:
         return BaseCommand(self.context, 'del-controller', args=[bridge])
 
-    def get_controller(self, bridge):
+    def get_controller(self, bridge: str) -> MultiLineCommand:
         return MultiLineCommand(self.context, 'get-controller', args=[bridge])
 
-    def set_fail_mode(self, bridge, mode):
+    def set_fail_mode(self, bridge: str, mode: str) -> BaseCommand:
         return BaseCommand(self.context, 'set-fail-mode', args=[bridge, mode])
 
-    def add_port(self, bridge, port, may_exist=True):
+    def add_port(
+        self, bridge: str, port: str, may_exist: bool = True
+    ) -> BaseCommand:
         opts = ['--may-exist'] if may_exist else None
         return BaseCommand(self.context, 'add-port', opts, [bridge, port])
 
-    def del_port(self, port, bridge=None, if_exists=True):
+    def del_port(
+        self, port: str, bridge: str | None = None, if_exists: bool = True
+    ) -> BaseCommand:
         opts = ['--if-exists'] if if_exists else None
-        args = filter(None, [bridge, port])
+        args = list(filter(None, [bridge, port]))
         return BaseCommand(self.context, 'del-port', opts, args)
 
-    def list_ports(self, bridge):
+    def list_ports(self, bridge: str) -> MultiLineCommand:
         return MultiLineCommand(self.context, 'list-ports', args=[bridge])
 
-    def list_ifaces(self, bridge):
+    def list_ifaces(self, bridge: str) -> MultiLineCommand:
         return MultiLineCommand(self.context, 'list-ifaces', args=[bridge])
 
-    def db_list_rows(self, table, record=None, if_exists=False):
+    def db_list_rows(
+        self, table: str, record: str | None = None, if_exists: bool = False
+    ) -> MultiLineCommand:
         raise NotImplementedError()
 
-    def db_find_rows(self, table, *conditions, **kwargs):
+    def db_find_rows(
+        self, table: str, *conditions: str, **kwargs: Any
+    ) -> MultiLineCommand:
         raise NotImplementedError()
 
-    def db_remove(self, table, record, column, *values, **keyvalues):
+    def db_remove(
+        self,
+        table: str,
+        record: str,
+        column: str,
+        *values: Any,
+        **keyvalues: Any
+    ) -> BaseCommand:
         raise NotImplementedError()
 
-    def has_table_column(self, table, column):
+    def has_table_column(self, table: str, column: str) -> bool:
         try:
             self.db_list(table, columns=[column]).execute(check_error=True)
             return True
         except processutils.ProcessExecutionError as e:
             msg = ('ovs-vsctl: %s does not contain a column whose name '
                    'matches "%s"' % (table, column))
-            if msg in e.stderr:
+            if e.stderr and msg in e.stderr:
                 return False
             raise e
 
 
-def _set_colval_args(*col_values):
-    args = []
+def _set_colval_args(*col_values: Any) -> list[str]:
+    args: list[str] = []
     # TODO(twilson) This is ugly, but set/find args are very similar except for
     # op. Will try to find a better way to default this op to '='
     for entry in col_values:
@@ -383,10 +480,10 @@ def _set_colval_args(*col_values):
             col, op, val = entry[0], '=', entry[1]
         else:
             col, op, val = entry
-        if isinstance(val, collections.abc.Mapping):
+        if isinstance(val, Mapping):
             args += ["%s:%s%s%s" % (
                 col, k, op, _py_to_val(v)) for k, v in val.items()]
-        elif (isinstance(val, collections.abc.Sequence) and
+        elif (isinstance(val, Sequence) and
                 not isinstance(val, str)):
             if len(val) == 0:
                 args.append("%s%s%s" % (col, op, "[]"))

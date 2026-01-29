@@ -10,9 +10,15 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import abc
+from __future__ import annotations
 
-from oslo_utils import importutils
+import abc
+from typing import Literal, overload, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from vif_plug_ovs.ovsdb import impl_idl
+    from vif_plug_ovs.ovsdb import impl_vsctl
+    from vif_plug_ovs.ovsdb import ovsdb_lib
 
 
 interface_map = {
@@ -21,16 +27,40 @@ interface_map = {
 }
 
 
-def get_instance(context, iface_name=None):
+@overload
+def get_instance(
+    context: ovsdb_lib.BaseOVS, iface_name: Literal['vsctl']
+) -> impl_vsctl.OvsdbVsctl:
+    ...
+
+
+@overload
+def get_instance(
+    context: ovsdb_lib.BaseOVS, iface_name: Literal['native']
+) -> impl_idl.NeutronOvsdbIdl:
+    ...
+
+
+def get_instance(
+    context: ovsdb_lib.BaseOVS, iface_name: Literal['vsctl', 'native']
+) -> impl_vsctl.OvsdbVsctl | impl_idl.NeutronOvsdbIdl:
     """Return the configured OVSDB API implementation"""
-    iface = importutils.import_module(
-        interface_map[iface_name or context.interface])
-    return iface.api_factory(context)
+    match iface_name:
+        case 'vsctl':
+            from vif_plug_ovs.ovsdb import impl_vsctl
+            return impl_vsctl.api_factory(context)
+        case 'native':
+            from vif_plug_ovs.ovsdb import impl_idl
+            return impl_idl.api_factory(context)
+        case _:
+            raise ValueError(
+                f'{iface_name} is not a supported backend'
+            )
 
 
 class ImplAPI(metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def has_table_column(self, table, column):
+    def has_table_column(self, table: str, column: str) -> bool:
         """Check if a column exists in a database table
 
         :param table: (string) table name

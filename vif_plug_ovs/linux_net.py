@@ -50,26 +50,28 @@ _SRIOV_TOTALVFS = "sriov_totalvfs"
 NIC_NAME_LEN = 14
 
 
-def _update_device_mtu(dev, mtu):
+def _update_device_mtu(dev: str, mtu: int | None) -> None:
     if not mtu:
         return
     set_device_mtu(dev, mtu)
 
 
 @privsep.vif_plug.entrypoint
-def delete_net_dev(dev):
+def delete_net_dev(dev: str) -> None:
     """Delete a network device only if it exists."""
-    if ip_lib.exists(dev):
-        try:
-            ip_lib.delete(dev, check_exit_code=[0, 2, 254])
-            LOG.debug("Net device removed: '%s'", dev)
-        except processutils.ProcessExecutionError:
-            with excutils.save_and_reraise_exception():
-                LOG.error("Failed removing net device: '%s'", dev)
+    if not ip_lib.exists(dev):
+        return
+
+    try:
+        ip_lib.delete(dev, check_exit_code=[0, 2, 254])
+        LOG.debug("Net device removed: '%s'", dev)
+    except processutils.ProcessExecutionError:
+        with excutils.save_and_reraise_exception():
+            LOG.error("Failed removing net device: '%s'", dev)
 
 
 @privsep.vif_plug.entrypoint
-def create_veth_pair(dev1_name, dev2_name, mtu):
+def create_veth_pair(dev1_name: str, dev2_name: str, mtu: int) -> None:
     """Create a pair of veth devices with the specified names,
     deleting any previous devices with those names.
     """
@@ -79,19 +81,19 @@ def create_veth_pair(dev1_name, dev2_name, mtu):
     ip_lib.add(dev1_name, 'veth', peer=dev2_name)
     for dev in [dev1_name, dev2_name]:
         ip_lib.set(dev, state='up')
-        ip_lib.set(dev, promisc='on')
+        ip_lib.set(dev, promisc=True)
         _update_device_mtu(dev, mtu)
 
 
 @privsep.vif_plug.entrypoint
-def update_veth_pair(dev1_name, dev2_name, mtu):
+def update_veth_pair(dev1_name: str, dev2_name: str, mtu: int) -> None:
     """Update a pair of veth devices with new configuration."""
     for dev in [dev1_name, dev2_name]:
         _update_device_mtu(dev, mtu)
 
 
 @privsep.vif_plug.entrypoint
-def create_tap(dev, mtu, mac, multiqueue=False):
+def create_tap(dev: str, mtu: int, mac: str, multiqueue: bool = False) -> None:
     """Create a tap device with the specified configuration.
 
     Creates a tap device using pyroute2's netlink interface, with optional
@@ -113,7 +115,7 @@ def create_tap(dev, mtu, mac, multiqueue=False):
     _update_device_mtu(dev, mtu)
 
 
-def _disable_ipv6(bridge):
+def _disable_ipv6(bridge: str) -> None:
     """Disable ipv6 if available for bridge. Must be called from
        privsep context.
     """
@@ -121,15 +123,14 @@ def _disable_ipv6(bridge):
     # does not acquire an ipv6 auto config or link local address.
     # This is required to prevent bug 1302080.
     # https://bugs.launchpad.net/neutron/+bug/1302080
-    disv6 = ('/proc/sys/net/ipv6/conf/%s/disable_ipv6' %
-             bridge)
+    disv6 = f'/proc/sys/net/ipv6/conf/{bridge}/disable_ipv6'
     if os.path.exists(disv6):
         with open(disv6, 'w') as f:
             f.write('1')
 
 
 # TODO(ralonsoh): extract into common module
-def _arp_filtering(bridge):
+def _arp_filtering(bridge: str) -> None:
     """Prevent the bridge from replying to ARP messages with machine local IPs
 
     1. Reply only if the target IP address is local address configured on the
@@ -145,7 +146,7 @@ def _arp_filtering(bridge):
 
 
 @privsep.vif_plug.entrypoint
-def ensure_bridge(bridge):
+def ensure_bridge(bridge: str) -> None:
     if not ip_lib.exists(bridge):
         # NOTE(sean-k-mooney): we set mac ageing to 0 to disable mac ageing
         # on the hybrid plug bridge to avoid packet loss during live
@@ -158,7 +159,7 @@ def ensure_bridge(bridge):
 
 
 @privsep.vif_plug.entrypoint
-def delete_bridge(bridge, dev):
+def delete_bridge(bridge: str, dev: str) -> None:
     if ip_lib.exists(bridge):
         # Note(sean-k-mooney): this will detach all ports on
         # the bridge before deleting the bridge.
@@ -170,23 +171,23 @@ def delete_bridge(bridge, dev):
 
 
 @privsep.vif_plug.entrypoint
-def add_bridge_port(bridge, dev):
+def add_bridge_port(bridge: str, dev: str) -> None:
     ip_lib.set(dev, master=bridge)
 
 
 @privsep.vif_plug.entrypoint
-def set_device_mtu(dev, mtu):
+def set_device_mtu(dev: str, mtu: int) -> None:
     """Set the device MTU."""
     if ip_lib.exists(dev):
         ip_lib.set(dev, mtu=mtu, check_exit_code=[0, 2, 254])
 
 
 @privsep.vif_plug.entrypoint
-def set_interface_state(interface_name, port_state):
+def set_interface_state(interface_name: str, port_state: str) -> None:
     ip_lib.set(interface_name, state=port_state, check_exit_code=[0, 2, 254])
 
 
-def _parse_vf_number(phys_port_name):
+def _parse_vf_number(phys_port_name: str) -> str | None:
     """Parses phys_port_name and returns VF number or None.
 
     To determine the VF number of a representor, parse phys_port_name
@@ -202,7 +203,7 @@ def _parse_vf_number(phys_port_name):
     return None
 
 
-def _parse_pf_number(phys_port_name):
+def _parse_pf_number(phys_port_name: str) -> str | None:
     """Parses phys_port_name and returns PF number or None.
 
     To determine the PF number of a representor, parse phys_port_name in
@@ -216,7 +217,7 @@ def _parse_pf_number(phys_port_name):
 
 
 # This function is taken from nova/pci/utils.py
-def get_function_by_ifname(ifname):
+def get_function_by_ifname(ifname: str) -> tuple[str | None, bool]:
     """Given the device name, returns the PCI address of a device
     and returns True if the address is in a physical function.
     """
@@ -235,7 +236,7 @@ def get_function_by_ifname(ifname):
     return None, False
 
 
-def _get_pf_func(pf_ifname):
+def _get_pf_func(pf_ifname: str) -> str | None:
     """Gets PF function number using pf_ifname and returns function
     number or None.
     """
@@ -249,7 +250,7 @@ def _get_pf_func(pf_ifname):
     return None
 
 
-def get_representor_port(pf_ifname, vf_num):
+def get_representor_port(pf_ifname: str, vf_num: str) -> str:
     """Get the representor netdevice which is corresponding to the VF.
 
     This method gets PF interface name and number of VF. It iterates over all
@@ -312,7 +313,7 @@ def get_representor_port(pf_ifname, vf_num):
     raise exception.RepresentorNotFound(ifname=pf_ifname, vf_num=vf_num)
 
 
-def _get_sysfs_netdev_path(pci_addr, pf_interface):
+def _get_sysfs_netdev_path(pci_addr: str, pf_interface: bool) -> str:
     """Get the sysfs path based on the PCI address of the device.
 
     Assumes a networking device - will not check for the existence of the path.
@@ -322,7 +323,7 @@ def _get_sysfs_netdev_path(pci_addr, pf_interface):
     return "/sys/bus/pci/devices/%s/net" % (pci_addr)
 
 
-def _is_switchdev(netdev):
+def _is_switchdev(netdev: str) -> bool:
     """Returns True if a netdev has a readable phys_switch_id"""
     try:
         phys_switch_id = _get_phys_switch_id(netdev)
@@ -333,7 +334,9 @@ def _is_switchdev(netdev):
     return False
 
 
-def get_ifname_by_pci_address(pci_addr, pf_interface=False, switchdev=False):
+def get_ifname_by_pci_address(
+    pci_addr: str, pf_interface: bool = False, switchdev: bool = False
+) -> str:
     """Get the interface name based on a VF's pci address
 
     :param pci_addr: the PCI address of the VF
@@ -352,7 +355,8 @@ def get_ifname_by_pci_address(pci_addr, pf_interface=False, switchdev=False):
         # Return the first netdev in case of switchdev=False
         if not switchdev:
             return devices[0]
-        elif pf_interface:
+
+        if pf_interface:
             fallback_netdev = None
             for netdev in devices:
                 # Return the uplink representor in case of switchdev=True
@@ -373,7 +377,7 @@ def get_ifname_by_pci_address(pci_addr, pf_interface=False, switchdev=False):
     raise exception.PciDeviceNotFoundById(id=pci_addr)
 
 
-def get_vf_num_by_pci_address(pci_addr):
+def get_vf_num_by_pci_address(pci_addr: str) -> str:
     """Get the VF number based on a VF's pci address
 
     A VF is associated with an VF number, which ip link command uses to
@@ -381,25 +385,28 @@ def get_vf_num_by_pci_address(pci_addr):
     """
     virtfns_path = "/sys/bus/pci/devices/%s/physfn/virtfn*" % (pci_addr)
     vf_num = None
-    try:
-        for vf_path in glob.iglob(virtfns_path):
-            if re.search(pci_addr, os.readlink(vf_path)):
-                t = VIRTFN_RE.search(vf_path)
-                vf_num = t.group(1)
+    for vf_path in glob.iglob(virtfns_path):
+        try:
+            link = os.readlink(vf_path)
+        except OSError:
+            continue
+        if re.search(pci_addr, link):
+            match = VIRTFN_RE.search(vf_path)
+            if match:
+                vf_num = match.group(1)
                 break
-    except Exception:
-        pass
+
     if vf_num is None:
         raise exception.PciDeviceNotFoundById(id=pci_addr)
     return vf_num
 
 
-def get_dpdk_representor_port_name(port_id):
+def get_dpdk_representor_port_name(port_id: str) -> str:
     devname = "vfr" + port_id
     return devname[:NIC_NAME_LEN]
 
 
-def get_pf_pci_from_vf(vf_pci):
+def get_pf_pci_from_vf(vf_pci: str) -> str:
     """Get physical function PCI address of a VF
 
     :param vf_pci: the PCI address of the VF
@@ -409,7 +416,7 @@ def get_pf_pci_from_vf(vf_pci):
     return os.path.basename(physfn_path)
 
 
-def _get_phys_port_name(ifname):
+def _get_phys_port_name(ifname: str) -> str | None:
     """Get the interface name and return its phys_port_name
 
     :param ifname: The interface name
@@ -424,7 +431,7 @@ def _get_phys_port_name(ifname):
         return fd.readline().strip()
 
 
-def _get_phys_switch_id(ifname):
+def _get_phys_switch_id(ifname: str) -> str | None:
     """Get the interface name and return its phys_switch_id
 
     :param ifname: The interface name

@@ -1,3 +1,47 @@
 [build-system]
-requires = ["pbr>=5.7.0", "setuptools>=64.0.0", "wheel"]
+requires = ["pbr>=6.1.1"]
 build-backend = "pbr.build"
+
+[project]
+name = "os_vif"
+description = "A library for plugging and unplugging virtual interfaces in OpenStack."
+authors = [
+    {name = "OpenStack", email = "openstack-discuss@lists.openstack.org"},
+]
+readme = {file = "README.rst", content-type = "text/x-rst"}
+license = {text = "Apache-2.0"}
+dynamic = ["version", "dependencies"]
+requires-python = ">=3.10"
+classifiers = [
+  "Environment :: OpenStack",
+  "Intended Audience :: Information Technology",
+  "Intended Audience :: System Administrators",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+]
+
+[project.urls]
+Homepage = "https://docs.openstack.org/os_vif"
+Repository = "https://opendev.org/openstack/os_vif"
+
+[project.entry-points."oslo.config.opts"]
+"oslo.cache" = "os_vif.opts:list_plugins_opts"
+
+[project.entry-points."os_vif"]
+"linux_bridge" = "vif_plug_linux_bridge.linux_bridge:LinuxBridgePlugin"
+"ovs" = "vif_plug_ovs.ovs:OvsPlugin"
+"noop" = "vif_plug_noop.noop:NoOpPlugin"
+
+[tool.setuptools]
+packages = [
+    "os_vif",
+    "vif_plug_linux_bridge",
+    "vif_plug_ovs",
+    "vif_plug_noop",
+]

@@ -232,10 +232,61 @@ class OvsPlugin(plugin.PluginBase):
             vif.address, instance_info.uuid,
             mtu=mtu,
             **kwargs)
+        # Check if tap creation is requested:
+        # - 'field in profile.fields' checks if field exists in schema
+        # - 'field in profile' checks if the attribute is set on instance
+        profile = vif.port_profile
+        create_tap = (
+            isinstance(profile, objects.vif.VIFPortProfileOpenVSwitch) and
+            'create_tap' in profile.fields and
+            'create_tap' in profile and
+            profile.create_tap
+        )
+
+        if create_tap:
+            # Validate VIF type - only VIFOpenVSwitch supports tap creation
+            if not isinstance(vif, objects.vif.VIFOpenVSwitch):
+                raise exception.TapCreationNotSupported(
+                    vif_type=vif.__class__.__name__)
+
+            # Get multiqueue setting from port profile if available
+            # 'field in profile.fields' checks schema, 'field in profile'
+            # checks if the attribute is set
+            multiqueue = ('multiqueue' in profile.fields and
+                          'multiqueue' in profile and
+                          profile.multiqueue)
+
+            # Create the tap device with proper MAC and MTU if it doesn't
+            # already exist (e.g., from a previous plug during init_host)
+            if not ip_lib.exists(vif_name):
+                linux_net.create_tap(
+                    vif_name, mtu, vif.address, multiqueue=multiqueue)
 
     def _update_vif_port(self, vif, vif_name):
         mtu = self._get_mtu(vif)
         self.ovsdb.update_ovs_vif_port(vif_name, mtu)
+
+    def _delete_tap_if_required(self, vif, vif_name):
+        """Delete tap device if it was created via create_tap flag.
+
+        :param vif: VIF object
+        :param vif_name: Name of the tap device
+        """
+        # Check if this VIF had a tap device created for it:
+        # - 'field in profile.fields' checks if field exists in schema
+        # - 'field in profile' checks if the attribute is set on instance
+        profile = getattr(vif, 'port_profile', None)
+        create_tap = (
+            profile is not None and
+            isinstance(profile, objects.vif.VIFPortProfileOpenVSwitch) and
+            isinstance(vif, objects.vif.VIFOpenVSwitch) and
+            'create_tap' in profile.fields and
+            'create_tap' in profile and
+            profile.create_tap
+        )
+
+        if create_tap and ip_lib.exists(vif_name):
+            linux_net.delete_net_dev(vif_name)
 
     @staticmethod
     def _get_vif_datapath_type(vif, datapath=constants.OVS_DATAPATH_SYSTEM):
@@ -428,6 +479,9 @@ class OvsPlugin(plugin.PluginBase):
 
     def _unplug_port_bridge(self, vif, instance_info):
         """Create a per-VIF OVS bridge and patch pair."""
+        # Delete tap device if it was created
+        self._delete_tap_if_required(vif, vif.vif_name)
+
         # NOTE(sean-k-mooney): the port name prefix should not be
         # changed to avoid loosing ports on upgrade.
         port_bridge_name = self.gen_port_name('pb', vif.id)
@@ -444,6 +498,9 @@ class OvsPlugin(plugin.PluginBase):
 
     def _unplug_vif_generic(self, vif, instance_info):
         """Remove port from OVS."""
+        # Delete tap device if it was created
+        self._delete_tap_if_required(vif, vif.vif_name)
+
         # NOTE(sean-k-mooney): even with the partial revert of change
         # Iaf15fa7a678ec2624f7c12f634269c465fbad930 this should be correct
         # so this is not removed.

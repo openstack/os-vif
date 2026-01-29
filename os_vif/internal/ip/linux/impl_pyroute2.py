@@ -74,7 +74,7 @@ class PyRoute2(ip_command.IpCommand):
         return idx[0]
 
     def add(self, device, dev_type, check_exit_code=None, peer=None, link=None,
-            vlan_id=None, ageing=None):
+            vlan_id=None, ageing=None, mode=None, multiqueue=False):
         check_exit_code = check_exit_code or []
         with iproute.IPRoute() as ip:
             args = {'ifname': device,
@@ -102,6 +102,15 @@ class PyRoute2(ip_command.IpCommand):
                 # what policy to use and keep this code generic.
                 if ageing is not None:
                     args['IFLA_BR_AGEING_TIME'] = ageing
+            elif self.TYPE_TUNTAP == dev_type:
+                # Set mode (default to 'tap' if not specified)
+                # This matches the 'ip tuntap add' command behavior
+                tap_mode = mode if mode else 'tap'
+                args['mode'] = tap_mode
+                # Enable multiqueue if requested
+                # This sets the IFF_MULTI_QUEUE flag in IFTUN_IFR
+                if multiqueue:
+                    args['multi_queue'] = True
             else:
                 raise exception.NetworkInterfaceTypeNotDefined(type=dev_type)
 

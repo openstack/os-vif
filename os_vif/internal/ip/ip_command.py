@@ -18,6 +18,7 @@ class IpCommand(metaclass=abc.ABCMeta):
     TYPE_VETH = 'veth'
     TYPE_VLAN = 'vlan'
     TYPE_BRIDGE = 'bridge'
+    TYPE_TUNTAP = 'tuntap'
 
     @abc.abstractmethod
     def set(self, device, check_exit_code=None, state=None, mtu=None,
@@ -37,11 +38,12 @@ class IpCommand(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def add(self, device, dev_type, check_exit_code=None, peer=None, link=None,
-            vlan_id=None, ageing=None):
+            vlan_id=None, ageing=None, mode=None, multiqueue=False):
         """Method to add an interface.
 
         :param   device: A network device (string)
-        :param   dev_type: String network device type (TYPE_VETH, TYPE_VLAN)
+        :param   dev_type: String network device type (TYPE_VETH, TYPE_VLAN,
+                           TYPE_BRIDGE, TYPE_TUNTAP)
         :param   check_exit_code: List of integers of allowed execution exit
                                   codes
         :param   peer: String peer name, for veth interfaces
@@ -50,6 +52,8 @@ class IpCommand(metaclass=abc.ABCMeta):
         :param   vlan_id: Integer VLAN ID for VLAN devices
         :param   ageing: integer value in seconds before learned
                          mac addresses are forgotten.
+        :param   mode: String mode for tuntap devices ('tap' or 'tun')
+        :param   multiqueue: Boolean to enable multiqueue for tuntap devices
         :return: status of the command execution
         """
 

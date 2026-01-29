@@ -396,3 +396,47 @@ class LinuxNetTest(testtools.TestCase):
         mock_isfile.return_value = False
         phys_port_name = linux_net._get_phys_switch_id("ifname")
         self.assertIsNone(phys_port_name)
+
+    @mock.patch.object(linux_net, "_update_device_mtu")
+    @mock.patch.object(ip_lib, "set")
+    @mock.patch.object(ip_lib, "add")
+    def test_create_tap(self, mock_add, mock_set, mock_update_mtu):
+        """Test basic tap device creation."""
+        linux_net.create_tap("tap0", 1500, "aa:bb:cc:dd:ee:ff",
+                             multiqueue=False)
+
+        mock_add.assert_called_once_with("tap0", "tuntap", mode="tap",
+                                         multiqueue=False,
+                                         check_exit_code=[0, 17])
+        mock_set.assert_called_once_with("tap0", state="up",
+                                         address="aa:bb:cc:dd:ee:ff",
+                                         check_exit_code=[0, 2, 254])
+        mock_update_mtu.assert_called_once_with("tap0", 1500)
+
+    @mock.patch.object(linux_net, "_update_device_mtu")
+    @mock.patch.object(ip_lib, "set")
+    @mock.patch.object(ip_lib, "add")
+    def test_create_tap_with_multiqueue(self, mock_add, mock_set,
+                                        mock_update_mtu):
+        """Test tap device creation with multiqueue enabled."""
+        linux_net.create_tap("tap0", 1500, "aa:bb:cc:dd:ee:ff",
+                             multiqueue=True)
+
+        mock_add.assert_called_once_with("tap0", "tuntap", mode="tap",
+                                         multiqueue=True,
+                                         check_exit_code=[0, 17])
+        mock_set.assert_called_once_with("tap0", state="up",
+                                         address="aa:bb:cc:dd:ee:ff",
+                                         check_exit_code=[0, 2, 254])
+        mock_update_mtu.assert_called_once_with("tap0", 1500)
+
+    @mock.patch.object(linux_net, "_update_device_mtu")
+    @mock.patch.object(ip_lib, "set")
+    @mock.patch.object(ip_lib, "add")
+    def test_create_tap_no_mtu(self, mock_add, mock_set, mock_update_mtu):
+        """Test tap device creation without MTU."""
+        linux_net.create_tap("tap0", None, "aa:bb:cc:dd:ee:ff")
+
+        mock_add.assert_called_once()
+        mock_set.assert_called_once()
+        mock_update_mtu.assert_called_once_with("tap0", None)

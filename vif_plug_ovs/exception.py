@@ -35,3 +35,9 @@ class RepresentorNotFound(osv_exception.ExceptionBase):
 
 class PciDeviceNotFoundById(osv_exception.ExceptionBase):
     msg_fmt = _("PCI device %(id)s not found")
+
+
+class TapCreationNotSupported(osv_exception.ExceptionBase):
+    msg_fmt = _('Tap device creation requested for unsupported VIF type. '
+                'create_tap is only supported for VIFOpenVSwitch, got '
+                '%(vif_type)s')

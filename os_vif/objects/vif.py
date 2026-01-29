@@ -327,7 +327,8 @@ class VIFPortProfileOpenVSwitch(VIFPortProfileBase):
     # Version 1.1: Added 'datapath_type'
     # Version 1.2: VIFPortProfileBase updated to 1.1 from 1.0
     # Version 1.3: Added 'create_port'
-    VERSION = '1.3'
+    # Version 1.4: Added 'create_tap' and 'multiqueue'
+    VERSION = '1.4'
 
     fields = {
         #: A UUID to uniquely identify the interface. If omitted one will be
@@ -342,10 +343,21 @@ class VIFPortProfileOpenVSwitch(VIFPortProfileBase):
 
         #: Whether the os-vif plugin should add the port to the bridge.
         'create_port': fields.BooleanField(default=False),
+
+        #: Whether the os-vif plugin should create the TAP device.
+        'create_tap': fields.BooleanField(default=False),
+
+        #: Whether to enable multiqueue on the TAP device.
+        'multiqueue': fields.BooleanField(default=False),
     }
 
     def obj_make_compatible(self, primitive, target_version):
         target_version = versionutils.convert_version_to_tuple(target_version)
+        if target_version < (1, 4):
+            if 'create_tap' in primitive:
+                del primitive['create_tap']
+            if 'multiqueue' in primitive:
+                del primitive['multiqueue']
         if target_version < (1, 3) and 'create_port' in primitive:
             del primitive['create_port']
         if target_version < (1, 1) and 'datapath_type' in primitive:
@@ -370,7 +382,8 @@ class VIFPortProfileFPOpenVSwitch(VIFPortProfileOpenVSwitch):
     # Version 1.1: VIFPortProfileOpenVSwitch updated to 1.1 from 1.0
     # Version 1.2: VIFPortProfileOpenVSwitch updated to 1.2 from 1.1
     # Version 1.3: VIFPortProfileOpenVSwitch updated to 1.3 from 1.2
-    VERSION = '1.3'
+    # Version 1.4: VIFPortProfileOpenVSwitch updated to 1.4 from 1.3
+    VERSION = '1.4'
 
     fields = {
         #: Name of the bridge (managed by fast path) to connect to.
@@ -391,9 +404,12 @@ class VIFPortProfileFPOpenVSwitch(VIFPortProfileOpenVSwitch):
         elif target_version < (1, 3):
             super(VIFPortProfileFPOpenVSwitch, self).obj_make_compatible(
                 primitive, '1.2')
-        else:
+        elif target_version < (1, 4):
             super(VIFPortProfileFPOpenVSwitch, self).obj_make_compatible(
                 primitive, '1.3')
+        else:
+            super(VIFPortProfileFPOpenVSwitch, self).obj_make_compatible(
+                primitive, '1.4')
 
 
 @removals.removed_class("VIFPortProfileOVSRepresentor",
@@ -421,7 +437,8 @@ class VIFPortProfileOVSRepresentor(VIFPortProfileOpenVSwitch):
     # Version 1.1: VIFPortProfileOpenVSwitch updated to 1.1 from 1.0
     # Version 1.2: VIFPortProfileOpenVSwitch updated to 1.2 from 1.1
     # Version 1.3: VIFPortProfileOpenVSwitch updated to 1.3 from 1.2
-    VERSION = '1.3'
+    # Version 1.4: VIFPortProfileOpenVSwitch updated to 1.4 from 1.3
+    VERSION = '1.4'
 
     fields = {
         #: Name to set on the representor (if set).
@@ -442,9 +459,12 @@ class VIFPortProfileOVSRepresentor(VIFPortProfileOpenVSwitch):
         elif target_version < (1, 3):
             super(VIFPortProfileOVSRepresentor, self).obj_make_compatible(
                 primitive, '1.2')
-        else:
+        elif target_version < (1, 4):
             super(VIFPortProfileOVSRepresentor, self).obj_make_compatible(
                 primitive, '1.3')
+        else:
+            super(VIFPortProfileOVSRepresentor, self).obj_make_compatible(
+                primitive, '1.4')
 
 
 @base.VersionedObjectRegistry.register

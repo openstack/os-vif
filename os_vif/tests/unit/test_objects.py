@@ -40,12 +40,12 @@ object_data = {
     'VIFPortProfile8021Qbg': '1.1-b3011621809dca9216b50579ce9d6b19',
     'VIFPortProfile8021Qbh': '1.1-226b61b2e76ba452f7b31530cff80ac9',
     'VIFPortProfileBase': '1.1-4982d1621df12ebd1f3b07948f3d0e5f',
-    'VIFPortProfileOpenVSwitch': '1.3-1ad9a350a9cae19c977d21fcce7c8c7f',
-    'VIFPortProfileFPOpenVSwitch': '1.3-06c425743430e7702ef112e09b987346',
+    'VIFPortProfileOpenVSwitch': '1.4-54fb321f2b70c37d392fadc226c889e7',
+    'VIFPortProfileFPOpenVSwitch': '1.4-20904c1dcdac0641cabf7b02525973bd',
     'VIFPortProfileFPBridge': '1.1-49f1952bf50bab7a95112c908534751f',
     'VIFPortProfileFPTap': '1.1-fd178229477604dfb65de5ce929488e5',
     'VIFVHostUser': '1.1-1f95b43be1f884f090ca1f4d79adfd35',
-    'VIFPortProfileOVSRepresentor': '1.3-f625e17143473b93d6c7f97ded9f785a',
+    'VIFPortProfileOVSRepresentor': '1.4-82b7292ee4cd6f808b724d2f5648932b',
     'VIFNestedDPDK': '1.0-fdbaf6b20afd116529929b21aa7158dc',
     'VIFPortProfileK8sDPDK': '1.1-e2a2abd112b14e0239e76b99d9b252ae',
     'DatapathOffloadBase': '1.0-77509ea1ea0dd750d5864b9bd87d3f9d',
@@ -78,3 +78,60 @@ class TestObjectVersions(base.TestCase):
         self.assertIn('vif_name', primitive)
         vif.obj_make_compatible(primitive, '1.0')
         self.assertNotIn('vif_name', primitive)
+
+    def test_vif_port_profile_ovs_obj_make_compatible_1_4(self):
+        """Test obj_make_compatible removes create_tap and multiqueue for
+        versions < 1.4.
+        """
+        profile = objects.vif.VIFPortProfileOpenVSwitch(
+            interface_id='e65867e0-9340-4a7f-a256-09af6eb7a3aa',
+            create_tap=True,
+            multiqueue=True)
+        primitive = profile.obj_to_primitive()['versioned_object.data']
+        self.assertIn('create_tap', primitive)
+        self.assertIn('multiqueue', primitive)
+
+        # For version 1.3, both create_tap and multiqueue should be removed
+        profile.obj_make_compatible(primitive, '1.3')
+        self.assertNotIn('create_tap', primitive)
+        self.assertNotIn('multiqueue', primitive)
+
+    def test_vif_port_profile_ovs_obj_make_compatible_1_3(self):
+        """Test obj_make_compatible removes create_port for versions < 1.3."""
+        profile = objects.vif.VIFPortProfileOpenVSwitch(
+            interface_id='e65867e0-9340-4a7f-a256-09af6eb7a3aa',
+            create_port=True)
+        primitive = profile.obj_to_primitive()['versioned_object.data']
+        self.assertIn('create_port', primitive)
+
+        # For version 1.2, create_port should be removed
+        profile.obj_make_compatible(primitive, '1.2')
+        self.assertNotIn('create_port', primitive)
+
+    def test_vif_port_profile_ovs_create_tap_multiqueue_fields(self):
+        """Test that create_tap and multiqueue fields can be set."""
+        profile = objects.vif.VIFPortProfileOpenVSwitch(
+            interface_id='e65867e0-9340-4a7f-a256-09af6eb7a3aa',
+            create_tap=True,
+            multiqueue=True)
+        self.assertTrue(profile.create_tap)
+        self.assertTrue(profile.multiqueue)
+
+        # Test explicitly set default values
+        profile_default = objects.vif.VIFPortProfileOpenVSwitch(
+            interface_id='e65867e0-9340-4a7f-a256-09af6eb7a3aa',
+            create_tap=False,
+            multiqueue=False)
+        self.assertFalse(profile_default.create_tap)
+        self.assertFalse(profile_default.multiqueue)
+
+    def test_vif_port_profile_ovs_in_operator(self):
+        """Test that 'in' operator works for checking field existence."""
+        profile = objects.vif.VIFPortProfileOpenVSwitch(
+            interface_id='e65867e0-9340-4a7f-a256-09af6eb7a3aa',
+            create_tap=True,
+            multiqueue=True)
+        self.assertIn('create_tap', profile)
+        self.assertIn('multiqueue', profile)
+        self.assertIn('interface_id', profile)
+        self.assertNotIn('nonexistent_field', profile)

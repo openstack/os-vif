@@ -81,6 +81,22 @@ class ShellIpCommands(object):
             return
         return match.group('state')
 
+    def is_admin_up(self, device):
+        """Check if device is administratively up (UP flag set).
+
+        This differs from show_state() which returns the operational state.
+        TAP devices without a carrier will have state=DOWN but can still
+        be administratively UP (UP in flags like <NO-CARRIER,BROADCAST,UP>).
+        """
+        # Flags are in angle brackets on the first line, e.g. <NO-CARRIER,UP>
+        first_line = self.show_device(device)[0]
+        regex = re.compile(r".*<(?P<flags>[^>]+)>")
+        match = regex.match(first_line)
+        if match is None:
+            return False
+        flags = match.group('flags').split(',')
+        return 'UP' in flags
+
     def show_promisc(self, device):
         regex = re.compile(r".*(PROMISC)")
         match = regex.match(self.show_device(device)[0])
@@ -263,3 +279,98 @@ class TestIpCommand(ShellIpCommands, base.BaseFunctionalTestCase):
         _ip_cmd_set(device, master=bridge)
         path = "/sys/class/net/{}/brif/{}".format(bridge, device)
         self.assertTrue(os.path.exists(path))
+
+    def test_add_tap(self):
+        """Test creating a tap device."""
+        device = "test_tap_1"
+        self.addCleanup(self.del_device, device)
+        _ip_cmd_add(device, 'tuntap', mode='tap')
+        self.assertTrue(self.exist_device(device))
+
+        # Verify it's a tap device by checking /sys/class/net/<dev>/tun_flags
+        tun_flags_path = "/sys/class/net/{}/tun_flags".format(device)
+        if os.path.exists(tun_flags_path):
+            with open(tun_flags_path, 'r') as f:
+                flags_hex = f.read().strip()
+                flags = int(flags_hex, 16)
+                # IFF_TAP = 0x0002
+                IFF_TAP = 0x0002
+                self.assertTrue(flags & IFF_TAP,
+                              "TAP flag not set. Flags: {}".format(flags_hex))
+
+    def test_add_tap_with_multiqueue(self):
+        """Test creating a tap device with multiqueue parameter.
+
+        Note: The IFF_MULTI_QUEUE flag (0x0100) cannot be set via netlink.
+        It is only set when a process opens /dev/net/tun with the
+        IFF_MULTI_QUEUE flag in the ioctl. Libvirt sets this when attaching
+        to the TAP device. This test verifies that:
+        1. The TAP device can be created with multiqueue=True without error
+        2. The device is properly created as a TAP device
+        """
+        device = "test_tap_mq"
+        self.addCleanup(self.del_device, device)
+        _ip_cmd_add(device, 'tuntap', mode='tap', multiqueue=True)
+        self.assertTrue(self.exist_device(device))
+
+        # Verify it's a tap device by checking /sys/class/net/<dev>/tun_flags
+        tun_flags_path = "/sys/class/net/{}/tun_flags".format(device)
+        if os.path.exists(tun_flags_path):
+            with open(tun_flags_path, 'r') as f:
+                flags_hex = f.read().strip()
+                flags = int(flags_hex, 16)
+                # IFF_TAP = 0x0002 - verify it's a TAP device
+                IFF_TAP = 0x0002
+                self.assertTrue(
+                    flags & IFF_TAP,
+                    "TAP flag not set. Flags: %s" % flags_hex)
+
+    def test_add_tap_idempotent(self):
+        """Test tap device creation is idempotent with exit code handling."""
+        device = "test_tap_idemp"
+        self.addCleanup(self.del_device, device)
+
+        # Create the device
+        _ip_cmd_add(device, 'tuntap', mode='tap')
+        self.assertTrue(self.exist_device(device))
+
+        # Try to create again with EEXIST in check_exit_code (17)
+        # This should not raise an exception
+        _ip_cmd_add(device, 'tuntap', mode='tap', check_exit_code=[0, 17])
+        self.assertTrue(self.exist_device(device))
+
+    def test_add_tun_device(self):
+        """Test creating a tun device (not tap)."""
+        device = "test_tun_1"
+        self.addCleanup(self.del_device, device)
+        _ip_cmd_add(device, 'tuntap', mode='tun')
+        self.assertTrue(self.exist_device(device))
+
+        # Verify it's a tun device
+        tun_flags_path = "/sys/class/net/{}/tun_flags".format(device)
+        if os.path.exists(tun_flags_path):
+            with open(tun_flags_path, 'r') as f:
+                flags_hex = f.read().strip()
+                flags = int(flags_hex, 16)
+                # IFF_TUN = 0x0001
+                IFF_TUN = 0x0001
+                self.assertTrue(flags & IFF_TUN,
+                              "TUN flag not set. Flags: {}".format(flags_hex))
+
+    def test_tap_set_properties(self):
+        """Test setting properties on a tap device."""
+        device = "test_tap_props"
+        mac = "36:a7:e4:f9:01:02"
+        self.addCleanup(self.del_device, device)
+
+        # Create tap device
+        _ip_cmd_add(device, 'tuntap', mode='tap')
+        self.assertTrue(self.exist_device(device))
+
+        # Set MAC address and state
+        _ip_cmd_set(device, address=mac, state='up')
+        # TAP devices without a carrier will show state=DOWN but should be
+        # administratively UP (UP flag in interface flags)
+        self.assertTrue(self.is_admin_up(device),
+                        "Device should be administratively UP")
+        self.assertEqual(mac, self.show_mac(device))

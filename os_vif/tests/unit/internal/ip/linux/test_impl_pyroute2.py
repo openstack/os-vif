@@ -175,3 +175,69 @@ class TestIpCommand(base.TestCase):
 
             self.assertRaises(ipexc.NetlinkError, self.ip.delete, self.DEVICE,
                               check_exit_code=[self.OTHER_ERROR_CODE])
+
+    def test_add_tap(self):
+        """Test creating a basic tap device."""
+        self.ip.add(self.DEVICE, 'tuntap', mode='tap')
+        args = {'ifname': self.DEVICE,
+                'kind': 'tuntap',
+                'mode': 'tap'}
+        self.ip_link.assert_called_once_with('add', **args)
+
+    def test_add_tap_default_mode(self):
+        """Test creating tap device with default mode (should be 'tap')."""
+        self.ip.add(self.DEVICE, 'tuntap')
+        args = {'ifname': self.DEVICE,
+                'kind': 'tuntap',
+                'mode': 'tap'}
+        self.ip_link.assert_called_once_with('add', **args)
+
+    def test_add_tap_with_multiqueue(self):
+        """Test creating tap device with multiqueue enabled."""
+        self.ip.add(self.DEVICE, 'tuntap', mode='tap', multiqueue=True)
+
+        # Verify the call includes multiqueue flag
+        args = {'ifname': self.DEVICE,
+                'kind': 'tuntap',
+                'mode': 'tap',
+                'multi_queue': True}
+        self.ip_link.assert_called_once_with('add', **args)
+
+    def test_add_tun_device(self):
+        """Test creating a tun device (not tap)."""
+        self.ip.add(self.DEVICE, 'tuntap', mode='tun')
+        args = {'ifname': self.DEVICE,
+                'kind': 'tuntap',
+                'mode': 'tun'}
+        self.ip_link.assert_called_once_with('add', **args)
+
+    def test_add_tap_exit_code(self):
+        """Test tap device creation with exit code handling."""
+        self.ip_link.side_effect = ipexc.NetlinkError(self.ERROR_CODE,
+                                                      msg="Error message")
+
+        # Should not raise when error code matches
+        self.ip.add(self.DEVICE, 'tuntap', mode='tap',
+                    check_exit_code=[self.ERROR_CODE])
+        self.ip_link.assert_called_once()
+
+        # Should raise when exit code doesn't match
+        self.assertRaises(
+            ipexc.NetlinkError,
+            self.ip.add, self.DEVICE, 'tuntap', mode='tap',
+            check_exit_code=[self.OTHER_ERROR_CODE])
+
+    def test_set_no_multiqueue_parameter(self):
+        """Verify set() no longer accepts multiqueue parameter."""
+        with mock.patch.object(
+                iproute.IPRoute, 'link_lookup', return_value=[1],
+                create=True):
+            self.ip_link.return_value = [{'flags': 0}]
+
+            # Should work without multiqueue
+            self.ip.set(self.DEVICE, state=self.UP, mtu=self.MTU,
+                        address=self.MAC)
+
+            # Should raise TypeError if multiqueue is passed
+            self.assertRaises(TypeError, self.ip.set, self.DEVICE,
+                            multiqueue=True)

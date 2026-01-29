@@ -54,11 +54,18 @@ strict = true
 # TODO(stephenfin): Remove this once o.vo is typed
 disallow_subclassing_any = false
 ignore_missing_imports = true
+packages = [
+    "os_vif",
+    "vif_plug_noop",
+]
 exclude = "(?x)(doc | releasenotes)"
 plugins = ["oslo_versionedobjects.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["os_vif.tests.*"]
+module = [
+    "os_vif.tests.*",
+    "vif_plug_noop.tests.*",
+]
 disallow_untyped_calls = false
 disallow_untyped_defs = false
 disallow_subclassing_any = false

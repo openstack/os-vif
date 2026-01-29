@@ -16,6 +16,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from __future__ import annotations
+
 from os_vif import objects
 from os_vif import plugin
 
@@ -30,7 +32,7 @@ class NoOpPlugin(plugin.PluginBase):
 
     """
 
-    def describe(self):
+    def describe(self) -> objects.HostPluginInfo:
         return objects.host_info.HostPluginInfo(
             plugin_name="noop",
             vif_info=[
@@ -41,8 +43,12 @@ class NoOpPlugin(plugin.PluginBase):
                     supported_port_profiles=[])
             ])
 
-    def plug(self, vif, instance_info):
+    def plug(
+        self, vif: objects.VIFBase, instance_info: objects.InstanceInfo
+    ) -> None:
         pass
 
-    def unplug(self, vif, instance_info):
+    def unplug(
+        self, vif: objects.VIFBase, instance_info: objects.InstanceInfo
+    ) -> None:
         pass

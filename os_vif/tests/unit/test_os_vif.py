@@ -37,10 +37,10 @@ class DemoPlugin(plugin.PluginBase):
     def describe(self):
         pass
 
-    def plug(self, vif, instance_info, config):
+    def plug(self, vif, instance_info):
         pass
 
-    def unplug(self, vif, instance_info, config):
+    def unplug(self, vif, instance_info):
         pass
 
 
@@ -49,10 +49,10 @@ class DemoPluginNoConfig(plugin.PluginBase):
     def describe(self):
         pass
 
-    def plug(self, vif, instance_info, config):
+    def plug(self, vif, instance_info):
         pass
 
-    def unplug(self, vif, instance_info, config):
+    def unplug(self, vif, instance_info):
         pass
 
 

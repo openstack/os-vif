@@ -16,4 +16,4 @@ def set_mask(data, mask):
 
 
 def unset_mask(data, mask, bit_size=32):
-    return data & ((2 ** bit_size - 1) ^ mask)
+    return data & (((1 << bit_size) - 1) ^ mask)

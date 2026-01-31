@@ -19,6 +19,7 @@ from oslo_config import cfg
 
 if TYPE_CHECKING:
     from os_vif import objects
+    from typing_extensions import Self
 
 
 CONF = cfg.CONF
@@ -79,7 +80,7 @@ class PluginBase(metaclass=abc.ABCMeta):
         """
 
     @classmethod
-    def load(cls, plugin_name: str) -> 'PluginBase':
+    def load(cls, plugin_name: str) -> Self:
         """
         Load a plugin, registering its configuration options
 

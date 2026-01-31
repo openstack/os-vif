@@ -10,7 +10,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import functools
 import socket
 
 from ovs.db import idl
@@ -61,17 +60,13 @@ class NeutronOvsdbIdl(impl_idl.OvsdbIdl, api.ImplAPI):
 
 
 # this is derived form https://review.opendev.org/c/openstack/neutron/+/794892
-def add_keepalives(fn):
-    @functools.wraps(fn)
-    def _open(*args, **kwargs):
-        error, sock = fn(*args, **kwargs)
-        try:
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-        except socket.error as e:
-            sock.close()
-            return socket_util.get_exception_errno(e), None
-        return error, sock
-    return _open
+def add_keepalives(sock):
+    try:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+    except socket.error as e:
+        sock.close()
+        return socket_util.get_exception_errno(e)
+    return None
 
 
 class NoProbesMixin:
@@ -83,16 +78,22 @@ class NoProbesMixin:
 
 class TCPStream(stream.TCPStream, NoProbesMixin):
     @classmethod
-    @add_keepalives
     def _open(cls, suffix, dscp):
-        return super()._open(suffix, dscp)
+        error, sock = super()._open(suffix, dscp)
+        if error:
+            return error, sock
+        error = add_keepalives(sock)
+        return error, sock
 
 
 class SSLStream(stream.SSLStream, NoProbesMixin):
     @classmethod
-    @add_keepalives
     def _open(cls, suffix, dscp):
-        return super()._open(suffix, dscp)
+        error, sock = super()._open(suffix, dscp)
+        if error:
+            return error, sock
+        error = add_keepalives(sock)
+        return error, sock
 
 
 # Overwriting globals in a library is clearly a good idea

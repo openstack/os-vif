@@ -63,12 +63,7 @@ class PyRoute2(ip_command.IpCommand):
             return self._ip_link(ip, 'set', check_exit_code, **args)
 
     def lookup_interface(self, ip, link):
-        # TODO(sean-k-mooney): remove try block after we raise
-        # the min pyroute2 version above 0.5.12
-        try:
-            idx = ip.link_lookup(ifname=link)
-        except ipexc.NetlinkError:
-            raise exception.NetworkInterfaceNotFound(interface=link)
+        idx = ip.link_lookup(ifname=link)
         if not len(idx):
             raise exception.NetworkInterfaceNotFound(interface=link)
         return idx[0]

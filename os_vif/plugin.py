@@ -13,13 +13,12 @@
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING
+from typing import Self, TYPE_CHECKING
 
 from oslo_config import cfg
 
 if TYPE_CHECKING:
     from os_vif import objects
-    from typing_extensions import Self
 
 
 CONF = cfg.CONF

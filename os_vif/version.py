@@ -11,10 +11,16 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-#
+
+import warnings
 
 import pbr.version
 
+warnings.warn(
+    f'The {__name__} module is deprecated. Prefer use of importlib.metadata '
+    f'to inspect version information for packages.',
+    DeprecationWarning,
+)
 
 version_info = pbr.version.VersionInfo('os-vif')
 __version__ = version_info.version_string()

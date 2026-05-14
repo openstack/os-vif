@@ -122,7 +122,7 @@ class BaseOVSTest(testtools.TestCase):
             self.mock_db_set.assert_has_calls(
                 [mock.call('Port', device, ('tag', 4000)),
                  mock.call('Interface', device, *values)])
-            with self.br._ovsdb.transaction() as txn:
+            with self.br.ovsdb.transaction() as txn:
                 mock_update_device_mtu.assert_has_calls(
                     [
                         mock.call(
@@ -167,7 +167,7 @@ class BaseOVSTest(testtools.TestCase):
             self.mock_add_port.assert_has_calls([mock.call(bridge, device)])
             self.mock_db_set.assert_has_calls(
                 [mock.call('Interface', device, *values)])
-            with self.br._ovsdb.transaction() as txn:
+            with self.br.ovsdb.transaction() as txn:
                 mock_update_device_mtu.assert_has_calls(
                     [
                         mock.call(
@@ -181,7 +181,7 @@ class BaseOVSTest(testtools.TestCase):
                 mock_update_device_mtu:
             self.br.update_ovs_vif_port('device', mtu=1500,
                 interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE)
-            with self.br._ovsdb.transaction() as txn:
+            with self.br.ovsdb.transaction() as txn:
                 mock_update_device_mtu.assert_has_calls([mock.call(
                     txn, 'device', 1500,
                     interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE)])

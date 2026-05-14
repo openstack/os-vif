@@ -118,8 +118,7 @@ class LinuxNetTest(testtools.TestCase):
     @mock.patch.object(ip_lib, "exists")
     def test_delete_interface_not_present(self, mock_dev_exists, mock_delete,
                                           mock_set_state):
-        mock_dev_exists.return_value = next(lambda: (yield True),
-                                            (yield False))
+        mock_dev_exists.side_effect = [True, False]
 
         linux_net.delete_bridge("br0", "vnet1")
 

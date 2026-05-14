@@ -10,8 +10,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from __future__ import annotations
+
+from typing import Any, TYPE_CHECKING
 import uuid
 
+from oslo_config import cfg
 from oslo_log import log as logging
 
 from vif_plug_ovs import constants
@@ -19,18 +23,24 @@ from vif_plug_ovs import linux_net
 from vif_plug_ovs import ovs
 from vif_plug_ovs.ovsdb import api as ovsdb_api
 
+if TYPE_CHECKING:
+    from vif_plug_ovs.ovsdb import impl_idl
+    from vif_plug_ovs.ovsdb import impl_vsctl
+
 
 LOG = logging.getLogger(__name__)
 QOS_UUID_NAMESPACE = uuid.UUID("68da264a-847f-42a8-8ab0-5e774aee3d95")
 
 
-class BaseOVS(object):
+class BaseOVS:
 
-    def __init__(self, config):
+    def __init__(self, config: cfg.ConfOpts) -> None:
         self.timeout = config.ovs_vsctl_timeout
         self.connection = config.ovsdb_connection
         self.interface = config.ovsdb_interface
-        self._ovsdb = None
+        self._ovsdb: (
+            impl_vsctl.OvsdbVsctl | impl_idl.NeutronOvsdbIdl | None
+        ) = None
 
     # NOTE(sean-k-mooney): when using the native ovsdb bindings
     # creating an instance of the ovsdb api connects to the ovsdb
@@ -38,22 +48,30 @@ class BaseOVS(object):
     # of the ovsdb. To avoid that we lazy load the ovsdb
     # instance the first time we need it via a property.
     @property
-    def ovsdb(self):
+    def ovsdb(self) -> impl_vsctl.OvsdbVsctl | impl_idl.NeutronOvsdbIdl:
         if not self._ovsdb:
-            self._ovsdb = ovsdb_api.get_instance(self)
+            self._ovsdb = ovsdb_api.get_instance(self, self.interface)
         return self._ovsdb
 
-    def _ovs_supports_mtu_requests(self):
+    def _ovs_supports_mtu_requests(self) -> bool:
         return self.ovsdb.has_table_column('Interface', 'mtu_request')
 
-    def _set_mtu_request(self, txn, dev, mtu):
+    def _set_mtu_request(
+        self, txn: impl_vsctl.Transaction, dev: str, mtu: int
+    ) -> None:
         txn.add(
             self.ovsdb.db_set(
                 'Interface', dev, ('mtu_request', mtu)
             )
         )
 
-    def update_device_mtu(self, txn, dev, mtu, interface_type=None):
+    def update_device_mtu(
+        self,
+        txn: impl_vsctl.Transaction,
+        dev: str,
+        mtu: int | None,
+        interface_type: str | None = None
+    ) -> None:
         if not mtu:
             return
         if interface_type not in [
@@ -68,11 +86,13 @@ class BaseOVS(object):
                       {'interface_name': dev,
                        'interface_type': interface_type})
 
-    def ensure_ovs_bridge(self, bridge, datapath_type):
+    def ensure_ovs_bridge(
+        self, bridge: str, datapath_type: str | None
+    ) -> str | Any | None:
         return self.ovsdb.add_br(bridge, may_exist=True,
                                  datapath_type=datapath_type).execute()
 
-    def delete_ovs_bridge(self, bridge):
+    def delete_ovs_bridge(self, bridge: str) -> str | Any | None:
         """Delete ovs bridge by name
 
         :param bridge: bridge name as a string
@@ -85,17 +105,24 @@ class BaseOVS(object):
         return self.ovsdb.del_br(bridge).execute()
 
     def create_patch_port_pair(
-        self, port_bridge, port_bridge_port, int_bridge, int_bridge_port,
-        iface_id, mac, instance_id, tag=None
-    ):
+        self,
+        port_bridge: str,
+        port_bridge_port: str,
+        int_bridge: str,
+        int_bridge_port: str,
+        iface_id: str,
+        mac: str,
+        instance_id: str,
+        tag: int | None = None,
+    ) -> None:
         """Create a patch port pair between any two bridges.
 
         :param port_bridge: the source bridge name for the patch port pair.
         :param port_bridge_port: the name of the patch port on the
-        source bridge.
+            source bridge.
         :param int_bridge: the target bridge name, typically br-int.
         :param int_bridge_port: the name of the patch port on the
-        target bridge.
+            target bridge.
         :param iface_id: neutron port ID.
         :param mac: port MAC.
         :param instance_id: instance uuid.
@@ -137,11 +164,24 @@ class BaseOVS(object):
                 self.ovsdb.db_set('Interface', port_bridge_port, *col_values))
 
     def create_ovs_vif_port(
-        self, bridge, dev, iface_id, mac, instance_id,
-        mtu=None, interface_type=None, vhost_server_path=None,
-        tag=None, pf_pci=None, vf_num=None, set_ids=True, datapath_type=None,
-        qos_type=None, vlan_mode=None, trunks=None
-    ):
+        self,
+        bridge: str,
+        dev: str,
+        iface_id: str,
+        mac: str,
+        instance_id: str,
+        mtu: int | None = None,
+        interface_type: str | None = None,
+        vhost_server_path: str | None = None,
+        tag: int | None = None,
+        pf_pci: str | None = None,
+        vf_num: str | None = None,
+        set_ids: bool = True,
+        datapath_type: str | None = None,
+        qos_type: str | None = None,
+        vlan_mode: str | None = None,
+        trunks: int | None = None,
+    ) -> None:
         """Create OVS port
 
         :param bridge: bridge name to create the port on.
@@ -158,6 +198,8 @@ class BaseOVS(object):
         :param set_ids: set external ids on port (bool).
         :param datapath_type: datapath type for port's bridge
         :param qos_type: qos type for a port
+        :param vlan_mode:
+        :param trunks:
 
         .. note:: create DPDK representor port by setting all three values:
             `interface_type`, `pf_pci` and `vf_num`. if interface type is
@@ -183,7 +225,9 @@ class BaseOVS(object):
         if ovs.is_trunk_bridge(bridge):
             external_ids['bridge_name'] = bridge
 
-        col_values = [('external_ids', external_ids)] if set_ids else []
+        col_values: list[tuple[str, object]] = []
+        if set_ids:
+            col_values.append(('external_ids', external_ids))
         if interface_type:
             col_values.append(('type', interface_type))
         if vhost_server_path:
@@ -233,11 +277,11 @@ class BaseOVS(object):
                 txn, dev, mtu, interface_type=interface_type
             )
 
-    def port_exists(self, port_name, bridge):
+    def port_exists(self, port_name: str, bridge: str) -> bool:
         ports = self.ovsdb.list_ports(bridge).execute()
         return ports is not None and port_name in ports
 
-    def get_qos(self, dev, qos_type):
+    def get_qos(self, dev: str, qos_type: str) -> Any:
         qos_id = uuid.uuid5(QOS_UUID_NAMESPACE, dev)
         external_ids = {'id': str(qos_id), '_type': qos_type}
         return self.ovsdb.db_find(
@@ -245,7 +289,7 @@ class BaseOVS(object):
             colmuns=['_uuid']
         ).execute()
 
-    def delete_qos_if_exists(self, dev, qos_type):
+    def delete_qos_if_exists(self, dev: str, qos_type: str) -> None:
         qos_ids = self.get_qos(dev, qos_type)
         if qos_ids is not None and len(qos_ids) > 0:
             for qos_id in qos_ids:
@@ -254,15 +298,24 @@ class BaseOVS(object):
                         'QoS', str(qos_id['_uuid'])
                     ).execute()
 
-    def update_ovs_vif_port(self, dev, mtu=None, interface_type=None):
+    def update_ovs_vif_port(
+        self,
+        dev: str,
+        mtu: int | None = None,
+        interface_type: str | None = None,
+    ) -> None:
         with self.ovsdb.transaction() as txn:
             self.update_device_mtu(
                 txn, dev, mtu, interface_type=interface_type
             )
 
     def delete_ovs_vif_port(
-            self, bridge, dev, delete_netdev=True, qos_type=None
-    ):
+        self,
+        bridge: str,
+        dev: str,
+        delete_netdev: bool = True,
+        qos_type: str | None = None,
+    ) -> None:
         self.ovsdb.del_port(dev, bridge=bridge, if_exists=True).execute()
         if qos_type:
             self.delete_qos_if_exists(dev, qos_type)

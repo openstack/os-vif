@@ -79,6 +79,8 @@ class TestOVSPlugin(testscenarios.WithScenarios,
         ('vsctl', {'interface': 'vsctl'})
     ]
 
+    plugin: ovs.OvsPlugin
+
     def setUp(self):
         super(TestOVSPlugin, self).setUp()
         run_privileged('ovs-vsctl', 'set-manager', 'ptcp:6640')

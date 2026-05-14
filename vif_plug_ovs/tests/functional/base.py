@@ -9,11 +9,20 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+
+from __future__ import annotations
+
 import functools
 import os
+from typing import TYPE_CHECKING
+
+from vif_plug_ovs.ovsdb import ovsdb_lib
 
 from os_vif.tests.functional import base as os_vif_base
 
+if TYPE_CHECKING:
+    from vif_plug_ovs.ovsdb import impl_idl
+    from vif_plug_ovs.ovsdb import impl_vsctl
 
 wait_until_true = os_vif_base.wait_until_true
 
@@ -23,6 +32,9 @@ class VifPlugOvsBaseFunctionalTestCase(os_vif_base.BaseFunctionalTestCase):
 
     COMPONENT_NAME = 'vif_plug_ovs'
     PRIVILEGED_GROUP = 'vif_plug_ovs_privileged'
+
+    ovs: ovsdb_lib.BaseOVS
+    _ovsdb: impl_vsctl.OvsdbVsctl | impl_idl.NeutronOvsdbIdl
 
     def _check_bridge(self, name):
         return self._ovsdb.br_exists(name).execute()

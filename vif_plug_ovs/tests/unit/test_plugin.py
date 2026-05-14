@@ -178,7 +178,10 @@ class PluginTest(testtools.TestCase):
             self.vif_ovs.port_profile.interface_id,
             self.vif_ovs.address, self.instance.uuid,
             mtu=plugin.config.network_device_mtu,
-            interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE)
+            vhost_server_path=None,
+            interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE,
+            tag=None, pf_pci=None, vf_num=None, set_ids=True,
+            datapath_type=None, qos_type=None, vlan_mode=None, trunks=None)
 
     @mock.patch.object(ovsdb_lib.BaseOVS, 'create_ovs_vif_port')
     def test_create_vif_port_mtu_in_model(self, mock_create_ovs_vif_port):
@@ -192,7 +195,10 @@ class PluginTest(testtools.TestCase):
             self.vif_ovs.port_profile.interface_id,
             self.vif_ovs.address, self.instance.uuid,
             mtu=self.network_ovs_mtu.mtu,
-            interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE)
+            interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE,
+            vhost_server_path=None, tag=None, pf_pci=None, vf_num=None,
+            set_ids=True, datapath_type=None, qos_type=None, vlan_mode=None,
+            trunks=None)
 
     @mock.patch.object(ovsdb_lib.BaseOVS, 'create_ovs_vif_port')
     @mock.patch.object(ovsdb_lib.BaseOVS, 'port_exists')
@@ -209,7 +215,10 @@ class PluginTest(testtools.TestCase):
                 self.vif_ovs.port_profile.interface_id,
                 self.vif_ovs.address, self.instance.uuid,
                 mtu=plugin.config.network_device_mtu,
-                interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE)
+                vhost_server_path=None,
+                interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE,
+                tag=None, pf_pci=None, vf_num=None, set_ids=True,
+                datapath_type=None, qos_type=None, vlan_mode=None, trunks=None)
 
     @mock.patch.object(ovsdb_lib.BaseOVS, 'create_ovs_vif_port')
     @mock.patch.object(ovsdb_lib.BaseOVS, 'port_exists')
@@ -229,8 +238,11 @@ class PluginTest(testtools.TestCase):
                 interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE,
                 tag=constants.DEAD_VLAN,
                 vlan_mode='trunk',
-                trunks=constants.DEAD_VLAN
-                )
+                trunks=constants.DEAD_VLAN,
+                set_ids=True,
+                vhost_server_path=None,
+                pf_pci=None, vf_num=None,
+                datapath_type=None, qos_type=None)
 
     @mock.patch.object(ovsdb_lib.BaseOVS, 'create_ovs_vif_port')
     @mock.patch.object(ovsdb_lib.BaseOVS, 'port_exists')
@@ -247,7 +259,10 @@ class PluginTest(testtools.TestCase):
                 self.vif_ovs.port_profile.interface_id,
                 self.vif_ovs.address, self.instance.uuid,
                 mtu=plugin.config.network_device_mtu,
-                interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE)
+                vhost_server_path=None,
+                interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE,
+                tag=None, pf_pci=None, vf_num=None, set_ids=True,
+                datapath_type=None, qos_type=None, vlan_mode=None, trunks=None)
 
     @mock.patch.object(ovsdb_lib.BaseOVS, 'create_ovs_vif_port')
     @mock.patch.object(ovsdb_lib.BaseOVS, 'port_exists')
@@ -270,7 +285,12 @@ class PluginTest(testtools.TestCase):
             self.vif_ovs_system.address, self.instance.uuid,
             mtu=plugin.config.network_device_mtu,
             set_ids=False,
-            qos_type="linux-noop")
+            qos_type="linux-noop",
+            tag=None,
+            vlan_mode=None,
+            trunks=None,
+            vhost_server_path=None, interface_type=None, pf_pci=None,
+            vf_num=None, datapath_type=None)
 
     @mock.patch.object(ovsdb_lib.BaseOVS, 'create_ovs_vif_port')
     @mock.patch.object(ovsdb_lib.BaseOVS, 'port_exists')
@@ -292,7 +312,9 @@ class PluginTest(testtools.TestCase):
             self.vif_ovs_system.port_profile.interface_id,
             self.vif_ovs_system.address, self.instance.uuid,
             mtu=plugin.config.network_device_mtu,
-            set_ids=False)
+            vhost_server_path=None, interface_type=None,
+            tag=None, pf_pci=None, vf_num=None, set_ids=False,
+            datapath_type=None, qos_type=None, vlan_mode=None, trunks=None)
 
     @mock.patch.object(ovsdb_lib.BaseOVS, 'create_ovs_vif_port')
     @mock.patch.object(ovsdb_lib.BaseOVS, 'port_exists')
@@ -311,7 +333,9 @@ class PluginTest(testtools.TestCase):
             self.vif_ovs_system.port_profile.interface_id,
             self.vif_ovs_system.address, self.instance.uuid,
             mtu=plugin.config.network_device_mtu,
-            qos_type="linux-noop")
+            vhost_server_path=None, interface_type=None, tag=None,
+            pf_pci=None, vf_num=None, set_ids=True, datapath_type=None,
+            qos_type="linux-noop", vlan_mode=None, trunks=None)
 
     @mock.patch.object(ovsdb_lib.BaseOVS, 'create_ovs_vif_port')
     @mock.patch.object(ovsdb_lib.BaseOVS, 'port_exists')
@@ -329,7 +353,10 @@ class PluginTest(testtools.TestCase):
             self.vif_ovs_system.network.bridge, mock.sentinel.vif_name,
             self.vif_ovs_system.port_profile.interface_id,
             self.vif_ovs_system.address, self.instance.uuid,
-            mtu=plugin.config.network_device_mtu)
+            mtu=plugin.config.network_device_mtu,
+            vhost_server_path=None, interface_type=None, tag=None, pf_pci=None,
+            vf_num=None, set_ids=True, datapath_type=None, qos_type=None,
+            vlan_mode=None, trunks=None)
 
     @mock.patch.object(ovs.OvsPlugin, '_plug_vif_generic')
     def test_plug_ovs_port_bridge_false(self, plug_vif_generic):
@@ -483,15 +510,18 @@ class PluginTest(testtools.TestCase):
         dp_type = ovs.OvsPlugin._get_vif_datapath_type(
             self.vif_vhostuser_client)
         calls = [
-                 mock.call(
-                     'br0', 'vhub679325f-ca',
-                     'e65867e0-9340-4a7f-a256-09af6eb7a3aa',
-                     'ca:fe:de:ad:be:ef',
-                     'f0000000-0000-0000-0000-000000000001',
-                     mtu=1500, interface_type='dpdkvhostuserclient',
-                     vhost_server_path='/var/run/openvswitch/vhub679325f-ca',
-                     datapath_type=dp_type
-                 )]
+            mock.call(
+                'br0', 'vhub679325f-ca',
+                'e65867e0-9340-4a7f-a256-09af6eb7a3aa',
+                'ca:fe:de:ad:be:ef',
+                'f0000000-0000-0000-0000-000000000001',
+                mtu=1500,
+                vhost_server_path='/var/run/openvswitch/vhub679325f-ca',
+                interface_type='dpdkvhostuserclient',
+                datapath_type=dp_type, tag=None, pf_pci=None, vf_num=None,
+                set_ids=True, qos_type=None, vlan_mode=None, trunks=None,
+            )
+        ]
 
         plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
         plugin.plug(self.vif_vhostuser_client, self.instance)

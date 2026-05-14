@@ -191,7 +191,20 @@ class OvsPlugin(plugin.PluginBase):
         return (self.config.isolate_vif and
                 not self.ovsdb.port_exists(vif_name, bridge))
 
-    def _create_vif_port(self, vif, vif_name, instance_info, **kwargs):
+    def _create_vif_port(
+        self,
+        vif,
+        vif_name,
+        instance_info,
+        *,
+        bridge=None,
+        interface_type=None,
+        vhost_server_path=None,
+        pf_pci=None,
+        vf_num=None,
+        set_ids=True,
+        datapath_type=None,
+    ):
         mtu = self._get_mtu(vif)
         # NOTE(sean-k-mooney): As part of a partial fix to bug #1734320
         # we introduced the isolate_vif config option to enable isolation
@@ -205,13 +218,18 @@ class OvsPlugin(plugin.PluginBase):
         # TODO(sean-k-mooney): Extend neutron to record what ml2 driver
         # bound the interface in the vif binding details so isolation
         # can be enabled automatically in the future.
-        bridge = kwargs.pop('bridge', vif.network.bridge)
+        bridge = bridge or vif.network.bridge
+
+        tag = None
+        vlan_mode = None
+        trunks = None
         # See bug #2069543.
         if (self._isolate_vif(vif_name, bridge) and
                 not is_trunk_bridge(bridge)):
-            kwargs['tag'] = constants.DEAD_VLAN
-            kwargs['vlan_mode'] = 'trunk'
-            kwargs['trunks'] = constants.DEAD_VLAN
+            tag = constants.DEAD_VLAN
+            vlan_mode = 'trunk'
+            trunks = constants.DEAD_VLAN
+
         qos_type = self._get_qos_type(vif)
         if qos_type is not None:
             # NOTE(sean-k-mooney): If the port is not already created
@@ -223,15 +241,28 @@ class OvsPlugin(plugin.PluginBase):
             # This is a mitigation for the performance regression
             # introduced by the fix for bug #1734320. See bug #2017868
             # for more details.
-            if not self.ovsdb.port_exists(vif_name, bridge):
-                kwargs['qos_type'] = qos_type
+            if self.ovsdb.port_exists(vif_name, bridge):
+                qos_type = None
+
         self.ovsdb.create_ovs_vif_port(
             bridge,
             vif_name,
             vif.port_profile.interface_id,
-            vif.address, instance_info.uuid,
+            vif.address,
+            instance_info.uuid,
             mtu=mtu,
-            **kwargs)
+            vhost_server_path=vhost_server_path,
+            interface_type=interface_type,
+            tag=tag,
+            pf_pci=pf_pci,
+            vf_num=vf_num,
+            set_ids=set_ids,
+            datapath_type=datapath_type,
+            qos_type=qos_type,
+            vlan_mode=vlan_mode,
+            trunks=trunks,
+        )
+
         # Check if tap creation is requested:
         # - 'field in profile.fields' checks if field exists in schema
         # - 'field in profile' checks if the attribute is set on instance
@@ -298,19 +329,21 @@ class OvsPlugin(plugin.PluginBase):
     def _plug_vhostuser(self, vif, instance_info):
         vif_name = OvsPlugin.gen_port_name(
             constants.OVS_VHOSTUSER_PREFIX, vif.id)
-        args = {}
-        args['datapath_type'] = self._get_vif_datapath_type(vif,
-                datapath=constants.OVS_DATAPATH_NETDEV)
+        datapath_type = self._get_vif_datapath_type(
+            vif, datapath=constants.OVS_DATAPATH_NETDEV)
         if vif.mode == "client":
-            args['interface_type'] = \
-                constants.OVS_VHOSTUSER_INTERFACE_TYPE
+            self._create_vif_port(
+                vif, vif_name, instance_info,
+                interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE,
+                datapath_type=datapath_type,
+            )
         else:
-            args['interface_type'] = \
-                constants.OVS_VHOSTUSER_CLIENT_INTERFACE_TYPE
-            args['vhost_server_path'] = vif.path
-
-        self._create_vif_port(
-            vif, vif_name, instance_info, **args)
+            self._create_vif_port(
+                vif, vif_name, instance_info,
+                interface_type=constants.OVS_VHOSTUSER_CLIENT_INTERFACE_TYPE,
+                datapath_type=datapath_type,
+                vhost_server_path=vif.path,
+            )
 
     def _plug_bridge(self, vif, instance_info):
         """Plug using hybrid strategy
@@ -400,23 +433,22 @@ class OvsPlugin(plugin.PluginBase):
         self.ovsdb.ensure_ovs_bridge(vif.network.bridge, datapath)
         pci_slot = vif.dev_address
         vf_num = linux_net.get_vf_num_by_pci_address(pci_slot)
-        args = []
-        kwargs = {}
         if datapath == constants.OVS_DATAPATH_SYSTEM:
             pf_ifname = linux_net.get_ifname_by_pci_address(
                 pci_slot, pf_interface=True, switchdev=True)
             representor = linux_net.get_representor_port(pf_ifname, vf_num)
             linux_net.set_interface_state(representor, 'up')
-            args = [vif, representor, instance_info]
+            self._create_vif_port(vif, representor, instance_info)
         else:
             representor = linux_net.get_dpdk_representor_port_name(
                 vif.id)
             pf_pci = linux_net.get_pf_pci_from_vf(pci_slot)
-            args = [vif, representor, instance_info]
-            kwargs = {'interface_type': constants.OVS_DPDK_INTERFACE_TYPE,
-                      'pf_pci': pf_pci,
-                      'vf_num': vf_num}
-        self._create_vif_port(*args, **kwargs)
+            self._create_vif_port(
+                vif, representor, instance_info,
+                interface_type=constants.OVS_DPDK_INTERFACE_TYPE,
+                pf_pci=pf_pci,
+                vf_num=vf_num,
+            )
 
     def plug(self, vif, instance_info):
         if not hasattr(vif, "port_profile"):

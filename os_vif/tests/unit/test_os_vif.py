@@ -86,8 +86,7 @@ class TestOSVIF(base.TestCase):
     def test_load_plugin_no_config(self):
         obj = DemoPluginNoConfig.load("demonocfg")
         self.assertFalse(hasattr(cfg.CONF, "os_vif_demonocfg"))
-
-        self.assertIsNone(obj.config)
+        self.assertIsNotNone(obj.config)
 
     def test_plug_not_initialized(self):
         self.assertRaises(

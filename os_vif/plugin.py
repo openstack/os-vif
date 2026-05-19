@@ -89,12 +89,19 @@ class PluginBase(metaclass=abc.ABCMeta):
         """
         cfg_group_name = "os_vif_" + plugin_name
         cfg_opts = getattr(cls, "CONFIG_OPTS")
-        cfg_vals = None
-        if cfg_opts and len(cfg_opts) > 0:
+
+        cfg_vals: cfg.ConfigOpts.GroupAttr
+        if len(cfg_opts) > 0:
             cfg_group = cfg.OptGroup(
-                cfg_group_name,
-                "os-vif plugin %s options" % plugin_name)
+                cfg_group_name, "os-vif plugin %s options" % plugin_name
+            )
             CONF.register_opts(cfg_opts, group=cfg_group)
 
             cfg_vals = getattr(CONF, cfg_group_name)
+        else:
+            # construct an empty instance
+            cfg_vals = cfg.ConfigOpts.GroupAttr(
+                cfg.ConfigOpts(), cfg.OptGroup(cfg_group_name)
+            )
+
         return cls(cfg_vals)

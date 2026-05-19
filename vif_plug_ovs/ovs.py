@@ -129,7 +129,7 @@ class OvsPlugin(plugin.PluginBase):
                    """),
     ]
 
-    def __init__(self, config: cfg.ConfigOpts) -> None:
+    def __init__(self, config: cfg.ConfigOpts.GroupAttr) -> None:
         super(OvsPlugin, self).__init__(config)
         self.ovsdb = ovsdb_lib.BaseOVS(self.config)
 

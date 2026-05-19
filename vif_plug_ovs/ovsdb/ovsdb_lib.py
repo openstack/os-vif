@@ -34,7 +34,7 @@ QOS_UUID_NAMESPACE = uuid.UUID("68da264a-847f-42a8-8ab0-5e774aee3d95")
 
 class BaseOVS:
 
-    def __init__(self, config: cfg.ConfOpts) -> None:
+    def __init__(self, config: cfg.ConfigOpts.GroupAttr) -> None:
         self.timeout = config.ovs_vsctl_timeout
         self.connection = config.ovsdb_connection
         self.interface = config.ovsdb_interface

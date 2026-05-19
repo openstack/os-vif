@@ -33,12 +33,17 @@
         # in the local.conf because os-vif is listed as a required
         # project and will be added to the LIB_FROM_GIT automatically.
       devstack_services:
+        # Cinder services
+        c-api: false
+        c-bak: false
+        c-sch: false
+        c-vol: false
+        cinder: false
+        # Swift services
         s-account: false
         s-container: false
         s-object: false
         s-proxy: false
-        # without Swift, c-bak cannot run (in the Gate at least)
-        c-bak: false
 
 - job:
     name: os-vif-ovs-base

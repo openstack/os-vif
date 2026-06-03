@@ -57,7 +57,7 @@ class PyRoute2(ip_command.IpCommand):
     ) -> Any:
         check_exit_code = check_exit_code or []
         with iproute.IPRoute() as ip:
-            idx = self.lookup_interface(ip, device)
+            idx = self._lookup_interface(ip, device)
             args = {'index': idx}
             if state:
                 args['state'] = state
@@ -71,14 +71,14 @@ class PyRoute2(ip_command.IpCommand):
                                  if promisc is True else
                                  utils.unset_mask(flags, ifinfmsg.IFF_PROMISC))
             if master:
-                args['master'] = self.lookup_interface(ip, master)
+                args['master'] = self._lookup_interface(ip, master)
 
             if isinstance(check_exit_code, int):
                 check_exit_code = [check_exit_code]
 
             return self._ip_link(ip, 'set', check_exit_code, **args)
 
-    def lookup_interface(
+    def _lookup_interface(
         self, ip: iproute.IPRoute, link: str | None,
     ) -> Any:
         idx = ip.link_lookup(ifname=link)
@@ -105,7 +105,7 @@ class PyRoute2(ip_command.IpCommand):
             }
             if self.TYPE_VLAN == dev_type:
                 args['vlan_id'] = vlan_id
-                args['link'] = self.lookup_interface(ip, link)
+                args['link'] = self._lookup_interface(ip, link)
             elif self.TYPE_VETH == dev_type:
                 args['peer'] = peer
             elif self.TYPE_BRIDGE == dev_type:
@@ -147,14 +147,14 @@ class PyRoute2(ip_command.IpCommand):
     ) -> Any:
         check_exit_code = check_exit_code or []
         with iproute.IPRoute() as ip:
-            idx = self.lookup_interface(ip, device)
+            idx = self._lookup_interface(ip, device)
             return self._ip_link(ip, 'del', check_exit_code, **{'index': idx})
 
     def exists(self, device: str) -> bool:
         """Return True if the device exists."""
         with iproute.IPRoute() as ip:
             try:
-                self.lookup_interface(ip, device)
+                self._lookup_interface(ip, device)
                 return True
             except Exception:
                 return False

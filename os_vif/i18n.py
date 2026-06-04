@@ -29,10 +29,7 @@ _ = _translators.primary
 
 
 def translate(value: str, user_locale: str) -> str:
-    # FIXME(stephenfin): The hints in oslo.i18n are incomplete
-    # https://review.opendev.org/c/openstack/oslo.i18n/+/986066
-    return oslo_i18n.translate(
-        value, user_locale)  # type: ignore[return-value]
+    return oslo_i18n.translate(value, user_locale)
 
 
 def get_available_languages() -> list[str]:

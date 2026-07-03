@@ -200,7 +200,7 @@ class TestIpCommand(base.TestCase):
         args = {'ifname': self.DEVICE,
                 'kind': 'tuntap',
                 'mode': 'tap',
-                'multi_queue': True}
+                'ifr': {'multi_queue': True}}
         self.ip_link.assert_called_once_with('add', **args)
 
     def test_add_tun_device(self):

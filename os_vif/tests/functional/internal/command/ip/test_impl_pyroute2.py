@@ -281,49 +281,48 @@ class TestIpCommand(ShellIpCommands, base.BaseFunctionalTestCase):
         self.assertTrue(os.path.exists(path))
 
     def test_add_tap(self):
-        """Test creating a tap device."""
+        """Test creating a tap device without multiqueue."""
         device = "test_tap_1"
         self.addCleanup(self.del_device, device)
         _ip_cmd_add(device, 'tuntap', mode='tap')
         self.assertTrue(self.exist_device(device))
 
-        # Verify it's a tap device by checking /sys/class/net/<dev>/tun_flags
+        IFF_TAP = 0x0002
+        IFF_MULTI_QUEUE = 0x0100
         tun_flags_path = "/sys/class/net/{}/tun_flags".format(device)
-        if os.path.exists(tun_flags_path):
-            with open(tun_flags_path, 'r') as f:
-                flags_hex = f.read().strip()
-                flags = int(flags_hex, 16)
-                # IFF_TAP = 0x0002
-                IFF_TAP = 0x0002
-                self.assertTrue(flags & IFF_TAP,
-                              "TAP flag not set. Flags: {}".format(flags_hex))
+        self.assertTrue(os.path.exists(tun_flags_path))
+        with open(tun_flags_path, 'r') as f:
+            flags = int(f.read().strip(), 16)
+        self.assertTrue(
+            flags & IFF_TAP,
+            "TAP flag not set. Flags: 0x%x" % flags)
+        self.assertFalse(
+            flags & IFF_MULTI_QUEUE,
+            "MULTI_QUEUE flag should not be set. Flags: 0x%x" % flags)
 
     def test_add_tap_with_multiqueue(self):
-        """Test creating a tap device with multiqueue parameter.
+        """Test creating a tap device with multiqueue enabled.
 
-        Note: The IFF_MULTI_QUEUE flag (0x0100) cannot be set via netlink.
-        It is only set when a process opens /dev/net/tun with the
-        IFF_MULTI_QUEUE flag in the ioctl. Libvirt sets this when attaching
-        to the TAP device. This test verifies that:
-        1. The TAP device can be created with multiqueue=True without error
-        2. The device is properly created as a TAP device
+        The ``multi_queue`` flag must be passed inside the ``ifr`` dictionary
+        so that pyroute2 sets IFF_MULTI_QUEUE (0x0100) via the tuntap ioctl.
         """
         device = "test_tap_mq"
         self.addCleanup(self.del_device, device)
         _ip_cmd_add(device, 'tuntap', mode='tap', multiqueue=True)
         self.assertTrue(self.exist_device(device))
 
-        # Verify it's a tap device by checking /sys/class/net/<dev>/tun_flags
+        IFF_TAP = 0x0002
+        IFF_MULTI_QUEUE = 0x0100
         tun_flags_path = "/sys/class/net/{}/tun_flags".format(device)
-        if os.path.exists(tun_flags_path):
-            with open(tun_flags_path, 'r') as f:
-                flags_hex = f.read().strip()
-                flags = int(flags_hex, 16)
-                # IFF_TAP = 0x0002 - verify it's a TAP device
-                IFF_TAP = 0x0002
-                self.assertTrue(
-                    flags & IFF_TAP,
-                    "TAP flag not set. Flags: %s" % flags_hex)
+        self.assertTrue(os.path.exists(tun_flags_path))
+        with open(tun_flags_path, 'r') as f:
+            flags = int(f.read().strip(), 16)
+        self.assertTrue(
+            flags & IFF_TAP,
+            "TAP flag not set. Flags: 0x%x" % flags)
+        self.assertTrue(
+            flags & IFF_MULTI_QUEUE,
+            "MULTI_QUEUE flag not set. Flags: 0x%x" % flags)
 
     def test_add_tap_idempotent(self):
         """Test tap device creation is idempotent with exit code handling."""

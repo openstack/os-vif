@@ -131,10 +131,10 @@ class PyRoute2(ip_command.IpCommand):
                 # This matches the 'ip tuntap add' command behavior
                 tap_mode = mode if mode else 'tap'
                 args['mode'] = tap_mode
-                # Enable multiqueue if requested
-                # This sets the IFF_MULTI_QUEUE flag in IFTUN_IFR
                 if multiqueue:
-                    args['multi_queue'] = True
+                    # Enable multiqueue if requested
+                    # This sets the IFF_MULTI_QUEUE flag in IFTUN_IFR
+                    args['ifr'] = {'multi_queue': True}
             else:
                 raise exception.NetworkInterfaceTypeNotDefined(type=dev_type)
 

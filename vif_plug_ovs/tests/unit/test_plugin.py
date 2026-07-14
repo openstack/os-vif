@@ -265,6 +265,73 @@ class PluginTest(testtools.TestCase):
             plugin.ovsdb, 'br0', 'tap-xxx-yyy-zzz', qos_type=None)
         delete_ovs_bridge.assert_not_called()
 
+    def test_get_mtu_network_1_0_uses_config(self):
+        primitive = self.network_ovs.obj_to_primitive(
+            target_version='1.0',
+            version_manifest={'SubnetList': '1.0', 'Subnet': '1.0'})
+        self.assertNotIn('mtu', primitive['versioned_object.data'])
+        network = objects.network.Network.obj_from_primitive(primitive)
+        # The current constructor defaults mtu while hydrating an old object.
+        del network.mtu
+        self.vif_ovs.network = network
+
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
+        self.assertEqual(plugin.config.network_device_mtu,
+                         plugin._get_mtu(self.vif_ovs))
+
+    def test_ovs_profile_1_0_uses_default_datapath(self):
+        primitive = self.profile_ovs.obj_to_primitive(target_version='1.0')
+        profile = objects.vif.VIFPortProfileOpenVSwitch.obj_from_primitive(
+            primitive)
+        self.assertNotIn('datapath_type', profile)
+        self.vif_ovs.port_profile = profile
+
+        self.assertEqual(
+            constants.OVS_DATAPATH_SYSTEM,
+            ovs.OvsPlugin._get_vif_datapath_type(self.vif_ovs))
+
+    @mock.patch.object(
+        ovs.OvsPlugin, '_create_vif_port', autospec=True)
+    @mock.patch.object(
+        ovsdb_lib.BaseOVS, 'ensure_ovs_bridge', autospec=True)
+    def test_ovs_profile_1_2_does_not_create_port(
+            self, ensure_bridge, create_vif_port):
+        primitive = self.profile_ovs_smart_nic.obj_to_primitive(
+            target_version='1.2')
+        profile = objects.vif.VIFPortProfileOpenVSwitch.obj_from_primitive(
+            primitive)
+        self.assertNotIn('create_port', profile)
+        self.vif_ovs.port_profile = profile
+
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
+        plugin._plug_vif_generic(self.vif_ovs, self.instance)
+        ensure_bridge.assert_called_once()
+        create_vif_port.assert_not_called()
+
+    @mock.patch.object(linux_net, 'create_tap', autospec=True)
+    @mock.patch.object(
+        ovsdb_lib.BaseOVS, 'create_ovs_vif_port', autospec=True)
+    @mock.patch.object(
+        ovsdb_lib.BaseOVS, 'port_exists', return_value=False, autospec=True)
+    def test_ovs_profile_1_3_does_not_create_tap(
+            self, port_exists, create_ovs_vif_port, create_tap):
+        current_profile = objects.vif.VIFPortProfileOpenVSwitch(
+            interface_id='e65867e0-9340-4a7f-a256-09af6eb7a3aa',
+            create_tap=True,
+            multiqueue=True)
+        primitive = current_profile.obj_to_primitive(target_version='1.3')
+        profile = objects.vif.VIFPortProfileOpenVSwitch.obj_from_primitive(
+            primitive)
+        self.assertNotIn('create_tap', profile)
+        self.assertNotIn('multiqueue', profile)
+        self.vif_ovs.port_profile = profile
+
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
+        plugin._create_vif_port(
+            self.vif_ovs, mock.sentinel.vif_name, self.instance)
+        create_ovs_vif_port.assert_called_once()
+        create_tap.assert_not_called()
+
     @mock.patch.object(ovsdb_lib.BaseOVS, 'create_ovs_vif_port')
     def test_create_vif_port(self, mock_create_ovs_vif_port):
         plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)

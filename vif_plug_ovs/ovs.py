@@ -226,7 +226,7 @@ class OvsPlugin(plugin.PluginBase):
 
     def _get_mtu(self, vif: _OVSVif) -> int:
         network = self._get_vif_network(vif)
-        if network and network.mtu:
+        if 'mtu' in network and network.mtu:
             return network.mtu
         # oslo.config is untyped
         return cast(int, self.config.network_device_mtu)

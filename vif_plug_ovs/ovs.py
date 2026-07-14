@@ -146,6 +146,37 @@ class OvsPlugin(plugin.PluginBase):
         return (OvsPlugin.gen_port_name("qvb", vif.id),
                 OvsPlugin.gen_port_name("qvo", vif.id))
 
+    @staticmethod
+    def _get_vif_network(vif: objects.VIFBase) -> objects.Network:
+        if 'network' not in vif:
+            raise ValueError('VIF network is required')
+        network = vif.network
+        if network is None:
+            raise ValueError('VIF network is required')
+        return network
+
+    @staticmethod
+    def _get_vif_port_profile(
+        vif: objects.VIFBase
+    ) -> objects.VIFPortProfileOpenVSwitch:
+        if 'port_profile' not in vif:
+            raise exception.MissingPortProfile()
+        profile = vif.port_profile
+        if not isinstance(profile,
+                          objects.vif.VIFPortProfileOpenVSwitch):
+            raise exception.WrongPortProfile(
+                profile=profile.__class__.__name__)
+        return profile
+
+    @staticmethod
+    def _get_vif_address(vif: objects.VIFBase) -> str:
+        if 'address' not in vif:
+            raise ValueError('VIF address is required')
+        address = vif.address
+        if address is None:
+            raise ValueError('VIF address is required')
+        return address
+
     def describe(self) -> objects.HostPluginInfo:
         pp_ovs = objects.host_info.HostPortProfileInfo(
             profile_object_name=objects.vif.VIFPortProfileOpenVSwitch.__name__,  # noqa
@@ -183,9 +214,9 @@ class OvsPlugin(plugin.PluginBase):
             ])
 
     def _get_mtu(self, vif: objects.VIFBase) -> int:
-        if vif.network and vif.network.mtu:
-            # TODO(stephenfin: this looks like a bug in the o.vo mypy plugin
-            return cast(int, vif.network.mtu)
+        network = self._get_vif_network(vif)
+        if network and network.mtu:
+            return network.mtu
         # oslo.config is untyped
         return cast(int, self.config.network_device_mtu)
 
@@ -216,6 +247,9 @@ class OvsPlugin(plugin.PluginBase):
         datapath_type: str | None = None,
     ) -> None:
         mtu = self._get_mtu(vif)
+        network = self._get_vif_network(vif)
+        profile = self._get_vif_port_profile(vif)
+        address = self._get_vif_address(vif)
         # NOTE(sean-k-mooney): As part of a partial fix to bug #1734320
         # we introduced the isolate_vif config option to enable isolation
         # of the vif prior to neutron wiring up the interface. To do
@@ -228,7 +262,7 @@ class OvsPlugin(plugin.PluginBase):
         # TODO(sean-k-mooney): Extend neutron to record what ml2 driver
         # bound the interface in the vif binding details so isolation
         # can be enabled automatically in the future.
-        bridge = bridge or vif.network.bridge
+        bridge = bridge or network.bridge
         assert isinstance(bridge, str)  # narrow type
 
         tag: int | None = None
@@ -258,8 +292,8 @@ class OvsPlugin(plugin.PluginBase):
         self.ovsdb.create_ovs_vif_port(
             bridge,
             vif_name,
-            vif.port_profile.interface_id,
-            vif.address,
+            profile.interface_id,
+            address,
             instance_info.uuid,
             mtu=mtu,
             vhost_server_path=vhost_server_path,
@@ -277,7 +311,6 @@ class OvsPlugin(plugin.PluginBase):
         # Check if tap creation is requested:
         # - 'field in profile.fields' checks if field exists in schema
         # - 'field in profile' checks if the attribute is set on instance
-        profile = vif.port_profile
         create_tap = (
             isinstance(profile, objects.vif.VIFPortProfileOpenVSwitch) and
             'create_tap' in profile.fields and
@@ -302,7 +335,7 @@ class OvsPlugin(plugin.PluginBase):
             # already exist (e.g., from a previous plug during init_host)
             if not ip_lib.exists(vif_name):
                 linux_net.create_tap(
-                    vif_name, mtu, vif.address, multiqueue=multiqueue)
+                    vif_name, mtu, address, multiqueue=multiqueue)
 
     def _update_vif_port(self, vif: objects.VIFBase, vif_name: str) -> None:
         mtu = self._get_mtu(vif)
@@ -336,11 +369,10 @@ class OvsPlugin(plugin.PluginBase):
     def _get_vif_datapath_type(
         vif: objects.VIFBase, datapath: str = constants.OVS_DATAPATH_SYSTEM
     ) -> str | None:
-        profile = vif.port_profile
+        profile = OvsPlugin._get_vif_port_profile(vif)
         if 'datapath_type' not in profile or not profile.datapath_type:
             return datapath
-        # TODO(stephenfin: this looks like a bug in the o.vo mypy plugin
-        return cast(str | None, profile.datapath_type)
+        return profile.datapath_type
 
     def _plug_vhostuser(
         self, vif: objects.VIFVHostUser, instance_info: objects.InstanceInfo
@@ -379,11 +411,12 @@ class OvsPlugin(plugin.PluginBase):
         linux_net.ensure_bridge(vif.bridge_name)
 
         mtu = self._get_mtu(vif)
+        network = self._get_vif_network(vif)
         if not ip_lib.exists(v2_name):
             linux_net.create_veth_pair(v1_name, v2_name, mtu)
             linux_net.add_bridge_port(vif.bridge_name, v1_name)
-            self.ovsdb.ensure_ovs_bridge(vif.network.bridge,
-                self._get_vif_datapath_type(vif))
+            self.ovsdb.ensure_ovs_bridge(
+                network.bridge, self._get_vif_datapath_type(vif))
             self._create_vif_port(vif, v2_name, instance_info)
         else:
             linux_net.update_veth_pair(v1_name, v2_name, mtu)
@@ -396,9 +429,10 @@ class OvsPlugin(plugin.PluginBase):
 
         # NOTE(sean-k-mooney): the port name prefix should not be
         # changed to avoid losing ports on upgrade.
+        network = self._get_vif_network(vif)
         port_bridge_name = self.gen_port_name('pb', vif.id)
         port_bridge_patch = self.gen_port_name('pbp', vif.id, max_length=64)
-        int_bridge_name = vif.network.bridge
+        int_bridge_name = network.bridge
         int_bridge_patch = self.gen_port_name('ibp', vif.id, max_length=64)
 
         self.ovsdb.ensure_ovs_bridge(
@@ -413,7 +447,7 @@ class OvsPlugin(plugin.PluginBase):
                if self._isolate_vif(int_bridge_patch, int_bridge_name)
                else None)
         iface_id = vif.id
-        mac = vif.address
+        mac = self._get_vif_address(vif)
         instance_id = instance_info.uuid
         LOG.debug(
             'creating patch port pair \n'
@@ -428,8 +462,10 @@ class OvsPlugin(plugin.PluginBase):
         self, vif: objects.VIFOpenVSwitch, instance_info: objects.InstanceInfo
     ) -> None:
         """Create a per-VIF OVS port."""
-        self.ovsdb.ensure_ovs_bridge(vif.network.bridge,
-                                     self._get_vif_datapath_type(vif))
+        network = self._get_vif_network(vif)
+        profile = self._get_vif_port_profile(vif)
+        self.ovsdb.ensure_ovs_bridge(
+            network.bridge, self._get_vif_datapath_type(vif))
         # NOTE(sean-k-mooney): as part of a partial revert of
         # change Iaf15fa7a678ec2624f7c12f634269c465fbad930
         # (always create ovs port during plug), we stopped calling
@@ -448,15 +484,15 @@ class OvsPlugin(plugin.PluginBase):
         # NOTE(hamdyk): As a WA to the above note, one can use
         # VIFPortProfileOpenVSwitch.create_port flag to explicitly
         # plug the port to the switch.
-        if ("create_port" in vif.port_profile and
-                vif.port_profile.create_port):
+        if ("create_port" in profile and profile.create_port):
             self._create_vif_port(vif, vif.vif_name, instance_info)
 
     def _plug_vf(
         self, vif: objects.VIFHostDevice, instance_info: objects.InstanceInfo
     ) -> None:
         datapath = self._get_vif_datapath_type(vif)
-        self.ovsdb.ensure_ovs_bridge(vif.network.bridge, datapath)
+        network = self._get_vif_network(vif)
+        self.ovsdb.ensure_ovs_bridge(network.bridge, datapath)
         pci_slot = vif.dev_address
         vf_num = linux_net.get_vf_num_by_pci_address(pci_slot)
         if datapath == constants.OVS_DATAPATH_SYSTEM:
@@ -479,7 +515,7 @@ class OvsPlugin(plugin.PluginBase):
     def plug(
         self, vif: objects.VIFBase, instance_info: objects.InstanceInfo
     ) -> None:
-        if not hasattr(vif, "port_profile"):
+        if 'port_profile' not in vif:
             raise exception.MissingPortProfile()
         if not isinstance(vif.port_profile,
                           objects.vif.VIFPortProfileOpenVSwitch):
@@ -504,13 +540,15 @@ class OvsPlugin(plugin.PluginBase):
                 err="This vif type is not supported by this plugin")
 
     def _delete_bridge_if_trunk(self, vif: objects.VIFBase) -> None:
-        if is_trunk_bridge(vif.network.bridge):
-            self.ovsdb.delete_ovs_bridge(vif.network.bridge)
+        network = self._get_vif_network(vif)
+        if is_trunk_bridge(network.bridge):
+            self.ovsdb.delete_ovs_bridge(network.bridge)
 
     def _unplug_vhostuser(
         self, vif: objects.VIFVHostUser, instance_info: objects.InstanceInfo
     ) -> None:
-        self.ovsdb.delete_ovs_vif_port(vif.network.bridge,
+        network = self._get_vif_network(vif)
+        self.ovsdb.delete_ovs_vif_port(network.bridge,
             OvsPlugin.gen_port_name(
                 constants.OVS_VHOSTUSER_PREFIX,
                 vif.id))
@@ -533,8 +571,9 @@ class OvsPlugin(plugin.PluginBase):
         linux_net.delete_bridge(linux_bridge_name, v1_name)
 
         qos_type = self._get_qos_type(vif)
+        network = self._get_vif_network(vif)
         self.ovsdb.delete_ovs_vif_port(
-            vif.network.bridge, v2_name, qos_type=qos_type
+            network.bridge, v2_name, qos_type=qos_type
         )
         self._delete_bridge_if_trunk(vif)
 
@@ -553,10 +592,11 @@ class OvsPlugin(plugin.PluginBase):
 
         # NOTE(sean-k-mooney): the port name prefix should not be
         # changed to avoid loosing ports on upgrade.
+        network = self._get_vif_network(vif)
         port_bridge_name = self.gen_port_name('pb', vif.id)
         port_bridge_patch = self.gen_port_name('pbp', vif.id, max_length=64)
         int_bridge_patch = self.gen_port_name('ibp', vif.id, max_length=64)
-        self.ovsdb.delete_ovs_vif_port(vif.network.bridge, int_bridge_patch)
+        self.ovsdb.delete_ovs_vif_port(network.bridge, int_bridge_patch)
         self.ovsdb.delete_ovs_vif_port(port_bridge_name, port_bridge_patch)
         qos_type = self._get_qos_type(vif)
         self.ovsdb.delete_ovs_vif_port(
@@ -576,8 +616,9 @@ class OvsPlugin(plugin.PluginBase):
         # Iaf15fa7a678ec2624f7c12f634269c465fbad930 this should be correct
         # so this is not removed.
         qos_type = self._get_qos_type(vif)
+        network = self._get_vif_network(vif)
         self.ovsdb.delete_ovs_vif_port(
-            vif.network.bridge, vif.vif_name, qos_type=qos_type
+            network.bridge, vif.vif_name, qos_type=qos_type
         )
         self._delete_bridge_if_trunk(vif)
 
@@ -598,8 +639,9 @@ class OvsPlugin(plugin.PluginBase):
         # SR-IOV VF, therefore we just need to remove it from the ovs bridge
         # and set the status to down
         qos_type = self._get_qos_type(vif)
+        network = self._get_vif_network(vif)
         self.ovsdb.delete_ovs_vif_port(
-            vif.network.bridge, representor, delete_netdev=False,
+            network.bridge, representor, delete_netdev=False,
             qos_type=qos_type
         )
         if datapath == constants.OVS_DATAPATH_SYSTEM:
@@ -609,7 +651,7 @@ class OvsPlugin(plugin.PluginBase):
     def unplug(
         self, vif: objects.VIFBase, instance_info: objects.InstanceInfo
     ) -> None:
-        if not hasattr(vif, "port_profile"):
+        if 'port_profile' not in vif:
             raise exception.MissingPortProfile()
         if not isinstance(vif.port_profile,
                           objects.vif.VIFPortProfileOpenVSwitch):

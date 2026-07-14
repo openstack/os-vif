@@ -167,16 +167,106 @@ class PluginTest(testtools.TestCase):
             self.vif_ovs_hybrid, datapath=constants.OVS_DATAPATH_SYSTEM)
         self.assertEqual(constants.OVS_DATAPATH_SYSTEM, dp_type)
 
+    def test_missing_port_profile(self):
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
+        del self.vif_ovs.port_profile
+        self.assertRaises(
+            exception.MissingPortProfile,
+            plugin._get_vif_port_profile, self.vif_ovs)
+
+        unsupported_vif = objects.vif.VIFGeneric(
+            id='b679325f-ca89-4ee0-a8be-6db1409b69ea',
+            vif_name='tap-xxx-yyy-zzz')
+        self.assertRaises(
+            exception.MissingPortProfile,
+            plugin.plug, unsupported_vif, self.instance)
+        self.assertRaises(
+            exception.MissingPortProfile,
+            plugin.unplug, unsupported_vif, self.instance)
+
+    def test_wrong_port_profile(self):
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
+        wrong_profile = objects.vif.VIFPortProfileBase()
+        self.vif_ovs.port_profile = wrong_profile
+        self.assertRaises(
+            exception.WrongPortProfile,
+            plugin._get_vif_port_profile, self.vif_ovs)
+
+        unsupported_vif = objects.vif.VIFGeneric(
+            id='b679325f-ca89-4ee0-a8be-6db1409b69ea',
+            vif_name='tap-xxx-yyy-zzz',
+            port_profile=wrong_profile)
+        self.assertRaises(
+            exception.WrongPortProfile,
+            plugin.plug, unsupported_vif, self.instance)
+        self.assertRaises(
+            exception.WrongPortProfile,
+            plugin.unplug, unsupported_vif, self.instance)
+
+    def test_plug_rejects_unset_network(self):
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
+        del self.vif_ovs.network
+        self.assertRaisesRegex(
+            ValueError, 'network',
+            plugin.plug, self.vif_ovs, self.instance)
+
+    def test_plug_rejects_none_network(self):
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
+        self.vif_ovs.network = None
+        self.assertRaisesRegex(
+            ValueError, 'network',
+            plugin.plug, self.vif_ovs, self.instance)
+
+    def test_create_vif_port_rejects_unset_address(self):
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
+        del self.vif_ovs.address
+        self.assertRaisesRegex(
+            ValueError, 'address', plugin._create_vif_port,
+            self.vif_ovs, mock.sentinel.vif_name, self.instance)
+
+    def test_create_vif_port_rejects_none_address(self):
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
+        self.vif_ovs.address = None
+        self.assertRaisesRegex(
+            ValueError, 'address', plugin._create_vif_port,
+            self.vif_ovs, mock.sentinel.vif_name, self.instance)
+
+    @mock.patch.object(
+        ovsdb_lib.BaseOVS, 'ensure_ovs_bridge', autospec=True)
+    def test_plug_vif_generic_accepts_none_address(self, ensure_bridge):
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
+        self.vif_ovs.address = None
+        plugin.plug(self.vif_ovs, self.instance)
+        ensure_bridge.assert_called_once_with(plugin.ovsdb, 'br0', 'netdev')
+
+    @mock.patch.object(
+        ovsdb_lib.BaseOVS, 'delete_ovs_bridge', autospec=True)
+    @mock.patch.object(
+        ovsdb_lib.BaseOVS, 'delete_ovs_vif_port', autospec=True)
+    @mock.patch.object(
+        ip_lib, 'exists', return_value=False, autospec=True)
+    def test_unplug_accepts_unset_address(
+            self, exists, delete_ovs_vif_port, delete_ovs_bridge):
+        plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
+        del self.vif_ovs.address
+        plugin.unplug(self.vif_ovs, self.instance)
+        delete_ovs_vif_port.assert_called_once_with(
+            plugin.ovsdb, 'br0', 'tap-xxx-yyy-zzz', qos_type=None)
+        delete_ovs_bridge.assert_not_called()
+
     @mock.patch.object(ovsdb_lib.BaseOVS, 'create_ovs_vif_port')
     def test_create_vif_port(self, mock_create_ovs_vif_port):
         plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
+        network = plugin._get_vif_network(self.vif_ovs)
+        profile = plugin._get_vif_port_profile(self.vif_ovs)
+        address = plugin._get_vif_address(self.vif_ovs)
         plugin._create_vif_port(
             self.vif_ovs, mock.sentinel.vif_name, self.instance,
             interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE)
         mock_create_ovs_vif_port.assert_called_once_with(
-            self.vif_ovs.network.bridge, mock.sentinel.vif_name,
-            self.vif_ovs.port_profile.interface_id,
-            self.vif_ovs.address, self.instance.uuid,
+            network.bridge, mock.sentinel.vif_name,
+            profile.interface_id,
+            address, self.instance.uuid,
             mtu=plugin.config.network_device_mtu,
             vhost_server_path=None,
             interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE,
@@ -187,13 +277,16 @@ class PluginTest(testtools.TestCase):
     def test_create_vif_port_mtu_in_model(self, mock_create_ovs_vif_port):
         self.vif_ovs.network = self.network_ovs_mtu
         plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
+        network = plugin._get_vif_network(self.vif_ovs)
+        profile = plugin._get_vif_port_profile(self.vif_ovs)
+        address = plugin._get_vif_address(self.vif_ovs)
         plugin._create_vif_port(
             self.vif_ovs, mock.sentinel.vif_name, self.instance,
             interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE)
         mock_create_ovs_vif_port.assert_called_once_with(
-            self.vif_ovs.network.bridge, mock.sentinel.vif_name,
-            self.vif_ovs.port_profile.interface_id,
-            self.vif_ovs.address, self.instance.uuid,
+            network.bridge, mock.sentinel.vif_name,
+            profile.interface_id,
+            address, self.instance.uuid,
             mtu=self.network_ovs_mtu.mtu,
             interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE,
             vhost_server_path=None, tag=None, pf_pci=None, vf_num=None,
@@ -205,15 +298,18 @@ class PluginTest(testtools.TestCase):
     def test_create_vif_port_isolate_port_no_isolate_vif_no_port(
             self, mock_port_exists, mock_create_ovs_vif_port):
         plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
+        network = plugin._get_vif_network(self.vif_ovs)
+        profile = plugin._get_vif_port_profile(self.vif_ovs)
+        address = plugin._get_vif_address(self.vif_ovs)
         mock_port_exists.return_value = False
         with mock.patch.object(plugin.config, 'isolate_vif', False):
             plugin._create_vif_port(
                 self.vif_ovs, mock.sentinel.vif_name, self.instance,
                 interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE)
             mock_create_ovs_vif_port.assert_called_once_with(
-                self.vif_ovs.network.bridge, mock.sentinel.vif_name,
-                self.vif_ovs.port_profile.interface_id,
-                self.vif_ovs.address, self.instance.uuid,
+                network.bridge, mock.sentinel.vif_name,
+                profile.interface_id,
+                address, self.instance.uuid,
                 mtu=plugin.config.network_device_mtu,
                 vhost_server_path=None,
                 interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE,
@@ -225,15 +321,18 @@ class PluginTest(testtools.TestCase):
     def test_create_vif_port_isolate_port_isolate_vif_no_port(
             self, mock_port_exists, mock_create_ovs_vif_port):
         plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
+        network = plugin._get_vif_network(self.vif_ovs)
+        profile = plugin._get_vif_port_profile(self.vif_ovs)
+        address = plugin._get_vif_address(self.vif_ovs)
         mock_port_exists.return_value = False
         with mock.patch.object(plugin.config, 'isolate_vif', True):
             plugin._create_vif_port(
                 self.vif_ovs, mock.sentinel.vif_name, self.instance,
                 interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE)
             mock_create_ovs_vif_port.assert_called_once_with(
-                self.vif_ovs.network.bridge, mock.sentinel.vif_name,
-                self.vif_ovs.port_profile.interface_id,
-                self.vif_ovs.address, self.instance.uuid,
+                network.bridge, mock.sentinel.vif_name,
+                profile.interface_id,
+                address, self.instance.uuid,
                 mtu=plugin.config.network_device_mtu,
                 interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE,
                 tag=constants.DEAD_VLAN,
@@ -249,15 +348,18 @@ class PluginTest(testtools.TestCase):
     def test_create_vif_port_isolate_port_isolate_vif_port_exists(
             self, mock_port_exists, mock_create_ovs_vif_port):
         plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
+        network = plugin._get_vif_network(self.vif_ovs)
+        profile = plugin._get_vif_port_profile(self.vif_ovs)
+        address = plugin._get_vif_address(self.vif_ovs)
         mock_port_exists.return_value = True
         with mock.patch.object(plugin.config, 'isolate_vif', True):
             plugin._create_vif_port(
                 self.vif_ovs, mock.sentinel.vif_name, self.instance,
                 interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE)
             mock_create_ovs_vif_port.assert_called_once_with(
-                self.vif_ovs.network.bridge, mock.sentinel.vif_name,
-                self.vif_ovs.port_profile.interface_id,
-                self.vif_ovs.address, self.instance.uuid,
+                network.bridge, mock.sentinel.vif_name,
+                profile.interface_id,
+                address, self.instance.uuid,
                 mtu=plugin.config.network_device_mtu,
                 vhost_server_path=None,
                 interface_type=constants.OVS_VHOSTUSER_INTERFACE_TYPE,
@@ -269,6 +371,8 @@ class PluginTest(testtools.TestCase):
     def test_create_vif_port_qos_port_bridge_true_port_new(
             self, mock_port_exists, mock_create_ovs_vif_port):
         plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
+        profile = plugin._get_vif_port_profile(self.vif_ovs_system)
+        address = plugin._get_vif_address(self.vif_ovs_system)
         mock_port_exists.return_value = False
         port_bridge_name = "port-bridge-xxx"
         # _create_vif_port as from _plug_port_bridge
@@ -281,8 +385,8 @@ class PluginTest(testtools.TestCase):
         # qos_type should be set for the new port
         mock_create_ovs_vif_port.assert_called_once_with(
             port_bridge_name, mock.sentinel.vif_name,
-            self.vif_ovs_system.port_profile.interface_id,
-            self.vif_ovs_system.address, self.instance.uuid,
+            profile.interface_id,
+            address, self.instance.uuid,
             mtu=plugin.config.network_device_mtu,
             set_ids=False,
             qos_type="linux-noop",
@@ -297,6 +401,8 @@ class PluginTest(testtools.TestCase):
     def test_create_vif_port_qos_port_bridge_true_port_exists(
             self, mock_port_exists, mock_create_ovs_vif_port):
         plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
+        profile = plugin._get_vif_port_profile(self.vif_ovs_system)
+        address = plugin._get_vif_address(self.vif_ovs_system)
         mock_port_exists.return_value = True
         port_bridge_name = "port-bridge-xxx"
         # _create_vif_port as from _plug_port_bridge
@@ -309,8 +415,8 @@ class PluginTest(testtools.TestCase):
         # qos_type should not be set for the existing port
         mock_create_ovs_vif_port.assert_called_once_with(
             port_bridge_name, mock.sentinel.vif_name,
-            self.vif_ovs_system.port_profile.interface_id,
-            self.vif_ovs_system.address, self.instance.uuid,
+            profile.interface_id,
+            address, self.instance.uuid,
             mtu=plugin.config.network_device_mtu,
             vhost_server_path=None, interface_type=None,
             tag=None, pf_pci=None, vf_num=None, set_ids=False,
@@ -321,17 +427,20 @@ class PluginTest(testtools.TestCase):
     def test_create_vif_port_qos_port_bridge_false_port_new(
             self, mock_port_exists, mock_create_ovs_vif_port):
         plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
+        network = plugin._get_vif_network(self.vif_ovs_system)
+        profile = plugin._get_vif_port_profile(self.vif_ovs_system)
+        address = plugin._get_vif_address(self.vif_ovs_system)
         mock_port_exists.return_value = False
         # _create_vif_port as from _plug_vif_generic
         plugin._create_vif_port(
             self.vif_ovs_system, mock.sentinel.vif_name, self.instance)
         mock_port_exists.assert_called_once_with(
-            mock.sentinel.vif_name, self.vif_ovs_system.network.bridge)
+            mock.sentinel.vif_name, network.bridge)
         # qos_type should be set for the new port
         mock_create_ovs_vif_port.assert_called_once_with(
-            self.vif_ovs_system.network.bridge, mock.sentinel.vif_name,
-            self.vif_ovs_system.port_profile.interface_id,
-            self.vif_ovs_system.address, self.instance.uuid,
+            network.bridge, mock.sentinel.vif_name,
+            profile.interface_id,
+            address, self.instance.uuid,
             mtu=plugin.config.network_device_mtu,
             vhost_server_path=None, interface_type=None, tag=None,
             pf_pci=None, vf_num=None, set_ids=True, datapath_type=None,
@@ -342,17 +451,20 @@ class PluginTest(testtools.TestCase):
     def test_create_vif_port_qos_port_bridge_false_port_exists(
             self, mock_port_exists, mock_create_ovs_vif_port):
         plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
+        network = plugin._get_vif_network(self.vif_ovs_system)
+        profile = plugin._get_vif_port_profile(self.vif_ovs_system)
+        address = plugin._get_vif_address(self.vif_ovs_system)
         mock_port_exists.return_value = True
         # _create_vif_port as from _plug_vif_generic
         plugin._create_vif_port(
             self.vif_ovs_system, mock.sentinel.vif_name, self.instance)
         mock_port_exists.assert_called_once_with(
-            mock.sentinel.vif_name, self.vif_ovs_system.network.bridge)
+            mock.sentinel.vif_name, network.bridge)
         # qos_type should not be set for the existing port
         mock_create_ovs_vif_port.assert_called_once_with(
-            self.vif_ovs_system.network.bridge, mock.sentinel.vif_name,
-            self.vif_ovs_system.port_profile.interface_id,
-            self.vif_ovs_system.address, self.instance.uuid,
+            network.bridge, mock.sentinel.vif_name,
+            profile.interface_id,
+            address, self.instance.uuid,
             mtu=plugin.config.network_device_mtu,
             vhost_server_path=None, interface_type=None, tag=None, pf_pci=None,
             vf_num=None, set_ids=True, datapath_type=None, qos_type=None,

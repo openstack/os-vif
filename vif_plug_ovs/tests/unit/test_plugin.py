@@ -157,6 +157,17 @@ class PluginTest(testtools.TestCase):
             name='demo',
             uuid='f0000000-0000-0000-0000-000000000001')
 
+    def test_is_ovs_vif(self):
+        supported_vifs = (
+            self.vif_ovs_hybrid,
+            self.vif_ovs,
+            self.vif_vhostuser,
+            self.vif_ovs_vf_passthrough)
+
+        for vif in supported_vifs:
+            self.assertTrue(ovs._is_ovs_vif(vif))
+        self.assertFalse(ovs._is_ovs_vif(objects.vif.VIFGeneric()))
+
     def test__get_vif_datapath_type(self):
         plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
         dp_type = plugin._get_vif_datapath_type(

@@ -19,7 +19,7 @@
 
 from __future__ import annotations
 
-from typing import cast
+from typing import cast, TypeAlias, TypeGuard
 
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -36,6 +36,17 @@ from vif_plug_ovs.ovsdb import api as ovsdb_api
 from vif_plug_ovs.ovsdb import ovsdb_lib
 
 LOG = logging.getLogger(__name__)
+
+_OVSVif: TypeAlias = ('objects.VIFBridge | objects.VIFOpenVSwitch | '
+                      'objects.VIFVHostUser | objects.VIFHostDevice')
+
+
+def _is_ovs_vif(vif: objects.VIFBase) -> TypeGuard[_OVSVif]:
+    return isinstance(vif, (
+        objects.vif.VIFBridge,
+        objects.vif.VIFOpenVSwitch,
+        objects.vif.VIFVHostUser,
+        objects.vif.VIFHostDevice))
 
 
 def is_trunk_bridge(bridge_name: str) -> bool:
@@ -147,7 +158,7 @@ class OvsPlugin(plugin.PluginBase):
                 OvsPlugin.gen_port_name("qvo", vif.id))
 
     @staticmethod
-    def _get_vif_network(vif: objects.VIFBase) -> objects.Network:
+    def _get_vif_network(vif: _OVSVif) -> objects.Network:
         if 'network' not in vif:
             raise ValueError('VIF network is required')
         network = vif.network
@@ -157,7 +168,7 @@ class OvsPlugin(plugin.PluginBase):
 
     @staticmethod
     def _get_vif_port_profile(
-        vif: objects.VIFBase
+        vif: _OVSVif
     ) -> objects.VIFPortProfileOpenVSwitch:
         if 'port_profile' not in vif:
             raise exception.MissingPortProfile()
@@ -169,7 +180,7 @@ class OvsPlugin(plugin.PluginBase):
         return profile
 
     @staticmethod
-    def _get_vif_address(vif: objects.VIFBase) -> str:
+    def _get_vif_address(vif: _OVSVif) -> str:
         if 'address' not in vif:
             raise ValueError('VIF address is required')
         address = vif.address
@@ -213,14 +224,14 @@ class OvsPlugin(plugin.PluginBase):
                     supported_port_profiles=[pp_ovs, pp_ovs_representor]),
             ])
 
-    def _get_mtu(self, vif: objects.VIFBase) -> int:
+    def _get_mtu(self, vif: _OVSVif) -> int:
         network = self._get_vif_network(vif)
         if network and network.mtu:
             return network.mtu
         # oslo.config is untyped
         return cast(int, self.config.network_device_mtu)
 
-    def supports_tc_qdisc(self, vif: objects.VIFBase) -> bool:
+    def supports_tc_qdisc(self, vif: _OVSVif) -> bool:
         if self._get_vif_datapath_type(vif) != constants.OVS_DATAPATH_SYSTEM:
             return False
         return True
@@ -234,7 +245,7 @@ class OvsPlugin(plugin.PluginBase):
 
     def _create_vif_port(
         self,
-        vif: objects.VIFBase,
+        vif: _OVSVif,
         vif_name: str,
         instance_info: objects.InstanceInfo,
         *,
@@ -337,12 +348,12 @@ class OvsPlugin(plugin.PluginBase):
                 linux_net.create_tap(
                     vif_name, mtu, address, multiqueue=multiqueue)
 
-    def _update_vif_port(self, vif: objects.VIFBase, vif_name: str) -> None:
+    def _update_vif_port(self, vif: _OVSVif, vif_name: str) -> None:
         mtu = self._get_mtu(vif)
         self.ovsdb.update_ovs_vif_port(vif_name, mtu)
 
     def _delete_tap_if_required(
-        self, vif: objects.VIFBase, vif_name: str
+        self, vif: _OVSVif, vif_name: str
     ) -> None:
         """Delete tap device if it was created via create_tap flag.
 
@@ -367,7 +378,7 @@ class OvsPlugin(plugin.PluginBase):
 
     @staticmethod
     def _get_vif_datapath_type(
-        vif: objects.VIFBase, datapath: str = constants.OVS_DATAPATH_SYSTEM
+        vif: _OVSVif, datapath: str = constants.OVS_DATAPATH_SYSTEM
     ) -> str | None:
         profile = OvsPlugin._get_vif_port_profile(vif)
         if 'datapath_type' not in profile or not profile.datapath_type:
@@ -521,6 +532,11 @@ class OvsPlugin(plugin.PluginBase):
                           objects.vif.VIFPortProfileOpenVSwitch):
             raise exception.WrongPortProfile(
                 profile=vif.port_profile.__class__.__name__)
+        if not _is_ovs_vif(vif):
+            # This should never be raised.
+            raise osv_exception.PlugException(
+                vif=vif,
+                err="This vif type is not supported by this plugin")
 
         if isinstance(vif, objects.vif.VIFOpenVSwitch):
             if self.config.per_port_bridge:
@@ -533,13 +549,8 @@ class OvsPlugin(plugin.PluginBase):
             self._plug_vhostuser(vif, instance_info)
         elif isinstance(vif, objects.vif.VIFHostDevice):
             self._plug_vf(vif, instance_info)
-        else:
-            # This should never be raised.
-            raise osv_exception.PlugException(
-                vif=vif,
-                err="This vif type is not supported by this plugin")
 
-    def _delete_bridge_if_trunk(self, vif: objects.VIFBase) -> None:
+    def _delete_bridge_if_trunk(self, vif: _OVSVif) -> None:
         network = self._get_vif_network(vif)
         if is_trunk_bridge(network.bridge):
             self.ovsdb.delete_ovs_bridge(network.bridge)
@@ -577,7 +588,7 @@ class OvsPlugin(plugin.PluginBase):
         )
         self._delete_bridge_if_trunk(vif)
 
-    def _get_qos_type(self, vif: objects.VIFBase) -> str | None:
+    def _get_qos_type(self, vif: _OVSVif) -> str | None:
         qos_type = None
         if self.supports_tc_qdisc(vif):
             qos_type = cast(str, self.config.default_qos_type)
@@ -657,6 +668,11 @@ class OvsPlugin(plugin.PluginBase):
                           objects.vif.VIFPortProfileOpenVSwitch):
             raise exception.WrongPortProfile(
                 profile=vif.port_profile.__class__.__name__)
+        if not _is_ovs_vif(vif):
+            # this should never be raised.
+            raise osv_exception.UnplugException(
+                vif=vif,
+                err="This vif type is not supported by this plugin")
         if isinstance(vif, objects.vif.VIFOpenVSwitch):
             if self.config.per_port_bridge:
                 self._unplug_port_bridge(vif, instance_info)
@@ -672,8 +688,3 @@ class OvsPlugin(plugin.PluginBase):
             self._unplug_vhostuser(vif, instance_info)
         elif isinstance(vif, objects.vif.VIFHostDevice):
             self._unplug_vf(vif)
-        else:
-            # this should never be raised.
-            raise osv_exception.UnplugException(
-                vif=vif,
-                err="This vif type is not supported by this plugin")

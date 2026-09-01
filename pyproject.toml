@@ -31,7 +31,7 @@ Homepage = "https://docs.openstack.org/os_vif"
 Repository = "https://opendev.org/openstack/os_vif"
 
 [project.entry-points."oslo.config.opts"]
-"oslo.cache" = "os_vif.opts:list_plugins_opts"
+"os_vif" = "os_vif.opts:list_plugins_opts"
 
 [project.entry-points."os_vif"]
 "ovs" = "vif_plug_ovs.ovs:OvsPlugin"

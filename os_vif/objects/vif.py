@@ -442,7 +442,7 @@ class VIFPortProfileOVSRepresentor(VIFPortProfileOpenVSwitch):
 
         This port profile is provided for backwards compatibility only.
 
-        This interface has been superceded by the one provided by the
+        This interface has been superseded by the one provided by the
         :class:`DatapathOffloadRepresentor` class, which is now a field element
         of the :class:`VIFPortProfileBase` class. The ``datapath_offload``
         field in port profiles should be used instead.

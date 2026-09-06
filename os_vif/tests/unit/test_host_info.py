@@ -69,7 +69,7 @@ class TestHostInfo(base.TestCase):
 
         self.assertEqual(self.host_info, host_info)
 
-    def test_plugin_existance(self):
+    def test_plugin_existence(self):
         self.assertTrue(self.host_info.has_plugin(ovs_constants.PLUGIN_NAME))
         self.assertFalse(self.host_info.has_plugin("fishfood"))
 
@@ -81,7 +81,7 @@ class TestHostInfo(base.TestCase):
                           self.host_info.get_plugin,
                           "fishfood")
 
-    def test_vif_existance(self):
+    def test_vif_existence(self):
         plugin = self.host_info.get_plugin(ovs_constants.PLUGIN_NAME)
         self.assertTrue(plugin.has_vif("VIFOpenVSwitch"))
         self.assertFalse(plugin.has_vif("VIFFishFood"))

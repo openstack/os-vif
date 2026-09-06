@@ -281,7 +281,7 @@ class TestOVSDBLib(testscenarios.WithScenarios,
         instance_id = uuidutils.generate_uuid()
         interface_type = 'internal'
         qos_type = CONF.os_vif_ovs.default_qos_type
-        # initally no qos policy should exist
+        # initially no qos policy should exist
         self.assertEqual(0, len(self.ovs.get_qos(port_name, qos_type)))
 
         # if we create a port with a qos policy get_qos should

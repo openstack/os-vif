@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    The ``pyroute2`` dependency is now declared unconditionally. The previous
+    ``sys_platform`` environment marker was silently dropped from the wheel
+    metadata by the ``pbr`` PEP 517 build backend, so ``pip install os-vif``
+    did not pull in ``pyroute2`` and the ``ovs`` plugin failed to load.

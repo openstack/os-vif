@@ -109,6 +109,15 @@ def create_tap(dev: str, mtu: int, mac: str, multiqueue: bool = False) -> None:
     # Use check_exit_code=[0, 17] to handle EEXIST (device already exists)
     ip_lib.add(dev, 'tuntap', mode='tap', multiqueue=multiqueue,
                check_exit_code=[0, 17])
+    # The tap is given the instance's MAC address. With IPv6 left enabled the
+    # host kernel derives the instance's own link-local address for the tap
+    # and runs DAD for it as soon as the device goes up; that neighbour
+    # solicitation is sent out of the tap, i.e. into the guest's receive
+    # queue, where the guest's own DAD later reads it and marks its
+    # link-local address dadfailed. The host never needs an address on the
+    # tap, so disable IPv6 before bringing the device up. (Taps created by
+    # libvirt avoid this by using an fe: prefixed MAC address.)
+    _disable_ipv6(dev)
     # Configure the device state and MAC address
     ip_lib.set(dev, state='up', address=mac, check_exit_code=[0, 2, 254])
     # Set MTU if specified

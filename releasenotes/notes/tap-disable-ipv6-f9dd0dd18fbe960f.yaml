@@ -1,0 +1,16 @@
+---
+fixes:
+  - |
+    Tap devices created by the Open vSwitch plugin (when Neutron requests
+    ``ovs_create_tap``) now have IPv6 disabled before they are brought up.
+    The tap is given the instance's MAC address, so with IPv6 enabled the
+    host derived the instance's own link-local address for it and ran
+    duplicate address detection for that address; the resulting neighbour
+    solicitation was queued towards the guest, whose own duplicate address
+    detection could then mark its link-local address ``dadfailed`` and leave
+    IPv6 on that interface unusable.
+
+    This disables only the host's IPv6 stack on the tap, not IPv6 traffic
+    forwarded to or from the instance. Guest IPv6 remains enabled. The fix
+    applies to newly created tap devices; existing devices are not
+    reconfigured until recreated through the normal instance lifecycle.

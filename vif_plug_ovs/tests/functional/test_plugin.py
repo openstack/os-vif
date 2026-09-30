@@ -71,7 +71,7 @@ def del_device(device):
         run_privileged('ip', 'link', 'del', device)
 
 
-class TestOVSPlugin(testscenarios.WithScenarios,
+class TestOVSPlugin(testscenarios.WithScenarios,  # type: ignore[misc]
                     base.VifPlugOvsBaseFunctionalTestCase):
 
     scenarios = [
@@ -79,6 +79,7 @@ class TestOVSPlugin(testscenarios.WithScenarios,
         ('vsctl', {'interface': 'vsctl'})
     ]
 
+    interface: str
     plugin: ovs.OvsPlugin
 
     def setUp(self):

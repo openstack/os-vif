@@ -12,11 +12,7 @@
 
 import fixtures
 import random
-
-
 from unittest import mock
-
-import testscenarios
 
 from oslo_concurrency import processutils
 from oslo_config import cfg
@@ -29,7 +25,6 @@ from vif_plug_ovs.ovsdb import ovsdb_lib
 from vif_plug_ovs import privsep
 from vif_plug_ovs.tests.functional import base
 
-
 CONF = cfg.CONF
 
 
@@ -38,18 +33,12 @@ def run_privileged(*full_args):
     return processutils.execute(*full_args)[0].rstrip()
 
 
-class TestOVSDBLib(testscenarios.WithScenarios,  # type: ignore[misc]
-                   base.VifPlugOvsBaseFunctionalTestCase):
+class TestOVSDBLibNative(base.VifPlugOvsBaseFunctionalTestCase):
 
-    scenarios = [
-        ('native', {'interface': 'native'}),
-        ('vsctl', {'interface': 'vsctl'})
-    ]
-
-    interface: str
+    interface: str = 'native'
 
     def setUp(self):
-        super(TestOVSDBLib, self).setUp()
+        super().setUp()
         run_privileged('ovs-vsctl', 'set-manager', 'ptcp:6640')
 
         # NOTE: (ralonsoh) load default configuration variables "CONFIG_OPTS"
@@ -336,3 +325,7 @@ class TestOVSDBLib(testscenarios.WithScenarios,  # type: ignore[misc]
         )
 
         self.assertTrue(self.ovs.port_exists(port_name, self.brname))
+
+
+class TestOVSDBLibVsctl(TestOVSDBLibNative):
+    interface = 'vsctl'

@@ -10,7 +10,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import testscenarios
 import time
 from unittest import mock
 import uuid
@@ -20,13 +19,11 @@ from oslo_config import cfg
 from oslo_utils import uuidutils
 
 from os_vif import objects
-
 from vif_plug_ovs import constants
 from vif_plug_ovs import ovs
 from vif_plug_ovs.ovsdb import ovsdb_lib
 from vif_plug_ovs import privsep
 from vif_plug_ovs.tests.functional import base
-
 
 CONF = cfg.CONF
 
@@ -71,19 +68,13 @@ def del_device(device):
         run_privileged('ip', 'link', 'del', device)
 
 
-class TestOVSPlugin(testscenarios.WithScenarios,  # type: ignore[misc]
-                    base.VifPlugOvsBaseFunctionalTestCase):
+class TestOVSPluginNative(base.VifPlugOvsBaseFunctionalTestCase):
 
-    scenarios = [
-        ('native', {'interface': 'native'}),
-        ('vsctl', {'interface': 'vsctl'})
-    ]
-
-    interface: str
+    interface: str = 'native'
     plugin: ovs.OvsPlugin
 
     def setUp(self):
-        super(TestOVSPlugin, self).setUp()
+        super().setUp()
         run_privileged('ovs-vsctl', 'set-manager', 'ptcp:6640')
         self.plugin = ovs.OvsPlugin.load(constants.PLUGIN_NAME)
         self.flags(ovsdb_interface=self.interface, group='os_vif_ovs')
@@ -340,3 +331,7 @@ class TestOVSPlugin(testscenarios.WithScenarios,  # type: ignore[misc]
 
         self._check_parameter('Interface', vif.vif_name,
                               'external_ids', expected_external_ids)
+
+
+class TestOVSPluginVsctl(TestOVSPluginNative):
+    interface = 'vsctl'

@@ -13,13 +13,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import abc
-import functools
-import inspect
 import os
 import sys
+import time
 
-import eventlet.timeout
 from os_vif import version as osvif_version
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -50,34 +47,12 @@ def wait_until_true(predicate, timeout=15, sleep=1):
     :return: True if the predicate is evaluated as True within the timeout,
              False in case of timeout evaluating the predicate.
     """
-    try:
-        with eventlet.Timeout(timeout):
-            while not predicate():
-                eventlet.sleep(sleep)
-    except eventlet.Timeout:
-        return False
+    deadline = time.monotonic() + timeout
+    while not predicate():
+        if time.monotonic() > deadline:
+            return False
+        time.sleep(sleep)
     return True
-
-
-class _CatchTimeoutMetaclass(abc.ABCMeta):
-    def __init__(cls, name, bases, dct):
-        super(_CatchTimeoutMetaclass, cls).__init__(name, bases, dct)
-        for name, method in inspect.getmembers(
-                # NOTE(ihrachys): we should use isroutine because it will catch
-                # both unbound methods (python2) and functions (python3)
-                cls, predicate=inspect.isroutine):
-            if name.startswith('test_'):
-                setattr(cls, name, cls._catch_timeout(method))
-
-    @staticmethod
-    def _catch_timeout(f):
-        @functools.wraps(f)
-        def func(self, *args, **kwargs):
-            try:
-                return f(self, *args, **kwargs)
-            except eventlet.Timeout as e:
-                self.fail('Execution of this test timed out: %s' % e)
-        return func
 
 
 def setup_logging(component_name):
@@ -94,12 +69,7 @@ def sanitize_log_path(path):
     return path.replace(' ', '-').replace('(', '_').replace(')', '_')
 
 
-# Test worker cannot survive eventlet's Timeout exception, which effectively
-# kills the whole worker, with all test cases scheduled to it. This metaclass
-# makes all test cases convert Timeout exceptions into unittest friendly
-# failure mode (self.fail).
-class BaseFunctionalTestCase(base.BaseTestCase,
-                             metaclass=_CatchTimeoutMetaclass):
+class BaseFunctionalTestCase(base.BaseTestCase):
     """Base class for functional tests."""
 
     COMPONENT_NAME = 'os_vif'

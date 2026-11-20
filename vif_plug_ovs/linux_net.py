@@ -93,7 +93,9 @@ def update_veth_pair(dev1_name: str, dev2_name: str, mtu: int) -> None:
 
 
 @privsep.vif_plug.entrypoint
-def create_tap(dev: str, mtu: int, mac: str, multiqueue: bool = False) -> None:
+def create_tap(
+    dev: str, mtu: int | None, mac: str, multiqueue: bool = False
+) -> None:
     """Create a tap device with the specified configuration.
 
     Creates a tap device using pyroute2's netlink interface, with optional
